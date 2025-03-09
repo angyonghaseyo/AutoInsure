@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import OracleConnectorABI from './abis/OracleConnector.json';
+import OracleConnectorABI from '../utils/abis/OracleConnector.json';
 
 export interface FlightData {
   isDelayed: boolean;

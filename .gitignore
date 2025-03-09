@@ -110,6 +110,10 @@ Thumbs.db
 desktop.ini
 **/desktop.ini
 
+# macOS specific
+.DS_Store
+**/.DS_Store
+
 # Debug
 .debug
 **/.debug

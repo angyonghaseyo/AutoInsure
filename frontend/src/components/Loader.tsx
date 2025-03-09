@@ -1,46 +1,51 @@
+// components/Loader.tsx
 import React from 'react';
 
 interface LoaderProps {
   size?: 'sm' | 'md' | 'lg';
   color?: string;
+  className?: string;
 }
 
-const Loader: React.FC<LoaderProps> = ({ size = 'md', color = 'currentColor' }) => {
+const Loader: React.FC<LoaderProps> = ({ 
+  size = 'md', 
+  color = 'currentColor',
+  className = ''
+}) => {
   const getSizeClass = () => {
     switch (size) {
       case 'sm':
-        return 'h-4 w-4';
+        return 'h-3 w-3'; // Reduced from h-4 w-4
       case 'lg':
-        return 'h-8 w-8';
+        return 'h-5 w-5'; // Reduced from h-8 w-8
       case 'md':
       default:
-        return 'h-6 w-6';
+        return 'h-4 w-4'; // Reduced from h-6 w-6
     }
   };
 
   return (
-    <div className="flex justify-center items-center">
-      <svg
-        className={`animate-spin ${getSizeClass()}`}
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke={color}
-          strokeWidth="4"
-        ></circle>
-        <path
-          className="opacity-75"
-          fill={color}
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        ></path>
-      </svg>
-    </div>
+    <svg
+      className={`animate-spin ${getSizeClass()} ${className}`}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke={color}
+        strokeWidth="4"
+      ></circle>
+      <path
+        className="opacity-75"
+        fill={color}
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      ></path>
+    </svg>
   );
 };
 
