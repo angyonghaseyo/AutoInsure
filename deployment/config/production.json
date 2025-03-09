@@ -1,0 +1,29 @@
+{
+    "environment": "production",
+    "networkId": 1,
+    "networkName": "Ethereum Mainnet",
+    "apiEndpoints": {
+      "flightData": "https://api.flightguard.io/flight-data"
+    },
+    "infuraId": "${NEXT_PUBLIC_INFURA_ID}",
+    "chainlinkConfig": {
+      "tokenAddress": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+      "oracle": "0xAA1DC356dc4B18f30C347798FD5379F3D77ABC5b"
+    },
+    "settings": {
+      "minPremium": "0.01",
+      "maxPayout": "0.5",
+      "defaultDelayThreshold": 120,
+      "policyExpirationTime": 86400
+    },
+    "analytics": {
+      "enabled": true,
+      "googleAnalyticsId": "G-XXXXXXXXXX"
+    },
+    "features": {
+      "cancelPolicy": true,
+      "multiTokenPayment": true,
+      "referralProgram": true,
+      "flightTracking": true
+    }
+  }

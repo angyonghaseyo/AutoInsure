@@ -1,1 +1,50 @@
-// Write something
+{
+    "name": "flight-insurance-dapp",
+    "version": "1.0.0",
+    "description": "Decentralized Flight Delay Insurance Platform",
+    "main": "index.js",
+    "scripts": {
+      "test": "hardhat test",
+      "compile": "hardhat compile",
+      "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+      "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+      "deploy:mumbai": "hardhat run scripts/deploy.js --network mumbai",
+      "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet",
+      "deploy:polygon": "hardhat run scripts/deploy.js --network polygon",
+      "interact": "hardhat run scripts/interact.js",
+      "node": "hardhat node",
+      "lint": "solhint 'contracts/**/*.sol'"
+    },
+    "keywords": [
+      "blockchain",
+      "ethereum",
+      "smart-contracts",
+      "chainlink",
+      "insurance",
+      "dapp",
+      "web3"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "devDependencies": {
+      "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+      "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+      "@nomicfoundation/hardhat-ethers": "^3.0.0",
+      "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+      "@nomicfoundation/hardhat-verify": "^1.0.0",
+      "@typechain/ethers-v6": "^0.4.0",
+      "@typechain/hardhat": "^8.0.0",
+      "chai": "^4.3.7",
+      "dotenv": "^16.0.3",
+      "ethers": "^6.6.0",
+      "hardhat": "^2.16.0",
+      "hardhat-gas-reporter": "^1.0.9",
+      "solhint": "^3.4.1",
+      "solidity-coverage": "^0.8.2",
+      "typechain": "^8.2.0"
+    },
+    "dependencies": {
+      "@chainlink/contracts": "^0.6.1",
+      "@openzeppelin/contracts": "^4.9.0"
+    }
+  }

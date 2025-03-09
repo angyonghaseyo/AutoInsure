@@ -1,0 +1,36 @@
+{
+    "environment": "local",
+    "networkId": 1337,
+    "networkName": "Local Hardhat Node",
+    "apiEndpoints": {
+      "flightData": "http://localhost:3001/api/flight-data"
+    },
+    "infuraId": "local",
+    "chainlinkConfig": {
+      "tokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "oracle": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+    },
+    "settings": {
+      "minPremium": "0.01",
+      "maxPayout": "0.5",
+      "defaultDelayThreshold": 120,
+      "policyExpirationTime": 86400
+    },
+    "analytics": {
+      "enabled": false,
+      "googleAnalyticsId": ""
+    },
+    "features": {
+      "cancelPolicy": true,
+      "multiTokenPayment": false,
+      "referralProgram": false,
+      "flightTracking": true
+    },
+    "debug": {
+      "enabled": true,
+      "mockFlightData": true,
+      "logLevel": "debug",
+      "showDevTools": true,
+      "autoMine": true
+    }
+  }

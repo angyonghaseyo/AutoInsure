@@ -1,0 +1,34 @@
+{
+    "environment": "staging",
+    "networkId": 11155111,
+    "networkName": "Sepolia Testnet",
+    "apiEndpoints": {
+      "flightData": "https://staging-api.flightguard.io/flight-data"
+    },
+    "infuraId": "${NEXT_PUBLIC_INFURA_ID}",
+    "chainlinkConfig": {
+      "tokenAddress": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "oracle": "0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD"
+    },
+    "settings": {
+      "minPremium": "0.01",
+      "maxPayout": "0.5",
+      "defaultDelayThreshold": 120,
+      "policyExpirationTime": 86400
+    },
+    "analytics": {
+      "enabled": false,
+      "googleAnalyticsId": ""
+    },
+    "features": {
+      "cancelPolicy": true,
+      "multiTokenPayment": false,
+      "referralProgram": false,
+      "flightTracking": true
+    },
+    "debug": {
+      "enabled": true,
+      "mockFlightData": true,
+      "logLevel": "debug"
+    }
+  }
