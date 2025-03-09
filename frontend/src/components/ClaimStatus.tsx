@@ -1,4 +1,3 @@
-// components/ClaimStatus.tsx
 import React from 'react';
 import { FlightData, formatDelayStatus } from '../services/chainlink';
 import { CheckCircle, Clock, AlertTriangle, XCircle, Loader } from 'lucide-react';

@@ -237,7 +237,7 @@ async function deployFrontend(environment) {
  * Main function
  */
 async function main() {
-  logStatus('FlightGuard Frontend Deployment', 'info');
+  logStatus('AutoInsure Frontend Deployment', 'info');
   logStatus('------------------------------', 'info');
   
   try {

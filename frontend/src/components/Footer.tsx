@@ -1,4 +1,3 @@
-// components/Footer.tsx
 import React from 'react';
 import Link from 'next/link';
 import { Twitter, Github, Globe, Mail, Shield } from 'lucide-react';
@@ -13,8 +12,8 @@ const Footer: React.FC = () => {
           {/* Branding section */}
           <div className="col-span-1">
             <Link href="/" className="flex items-center text-xl font-bold text-white">
-              <Shield className="h-3 w-3 mr-2 text-blue-400" />
-              FlightGuard
+              <Shield className="h-6 w-6 mr-2 text-blue-400" />
+              AutoInsure
             </Link>
             <p className="mt-3 text-gray-400 text-sm">
               Decentralized flight insurance powered by blockchain technology and Chainlink oracles.
@@ -27,7 +26,7 @@ const Footer: React.FC = () => {
                 className="text-gray-400 hover:text-blue-400 transition-colors"
                 aria-label="Twitter"
               >
-                <Twitter className="h-3 w-3" />
+                <Twitter className="h-5 w-5" />
               </a>
               <a
                 href="https://github.com/"
@@ -36,7 +35,7 @@ const Footer: React.FC = () => {
                 className="text-gray-400 hover:text-white transition-colors"
                 aria-label="GitHub"
               >
-                <Github className="h-3 w-3" />
+                <Github className="h-5 w-5" />
               </a>
               <a
                 href="https://example.com"
@@ -45,14 +44,14 @@ const Footer: React.FC = () => {
                 className="text-gray-400 hover:text-teal-400 transition-colors"
                 aria-label="Website"
               >
-                <Globe className="h-3 w-3" />
+                <Globe className="h-5 w-5" />
               </a>
               <a
                 href="mailto:contact@example.com"
                 className="text-gray-400 hover:text-red-400 transition-colors"
                 aria-label="Email"
               >
-                <Mail className="h-3 w-3" />
+                <Mail className="h-5 w-5" />
               </a>
             </div>
           </div>
@@ -163,7 +162,7 @@ const Footer: React.FC = () => {
         <div className="border-t border-gray-800 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-gray-400">
-              &copy; {currentYear} FlightGuard. All rights reserved.
+              &copy; {currentYear} AutoInsure. All rights reserved.
             </p>
             <div className="mt-4 md:mt-0 flex space-x-6">
               <Link href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">

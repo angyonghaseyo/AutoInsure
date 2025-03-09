@@ -1,4 +1,3 @@
-// components/ViewPolicy.tsx
 import React from 'react';
 import { Policy, formatDepartureTime, getPolicyStatusText, getPolicyStatusColor, isEligibleForClaim, isEligibleForCancellation } from '../services/flightInsurance';
 import { Plane, Calendar, Clock, CreditCard, AlertTriangle } from 'lucide-react';

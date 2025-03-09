@@ -3,7 +3,7 @@
     "networkId": 1,
     "networkName": "Ethereum Mainnet",
     "apiEndpoints": {
-      "flightData": "https://api.flightguard.io/flight-data"
+      "flightData": "https://api.AutoInsure.io/flight-data"
     },
     "infuraId": "${NEXT_PUBLIC_INFURA_ID}",
     "chainlinkConfig": {

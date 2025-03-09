@@ -3,7 +3,7 @@
     "networkId": 11155111,
     "networkName": "Sepolia Testnet",
     "apiEndpoints": {
-      "flightData": "https://staging-api.flightguard.io/flight-data"
+      "flightData": "https://staging-api.AutoInsure.io/flight-data"
     },
     "infuraId": "${NEXT_PUBLIC_INFURA_ID}",
     "chainlinkConfig": {

@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide provides detailed instructions for deploying the FlightGuard platform to various networks.
+This guide provides detailed instructions for deploying the AutoInsure platform to various networks.
 
 ## Table of Contents
 
@@ -29,8 +29,8 @@ Before proceeding with deployment, ensure you have:
 1. Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/yourusername/flightguard.git
-cd flightguard
+git clone https://github.com/yourusername/AutoInsure.git
+cd AutoInsure
 npm install
 ```
 
