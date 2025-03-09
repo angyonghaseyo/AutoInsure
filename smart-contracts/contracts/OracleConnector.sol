@@ -34,7 +34,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     event FlightDataRequested(bytes32 indexed requestId, string flightNumber, uint256 departureTime);
     event FlightDataReceived(bytes32 indexed requestId, string flightNumber, uint256 departureTime, bool isDelayed, uint256 delayMinutes);
     
-    constructor() Ownable(msg.sender) {
+    constructor() Ownable() {
         // Set Chainlink token address (for the relevant network)
         // This is Sepolia testnet LINK token address
         setChainlinkToken(0x779877A7B0D9E8603169DdbD7836e478b4624789);

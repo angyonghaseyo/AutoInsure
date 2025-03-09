@@ -64,7 +64,7 @@ contract FlightInsurance is Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(address _oracleConnector) Ownable(msg.sender) {
+    constructor(address _oracleConnector) Ownable() {
         oracleConnector = OracleConnector(_oracleConnector);
         policyCounter = 0;
     }

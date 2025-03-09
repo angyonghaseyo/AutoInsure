@@ -1,1 +1,263 @@
-//Write something
+{
+    "abi": [
+      {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "bytes32",
+            "name": "requestId",
+            "type": "bytes32"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "flightNumber",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "departureTime",
+            "type": "uint256"
+          }
+        ],
+        "name": "FlightDataRequested",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "bytes32",
+            "name": "requestId",
+            "type": "bytes32"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "flightNumber",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "departureTime",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "bool",
+            "name": "isDelayed",
+            "type": "bool"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "delayMinutes",
+            "type": "uint256"
+          }
+        ],
+        "name": "FlightDataReceived",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "previousOwner",
+            "type": "address"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "OwnershipTransferred",
+        "type": "event"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "bytes32",
+            "name": "_requestId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bool",
+            "name": "_isDelayed",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_delayMinutes",
+            "type": "uint256"
+          }
+        ],
+        "name": "fulfillFlightData",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_flightNumber",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_departureTime",
+            "type": "uint256"
+          }
+        ],
+        "name": "getCachedFlightData",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "isDelayed",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "delayMinutes",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "dataReceived",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_flightNumber",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_departureTime",
+            "type": "uint256"
+          }
+        ],
+        "name": "getFlightStatus",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "isDelayed",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "delayMinutes",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_flightNumber",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_departureTime",
+            "type": "uint256"
+          }
+        ],
+        "name": "requestFlightData",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "requestId",
+            "type": "bytes32"
+          }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "renounceOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "transferOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_jobId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_fee",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateOracleParams",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "withdrawLink",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ]
+  }
