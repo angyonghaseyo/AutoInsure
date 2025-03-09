@@ -60,6 +60,34 @@ function MyApp({ Component, pageProps }: AppProps) {
         justify-content: space-between !important;
         align-items: center !important;
       }
+      
+      /* Fix for connect wallet button */
+      button {
+        cursor: pointer !important;
+      }
+      button:disabled {
+        cursor: not-allowed !important;
+        opacity: 0.7 !important;
+      }
+      
+      /* Consistent wallet connect styling */
+      .wallet-connect-button {
+        background-color: #3b82f6 !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 500 !important;
+        border-radius: 0.375rem !important;
+        padding: 0.5rem 1rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        transition: background-color 0.2s !important;
+      }
+      
+      .wallet-connect-button:hover {
+        background-color: #2563eb !important;
+      }
     `;
     
     // Append the style element to the head

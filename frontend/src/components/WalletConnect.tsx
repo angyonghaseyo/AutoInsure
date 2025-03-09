@@ -15,7 +15,7 @@ const WalletConnect: React.FC = () => {
       {!account ? (
         <button
           onClick={connectWallet}
-          className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          className="wallet-connect-button"
           disabled={isConnecting}
         >
           {isConnecting ? (
@@ -48,16 +48,11 @@ const WalletConnect: React.FC = () => {
             
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`
-                flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                ${network.isSupported 
-                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                  : 'bg-red-600 text-white hover:bg-red-700'}
-              `}
+              className="wallet-connect-button"
             >
-              <Wallet className="h-4 w-4" />
+              <Wallet className="h-4 w-4 mr-2" />
               <span>{shortenAddress(account)}</span>
-              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 ml-2 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
           </div>
           
