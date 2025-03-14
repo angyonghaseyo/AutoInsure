@@ -115,7 +115,7 @@ update_frontend_config() {
   
   # Get network ID
   if [[ "$NETWORK" == "localhost" ]]; then
-    NETWORK_ID=1337
+    NETWORK_ID=31337
   elif [[ "$NETWORK" == "sepolia" ]]; then
     NETWORK_ID=11155111
   elif [[ "$NETWORK" == "mumbai" ]]; then

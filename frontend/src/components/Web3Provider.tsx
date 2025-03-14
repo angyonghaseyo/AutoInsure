@@ -48,7 +48,7 @@ const SUPPORTED_NETWORKS = {
   11155111: 'Sepolia Testnet',
   137: 'Polygon Mainnet',
   80001: 'Mumbai Testnet',
-  1337: 'Local Hardhat',
+  31337: 'Local Hardhat',
 };
 
 export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {

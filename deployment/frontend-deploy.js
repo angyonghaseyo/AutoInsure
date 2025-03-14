@@ -113,7 +113,7 @@ function updateContractAddresses(environment) {
     let networkId;
     switch (environment) {
       case ENVIRONMENTS.local:
-        networkId = '1337';
+        networkId = '31337';
         break;
       case ENVIRONMENTS.staging:
         networkId = '11155111'; // Sepolia
