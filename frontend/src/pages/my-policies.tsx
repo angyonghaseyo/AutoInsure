@@ -20,6 +20,7 @@ enum PolicyStatus {
 const samplePolicies: Policy[] = [
   {
     policyId: 1,
+    name: "Basic Flight Delay Cover",
     policyholder: "0x123...abc",
     flightNumber: "SQ318",
     departureTime: 1745303400,
@@ -32,6 +33,7 @@ const samplePolicies: Policy[] = [
   },
   {
     policyId: 2,
+    name: "Basic Flight Delay Cover",
     policyholder: "0x456...def",
     flightNumber: "BA216",
     departureTime: 1745127300,
@@ -44,6 +46,7 @@ const samplePolicies: Policy[] = [
   },
   {
     policyId: 3,
+    name: "Basic Flight Delay Cover",
     policyholder: "0x789...ghi",
     flightNumber: "CX888",
     departureTime: 1745526000,

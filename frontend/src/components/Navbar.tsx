@@ -14,7 +14,6 @@ const Navbar = () => {
     { key: "/policies", label: <Link href="/policies">Browse Policies</Link> },
     { key: "/my-policies", label: <Link href="/my-policies">My Policies</Link> },
     { key: "/claims", label: <Link href="/claims">Claims & Payouts</Link> },
-    { key: "/about", label: <Link href="/about">About</Link> },
   ];
 
   return (
