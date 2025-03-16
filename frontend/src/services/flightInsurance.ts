@@ -1,10 +1,10 @@
 import { ethers } from 'ethers';
 
 export enum PolicyStatus {
-  Active = 0,
-  Expired = 1,
-  Claimed = 2,
-  Cancelled = 3
+  Active = "Active",
+  Expired = "Expired",
+  Claimed = "Claimed",
+  Cancelled = "Cancelled"
 }
 
 export interface Policy {
@@ -36,7 +36,7 @@ export function formatPolicy(policyData: any): Policy {
     isPaid: policyData.isPaid,
     isClaimed: policyData.isClaimed,
     delayThreshold: Number(policyData.delayThreshold) / 60, // Convert from seconds to minutes
-    status: policyData.status
+    status: policyData.status as PolicyStatus
   };
 }
 
@@ -63,37 +63,26 @@ export function formatDepartureTime(timestamp: number): string {
  * @returns Human-readable status text
  */
 export function getPolicyStatusText(status: PolicyStatus): string {
-  switch (status) {
-    case PolicyStatus.Active:
-      return 'Active';
-    case PolicyStatus.Expired:
-      return 'Expired';
-    case PolicyStatus.Claimed:
-      return 'Claimed';
-    case PolicyStatus.Cancelled:
-      return 'Cancelled';
-    default:
-      return 'Unknown';
-  }
+  return status;
 }
 
 /**
  * Gets the CSS color class for a policy status
  * @param status Policy status enum value
- * @returns Tailwind CSS color class
+ * @returns Ant Design color class
  */
 export function getPolicyStatusColor(status: PolicyStatus): string {
   switch (status) {
     case PolicyStatus.Active:
-      return 'bg-green-100 text-green-800';
+      return 'green';
     case PolicyStatus.Expired:
-      return 'bg-gray-100 text-gray-800';
+      return 'gray';
     case PolicyStatus.Claimed:
-      return 'bg-blue-100 text-blue-800';
+      return 'blue';
     case PolicyStatus.Cancelled:
-      return 'bg-red-100 text-red-800';
+      return 'red';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'default';
   }
 }
 
