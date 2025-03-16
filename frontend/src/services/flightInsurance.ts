@@ -8,6 +8,7 @@ export enum PolicyStatus {
 }
 
 export interface Policy {
+  name: string;
   policyId: number;
   policyholder: string;
   flightNumber: string;
@@ -28,6 +29,7 @@ export interface Policy {
 export function formatPolicy(policyData: any): Policy {
   return {
     policyId: Number(policyData.policyId),
+    name: policyData.name || "Unknown Policy",
     policyholder: policyData.policyholder,
     flightNumber: policyData.flightNumber,
     departureTime: Number(policyData.departureTime),

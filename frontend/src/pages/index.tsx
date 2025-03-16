@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Button, Card, Col, Row, Typography, Alert, Divider, Carousel } from 'antd';
 import { useWeb3 } from '../components/Web3Provider';
-import PurchasePolicy from '../components/PurchasePolicy';
+import BrowsePolicies from './policies';
 import { ArrowRightOutlined, CheckCircleOutlined, WalletOutlined, ExclamationCircleOutlined, CloudOutlined, ThunderboltOutlined, SafetyOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;
@@ -15,30 +15,47 @@ const HomePage: React.FC = () => {
       {/* Hero Section with Carousel */}
       <Carousel autoplay effect="fade" dotPosition="bottom" className="custom-carousel">
         <div className="hero-section text-center bg-gradient-to-r from-blue-100 to-white py-32 relative">
-          <Title level={1} className="text-black animate-fadeIn text-6xl font-extrabold">Decentralized Flight Insurance</Title>
+          <Title level={1} className="text-black animate-fadeIn text-6xl font-extrabold">
+            Decentralized Flight Insurance
+          </Title>
           <Paragraph className="text-gray-700 text-xl max-w-2xl mx-auto animate-slideIn">
             Instant payouts, transparent claims, and no middlemen. Powered by blockchain technology.
           </Paragraph>
           {account ? (
             <Link href="/policies">
-              <Button type="primary" size="large" icon={<ArrowRightOutlined />} className="animate-pulse bg-blue-500 border-none text-white shadow-lg hover:bg-blue-600">View My Policies</Button>
+              <Button
+                type="primary"
+                size="large"
+                icon={<ArrowRightOutlined />}
+                className="animate-pulse bg-blue-500 border-none text-white shadow-lg hover:bg-blue-600"
+              >
+                View My Policies
+              </Button>
             </Link>
           ) : (
-            <Button type="default" size="large" icon={<ArrowRightOutlined />} className="animate-pulse bg-blue-500 border-none text-white shadow-lg hover:bg-blue-600" onClick={() => {
-              document.getElementById('get-started')?.scrollIntoView({ behavior: 'smooth' });
-            }}>
+            <Button
+              type="default"
+              size="large"
+              icon={<ArrowRightOutlined />}
+              className="animate-pulse bg-blue-500 border-none text-white shadow-lg hover:bg-blue-600"
+              onClick={() => {
+                document.getElementById('get-started')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               Get Started
             </Button>
           )}
         </div>
       </Carousel>
-      
+
       <Divider style={{ borderColor: '#2563eb' }}>
         <Title level={2} className="text-gray-900 text-3xl font-semibold">How It Works</Title>
       </Divider>
-      
+
       <div className="py-20 bg-gray-100 text-center text-black">
-        <Paragraph className="text-gray-600 text-lg">Our decentralized flight insurance platform makes protecting your travels simple and transparent.</Paragraph>
+        <Paragraph className="text-gray-600 text-lg">
+          Our decentralized flight insurance platform makes protecting your travels simple and transparent.
+        </Paragraph>
         <Row gutter={[32, 32]} justify="center">
           <Col xs={24} md={8}>
             <Card title="Purchase Insurance" bordered={false} className="custom-card bg-white text-black hover:shadow-xl">
@@ -60,38 +77,14 @@ const HomePage: React.FC = () => {
           </Col>
         </Row>
       </div>
-      
+
       <Divider style={{ borderColor: '#2563eb' }}>
-        <Title level={2} className="text-gray-900 text-3xl font-semibold">Purchase Policy</Title>
+        <Title level={2} className="text-gray-900 text-3xl font-semibold">Available Policies</Title>
       </Divider>
-      
+
       <div id="get-started" className="py-20 bg-white text-center text-black">
-        <Paragraph className="text-gray-600 text-lg">Purchase flight delay insurance in just a few steps</Paragraph>
-        <div className="max-w-lg mx-auto">
-          {!account ? (
-            <Alert
-              message="Connect Your Wallet"
-              description="Please use the Connect Wallet button in the navbar to get started."
-              type="info"
-              showIcon
-              icon={<WalletOutlined />}
-            />
-          ) : !network.isSupported ? (
-            <Alert
-              message="Switch Network"
-              description={
-                <>
-                  <p>Currently on: <strong>{network.name}</strong></p>
-                  <p>Supported networks: Ethereum Mainnet, Sepolia Testnet, Polygon Mainnet, Mumbai Testnet</p>
-                </>
-              }
-              type="error"
-              showIcon
-              icon={<ExclamationCircleOutlined />}
-            />
-          ) : (
-            <PurchasePolicy />
-          )}
+        <div className="max-w-6xl mx-auto">
+          <BrowsePolicies />
         </div>
       </div>
     </div>
