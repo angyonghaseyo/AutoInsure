@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import { Layout, Menu, Button, Drawer } from "antd";
-import { MenuOutlined } from "@ant-design/icons";
+import React from "react";
+import { Layout, Menu } from "antd";
 import { useRouter } from "next/router";
 import WalletConnect from "../components/WalletConnect";
 import Link from "next/link";
@@ -9,7 +8,6 @@ const { Header } = Layout;
 
 const Navbar = () => {
   const router = useRouter();
-  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   const menuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
@@ -44,24 +42,7 @@ const Navbar = () => {
         items={menuItems}
         style={{ flex: 1, display: "flex", justifyContent: "center", background: "transparent" }}
       />
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <WalletConnect />
-        <Button
-          type="text"
-          icon={<MenuOutlined />}
-          className="md:hidden"
-          onClick={() => setIsDrawerVisible(true)}
-        />
-      </div>
-      <Drawer
-        title="Menu"
-        placement="right"
-        closable
-        onClose={() => setIsDrawerVisible(false)}
-        open={isDrawerVisible}
-      >
-        <Menu mode="vertical" selectedKeys={[router.pathname]} items={menuItems} />
-      </Drawer>
+      <WalletConnect />
     </Header>
   );
 };
