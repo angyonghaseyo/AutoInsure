@@ -2,10 +2,11 @@ import type { AppProps } from "next/app";
 import Head from "next/head";
 import Web3Provider from "../components/Web3Provider";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer"; // Updated to use the custom Footer component
 import "../styles/global.css";
 import { Layout } from "antd";
 
-const { Content, Footer } = Layout;
+const { Content } = Layout;
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
@@ -21,7 +22,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         <Content style={{ padding: "20px 50px", marginTop: "64px" }}>
           <Component {...pageProps} />
         </Content>
-        <Footer style={{ textAlign: "center" }}>AutoInsure © {new Date().getFullYear()}</Footer>
+        <Footer />
       </Layout>
     </Web3Provider>
   );
