@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { ethers } from 'ethers';
-import { Web3Provider as EthersWeb3Provider } from '@ethersproject/providers';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import { ethers } from "ethers";
+import { Web3Provider as EthersWeb3Provider } from "@ethersproject/providers";
+import InsurerABI from "../utils/abis/Insurer.json";
+import contractAddresses from "../utils/contractAddresses.json";
 
 // Extend the Window interface to recognize `ethereum`
 declare global {
@@ -9,16 +11,12 @@ declare global {
   }
 }
 
-// Import contract ABIs & addresses
-import FlightInsuranceABI from '../utils/abis/FlightInsurance.json';
-import contractAddresses from '../utils/contractAddresses.json';
-
 interface Web3ContextType {
   provider: EthersWeb3Provider | null;
   signer: ethers.Signer | null;
   account: string | null;
   chainId: number | null;
-  flightInsuranceContract: ethers.Contract | null;
+  insurerContract: ethers.Contract | null;
   isConnecting: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
@@ -59,7 +57,7 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [flightInsuranceContract, setFlightInsuranceContract] = useState<ethers.Contract | null>(null);
+  const [insurerContract, setInsurerContract] = useState<ethers.Contract | null>(null);
 
   /**
    * Compute network name and support status based on chainId.
@@ -104,7 +102,7 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     setSigner(null);
     setAccount(null);
     setChainId(null);
-    setFlightInsuranceContract(null);
+    setInsurerContract(null);
   }, []);
 
   /**
@@ -114,22 +112,22 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     if (provider && signer && chainId) {
       try {
         const addresses = contractAddresses[String(chainId) as keyof typeof contractAddresses] || {};
-        if (addresses.flightInsurance) {
-          setFlightInsuranceContract(new ethers.Contract(
-            addresses.flightInsurance,
-            FlightInsuranceABI.abi,
+        if (addresses.Insurer) {
+          setInsurerContract(new ethers.Contract(
+            addresses.Insurer,
+            InsurerABI.abi,
             signer
           ));
         } else {
-          console.warn(`FlightInsurance contract address not found for chainId ${chainId}`);
-          setFlightInsuranceContract(null);
+          console.warn(`Insurer contract address not found for chainId ${chainId}`);
+          setInsurerContract(null);
         }
       } catch (error) {
         console.error('Error initializing contract:', error);
-        setFlightInsuranceContract(null);
+        setInsurerContract(null);
       }
     } else {
-      setFlightInsuranceContract(null);
+      setInsurerContract(null);
     }
   }, [provider, signer, chainId]);
 
@@ -177,7 +175,7 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   }, [connectWallet]);
 
   return (
-    <Web3Context.Provider value={{ provider, signer, account, chainId, flightInsuranceContract, isConnecting, connectWallet, disconnectWallet, network }}>
+    <Web3Context.Provider value={{ provider, signer, account, chainId, insurerContract, isConnecting, connectWallet, disconnectWallet, network }}>
       {children}
     </Web3Context.Provider>
   );
