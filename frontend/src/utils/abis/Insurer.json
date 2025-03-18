@@ -1,0 +1,151 @@
+{
+    "abi": [
+      {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "policyTypeId",
+            "type": "uint256"
+          }
+        ],
+        "name": "PolicyAdded",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "policyTypeId",
+            "type": "uint256"
+          }
+        ],
+        "name": "PolicyDeleted",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "policyId",
+            "type": "uint256"
+          }
+        ],
+        "name": "PolicyBought",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "address",
+            "name": "recipient",
+            "type": "address"
+          }
+        ],
+        "name": "Payout",
+        "type": "event"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "premium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "delayPayout",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxPayout",
+            "type": "uint256"
+          }
+        ],
+        "name": "addPolicy",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "policyTypeId",
+            "type": "uint256"
+          }
+        ],
+        "name": "deletePolicy",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "policyType",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "flight",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "departureTime",
+            "type": "uint256"
+          }
+        ],
+        "name": "buyPolicy",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "claimPolicy",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "withdrawFunds",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "stateMutability": "payable",
+        "type": "receive"
+      }
+    ]
+}
+  
