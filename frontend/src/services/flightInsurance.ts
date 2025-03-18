@@ -1,10 +1,12 @@
-import { ethers } from 'ethers';
+import { ethers } from "ethers";
+import InsurerABI from "../utils/abis/Insurer.json";
+import contractAddresses from "../utils/contractAddresses.json";
 
 export enum PolicyStatus {
   Active = "Active",
   Expired = "Expired",
   Claimed = "Claimed",
-  Cancelled = "Cancelled"
+  Cancelled = "Cancelled",
 }
 
 export interface Policy {
@@ -21,126 +23,107 @@ export interface Policy {
   status: PolicyStatus;
 }
 
-/**
- * Formats raw policy data from contract to a more usable format
- * @param policyData Raw policy data from the contract
- * @returns Formatted policy object
- */
-export function formatPolicy(policyData: any): Policy {
-  return {
-    policyId: Number(policyData.policyId),
-    name: policyData.name || "Unknown Policy",
-    policyholder: policyData.policyholder,
-    flightNumber: policyData.flightNumber,
-    departureTime: Number(policyData.departureTime),
-    premium: ethers.formatEther(policyData.premium),
-    payoutAmount: ethers.formatEther(policyData.payoutAmount),
-    isPaid: policyData.isPaid,
-    isClaimed: policyData.isClaimed,
-    delayThreshold: Number(policyData.delayThreshold) / 60, // Convert from seconds to minutes
-    status: policyData.status as PolicyStatus
-  };
-}
+export class FlightInsuranceService {
+  private contract: ethers.Contract;
+  private provider: ethers.BrowserProvider;
+  private signer: ethers.Signer;
 
-/**
- * Formats departure time to a human-readable string
- * @param timestamp Unix timestamp
- * @returns Formatted date and time string
- */
-export function formatDepartureTime(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-/**
- * Gets the display text for a policy status
- * @param status Policy status enum value
- * @returns Human-readable status text
- */
-export function getPolicyStatusText(status: PolicyStatus): string {
-  return status;
-}
-
-/**
- * Gets the CSS color class for a policy status
- * @param status Policy status enum value
- * @returns Ant Design color class
- */
-export function getPolicyStatusColor(status: PolicyStatus): string {
-  switch (status) {
-    case PolicyStatus.Active:
-      return 'green';
-    case PolicyStatus.Expired:
-      return 'gray';
-    case PolicyStatus.Claimed:
-      return 'blue';
-    case PolicyStatus.Cancelled:
-      return 'red';
-    default:
-      return 'default';
+  constructor(provider: ethers.BrowserProvider, signer: ethers.Signer) {
+    this.provider = provider;
+    this.signer = signer;
+    const contractAddress = contractAddresses[1]?.insurer; // Adjust for correct chain ID
+    this.contract = new ethers.Contract(contractAddress, InsurerABI.abi, signer);
   }
-}
 
-/**
- * Checks if a policy is eligible for claiming
- * @param policy Policy object
- * @returns Whether the policy can be claimed
- */
-export function isEligibleForClaim(policy: Policy): boolean {
-  const now = Math.floor(Date.now() / 1000);
-  
-  // Policy must be active and not already claimed/paid
-  if (policy.status !== PolicyStatus.Active || policy.isPaid || policy.isClaimed) {
-    return false;
-  }
-  
-  // Policy must not be expired (24 hours after departure)
-  const expirationTime = policy.departureTime + 24 * 60 * 60; // 24 hours in seconds
-  if (now > expirationTime) {
-    return false;
-  }
-  
-  // Past departure time (can only claim after scheduled departure)
-  return now > policy.departureTime;
-}
+  /**
+   * Fetch available policies from blockchain.
+   */
+  async getAvailablePolicies(): Promise<Policy[]> {
+    try {
+      const numPolicies = await this.contract.numPolicyTypes();
+      const policies: Policy[] = [];
 
-/**
- * Checks if a policy is eligible for cancellation
- * @param policy Policy object
- * @returns Whether the policy can be cancelled
- */
-export function isEligibleForCancellation(policy: Policy): boolean {
-  const now = Math.floor(Date.now() / 1000);
-  
-  // Policy must be active and not already claimed/paid
-  if (policy.status !== PolicyStatus.Active || policy.isPaid || policy.isClaimed) {
-    return false;
-  }
-  
-  // Policy can only be cancelled before departure
-  return now < policy.departureTime;
-}
+      for (let i = 1; i <= numPolicies; i++) {
+        const policy = await this.contract.getPolicyDetails(i);
+        policies.push({
+          policyId: i,
+          name: `Policy #${i}`,
+          premium: ethers.formatEther(policy.premium),
+          payoutAmount: ethers.formatEther(policy.maxPayout),
+          delayThreshold: policy.numHoursDelay * 60,
+          policyholder: "",
+          flightNumber: "",
+          departureTime: 0,
+          isPaid: false,
+          isClaimed: false,
+          status: PolicyStatus.Active,
+        });
+      }
 
-/**
- * Calculates the payout amount based on the premium
- * @param premiumEther Premium amount in Ether
- * @param maxPayoutEther Maximum payout amount in Ether
- * @returns Payout amount in Ether
- */
-export function calculatePayoutAmount(premiumEther: string, maxPayoutEther: string): string {
-  const premium = parseFloat(premiumEther);
-  const maxPayout = parseFloat(maxPayoutEther);
-  
-  // Payout is typically 3x the premium
-  const calculatedPayout = premium * 3;
-  
-  // Cap at maximum payout
-  return (calculatedPayout > maxPayout ? maxPayout : calculatedPayout).toString();
+      return policies;
+    } catch (error) {
+      console.error("Error fetching available policies:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Purchase a policy.
+   * @param policyTypeId Policy type ID
+   * @param flightNumber Flight number
+   * @param departureTime Flight departure time
+   * @param premium Premium amount in ETH
+   */
+  async purchasePolicy(policyTypeId: number, flightNumber: string, departureTime: number, premium: string) {
+    try {
+      const tx = await this.contract.buyPolicy(policyTypeId, flightNumber, departureTime, {
+        value: ethers.parseEther(premium),
+      });
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error("Error purchasing policy:", error);
+      throw new Error("Transaction failed.");
+    }
+  }
+
+  /**
+   * Fetch policy owned by a user.
+   * @param userAddress Ethereum address of the user
+   */
+  async getUserPolicy(userAddress: string): Promise<Policy | null> {
+    try {
+      const policy = await this.contract.getPolicyOfInsured(userAddress);
+      return {
+        policyId: policy.policyTypeId,
+        name: `Policy #${policy.policyTypeId}`,
+        flightNumber: policy.flightNumber,
+        departureTime: Number(policy.departureTime),
+        premium: ethers.formatEther(policy.premium),
+        payoutAmount: ethers.formatEther(policy.maxPayout),
+        isPaid: false,
+        isClaimed: policy.isClaimed,
+        delayThreshold: policy.numHoursDelay * 60,
+        policyholder: userAddress,
+        status: policy.isClaimed ? PolicyStatus.Claimed : PolicyStatus.Active,
+      };
+    } catch (error) {
+      console.error("Error fetching user policy:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Claim a policy payout.
+   */
+  async claimPolicy() {
+    try {
+      const tx = await this.contract.claimPolicy();
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error("Error claiming policy:", error);
+      throw new Error("Claim transaction failed.");
+    }
+  }
 }
