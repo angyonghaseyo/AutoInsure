@@ -1,6 +1,5 @@
 import { ethers } from "ethers";
-import InsurerABI from "../utils/abis/Insurer.json";
-import contractAddresses from "../utils/contractAddresses.json";
+import { useWeb3 } from "../components/Web3Provider";
 
 export enum PolicyStatus {
   Active = "Active",
@@ -10,8 +9,8 @@ export enum PolicyStatus {
 }
 
 export interface Policy {
-  name: string;
   policyId: number;
+  name: string;
   policyholder: string;
   flightNumber: string;
   departureTime: number;
@@ -23,28 +22,34 @@ export interface Policy {
   status: PolicyStatus;
 }
 
-export class FlightInsuranceService {
-  private contract: ethers.Contract;
-  private provider: ethers.BrowserProvider;
-  private signer: ethers.Signer;
+export function useFlightInsurance() {
+  const { insurerContract, signer, account } = useWeb3();
 
-  constructor(provider: ethers.BrowserProvider, signer: ethers.Signer) {
-    this.provider = provider;
-    this.signer = signer;
-    const contractAddress = contractAddresses[1]?.insurer; // Adjust for correct chain ID
-    this.contract = new ethers.Contract(contractAddress, InsurerABI.abi, signer);
+  if (!insurerContract || !signer) {
+    console.error("Web3 is not initialized. Connect wallet first.");
+    return {
+      getAvailablePolicies: async () => [],
+      purchasePolicy: async () => {
+        throw new Error("Contract not initialized. Connect wallet first.");
+      },
+    };
   }
 
   /**
-   * Fetch available policies from blockchain.
+   * Fetch available policies.
    */
-  async getAvailablePolicies(): Promise<Policy[]> {
+  async function getAvailablePolicies(): Promise<Policy[]> {
+    if (!insurerContract) {
+      console.error("Error: Insurer contract is not initialized.");
+      return [];
+    }
+
     try {
-      const numPolicies = await this.contract.numPolicyTypes();
+      const numPolicies = await insurerContract.numPolicyTypes();
       const policies: Policy[] = [];
 
       for (let i = 1; i <= numPolicies; i++) {
-        const policy = await this.contract.getPolicyDetails(i);
+        const policy = await insurerContract.getPolicyDetails(i);
         policies.push({
           policyId: i,
           name: `Policy #${i}`,
@@ -62,23 +67,29 @@ export class FlightInsuranceService {
 
       return policies;
     } catch (error) {
-      console.error("Error fetching available policies:", error);
+      console.error("Error fetching policies:", error);
       return [];
     }
   }
 
   /**
    * Purchase a policy.
-   * @param policyTypeId Policy type ID
-   * @param flightNumber Flight number
-   * @param departureTime Flight departure time
-   * @param premium Premium amount in ETH
    */
-  async purchasePolicy(policyTypeId: number, flightNumber: string, departureTime: number, premium: string) {
+  async function purchasePolicy(
+    policyTypeId: number,
+    flightNumber: string,
+    departureTime: number,
+    premium: string
+  ) {
+    if (!insurerContract) {
+      throw new Error("Error: Contract is not initialized.");
+    }
+
     try {
-      const tx = await this.contract.buyPolicy(policyTypeId, flightNumber, departureTime, {
+      const tx = await insurerContract.buyPolicy(policyTypeId, flightNumber, departureTime, {
         value: ethers.parseEther(premium),
       });
+
       await tx.wait();
       return tx.hash;
     } catch (error) {
@@ -87,43 +98,5 @@ export class FlightInsuranceService {
     }
   }
 
-  /**
-   * Fetch policy owned by a user.
-   * @param userAddress Ethereum address of the user
-   */
-  async getUserPolicy(userAddress: string): Promise<Policy | null> {
-    try {
-      const policy = await this.contract.getPolicyOfInsured(userAddress);
-      return {
-        policyId: policy.policyTypeId,
-        name: `Policy #${policy.policyTypeId}`,
-        flightNumber: policy.flightNumber,
-        departureTime: Number(policy.departureTime),
-        premium: ethers.formatEther(policy.premium),
-        payoutAmount: ethers.formatEther(policy.maxPayout),
-        isPaid: false,
-        isClaimed: policy.isClaimed,
-        delayThreshold: policy.numHoursDelay * 60,
-        policyholder: userAddress,
-        status: policy.isClaimed ? PolicyStatus.Claimed : PolicyStatus.Active,
-      };
-    } catch (error) {
-      console.error("Error fetching user policy:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Claim a policy payout.
-   */
-  async claimPolicy() {
-    try {
-      const tx = await this.contract.claimPolicy();
-      await tx.wait();
-      return tx.hash;
-    } catch (error) {
-      console.error("Error claiming policy:", error);
-      throw new Error("Claim transaction failed.");
-    }
-  }
+  return { getAvailablePolicies, purchasePolicy };
 }
