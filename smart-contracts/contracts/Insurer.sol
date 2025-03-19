@@ -8,8 +8,8 @@ contract Insurer {
     FlightPolicy flightPolicyInstance;
     address company;
 
-    constructor() {
-        flightPolicyInstance = new FlightPolicy();
+    constructor(address _flightPolicyAddress) {
+        flightPolicyInstance = FlightPolicy(_flightPolicyAddress);
         company = msg.sender;
     }
 
@@ -79,13 +79,14 @@ contract Insurer {
     }
 
     function getPolicyOfCustomer(bool isActive, address policyHolder) public returns (FlightPolicy.policy[] memory)  {
-        FlightPolicy.policy[] memory policies = flightPolicyInstance.getPolicyOfInsured(msg.sender);
+        FlightPolicy.policy[] memory policies = flightPolicyInstance.getPolicyOfInsured(policyHolder);
         uint256 numPolicies = policies.length;
         FlightPolicy.policy[] memory result = new FlightPolicy.policy[](numPolicies);
         if (policies.length == 0) {
             return result;
         }
-        FlightPolicy.policy memory lastPolicy = policies[flightPolicyHolders[policyHolder]];
+        
+        FlightPolicy.policy memory lastPolicy = policies[flightPolicyHolders[policyHolder] - 1];
         if (isActive) {
             if (lastPolicy.status == FlightPolicy.PolicyStatus.Active) {
                 result[0] = lastPolicy;
@@ -123,7 +124,7 @@ contract Insurer {
     
     function withdrawFunds(uint256 amount) external payable companyOnly() {
         require(amount <= address(this).balance, "Insufficient balance");
-        payable(company).transfer(amount * 1 ether);
+        payable(company).transfer(amount);
     }
 
     receive() external payable {}
