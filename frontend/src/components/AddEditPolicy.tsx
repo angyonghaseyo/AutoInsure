@@ -55,11 +55,11 @@ const AddEditPolicy: React.FC<AddEditPolicyProps> = ({ selectedPolicy, onClose }
       {success && <Alert message={success} type="success" showIcon style={{ marginBottom: 16 }} />}
 
       <Form form={form} layout="vertical" onFinish={handlePurchase}>
-        <Form.Item name="flightNumber" label="Flight Number" rules={[{ required: true, message: "Please enter your flight number" }]}>
+        <Form.Item name="delaypayout" label="Flight Number" rules={[{ required: true, message: "Please enter your flight number" }]}>
           <Input placeholder="e.g., AA123" />
         </Form.Item>
 
-        <Form.Item name="departureDate" label="Departure Date" rules={[{ required: true, message: "Please select your departure date" }]}>
+        <Form.Item name="" label="Departure Date" rules={[{ required: true, message: "Please select your departure date" }]}>
           <DatePicker style={{ width: "100%" }} />
         </Form.Item>
 

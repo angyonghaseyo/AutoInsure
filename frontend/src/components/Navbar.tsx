@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Layout, Menu } from "antd";
 import { useRouter } from "next/router";
 import WalletConnect from "../components/WalletConnect";
@@ -8,7 +8,6 @@ import { useWeb3 } from "./Web3Provider";
 const { Header } = Layout;
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const { account } = useWeb3();
 

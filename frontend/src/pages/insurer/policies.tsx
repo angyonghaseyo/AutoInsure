@@ -65,10 +65,11 @@ const FilterDropdown = ({ options, selectedFilters, setSelectedFilters }) => {
 const InsurerPolicies: React.FC = () => {
   const screens = useBreakpoint();
   const [editedPolicy, setEditedPolicy] = useState<Policy | null>(null);
+  const [addPolicy, setAddPolicy] = useState<Boolean>(false);
 
   const filterOptions = [
     { label: "Active", value: "active" }, // In use by users
-    { label: "Inactive", value: "inactive" }, // Not in use by users
+    { label: "Inactive", value: "inactive" }, // Not in use by users (including cancelled)
     { label: "Current", value: "current" }, // Valid policies
     { label: "Deleted", value: "deleted" }, // Invalid policies
   ];
@@ -87,6 +88,10 @@ const InsurerPolicies: React.FC = () => {
 
   const handleDeleteClick = (policy: Policy) => {};
 
+  const handleAddClick = () => {
+    setAddPolicy(true);
+  };
+
   const handleCloseModal = () => {
     setEditedPolicy(null);
   };
@@ -102,7 +107,9 @@ const InsurerPolicies: React.FC = () => {
         {/* Right-side container for FilterDropdown and Button */}
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <FilterDropdown options={filterOptions} selectedFilters={selectedFilters} setSelectedFilters={setSelectedFilters} />
-          <Button type="primary">Add Policy</Button>
+          <Button type="primary" onClick={() => handleAddClick()}>
+            Add Policy
+          </Button>
         </div>
       </div>
 
@@ -136,6 +143,10 @@ const InsurerPolicies: React.FC = () => {
       <Modal title="Edit Policy" visible={!!editedPolicy} onCancel={handleCloseModal} footer={null} width={600}>
         {editedPolicy ? <AddEditPolicy selectedPolicy={editedPolicy} onClose={handleCloseModal} /> : <Spin tip="Loading policy details..." />}
       </Modal>
+
+      {/* <Modal title="Add Policy" visible={!!editedPolicy} onCancel={handleCloseModal} footer={null} width={600}>
+        {addPolicy ? <AddEditPolicy selectedPolicy={addPolicy} onClose={handleCloseModal} /> : <Spin tip="Loading policy details..." />}
+      </Modal> */}
     </div>
   );
 };

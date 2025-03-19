@@ -9,13 +9,15 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@ant-design/web3": "^1.22.0",
         "@chainlink/contracts": "^0.6.1",
         "@openzeppelin/contracts": "^4.9.0",
         "@tailwindcss/forms": "^0.5.3",
+        "antd": "^5.24.3",
         "autoprefixer": "^10.4.14",
         "browserify-zlib": "^0.2.0",
         "crypto-browserify": "^3.12.0",
-        "ethers": "^6.6.0",
+        "ethers": "^6.13.5",
         "https-browserify": "^1.0.0",
         "lucide-react": "^0.479.0",
         "next": "13.4.4",
