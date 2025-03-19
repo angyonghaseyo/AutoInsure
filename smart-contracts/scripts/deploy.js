@@ -1,77 +1,87 @@
 const hre = require("hardhat");
+const fs = require("fs");
 
 async function main() {
-  console.log("Deploying Flight Insurance contracts...");
+  console.log("🚀 Deploying Flight Insurance contracts...");
 
-  // First deploy the OracleConnector
-  const OracleConnector = await hre.ethers.getContractFactory("OracleConnector");
-  const oracleConnector = await OracleConnector.deploy();
-  await oracleConnector.waitForDeployment();
-  
-  const oracleConnectorAddress = await oracleConnector.getAddress();
-  console.log(`OracleConnector deployed to: ${oracleConnectorAddress}`);
+  // Deploy FlightPolicy contract first
+  const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
+  const flightPolicy = await FlightPolicy.deploy();
+  await flightPolicy.waitForDeployment();
 
-  // Then deploy the FlightInsurance contract using the OracleConnector address
-  const FlightInsurance = await hre.ethers.getContractFactory("FlightInsurance");
-  const flightInsurance = await FlightInsurance.deploy(oracleConnectorAddress);
-  await flightInsurance.waitForDeployment();
-  
-  const flightInsuranceAddress = await flightInsurance.getAddress();
-  console.log(`FlightInsurance deployed to: ${flightInsuranceAddress}`);
+  const flightPolicyAddress = await flightPolicy.getAddress();
+  console.log(`✅ FlightPolicy deployed to: ${flightPolicyAddress}`);
 
-  // Display deployment information for verification
+  // Deploy Insurer contract and pass the FlightPolicy address as a constructor argument (properly)
+  const Insurer = await hre.ethers.getContractFactory("Insurer");
+  const insurer = await Insurer.deploy(flightPolicyAddress);  // ✅ Pass as argument, not overrides
+  await insurer.waitForDeployment();
+
+  const insurerAddress = await insurer.getAddress();
+  console.log(`✅ Insurer deployed to: ${insurerAddress}`);
+
+  // Deployment Summary
+  console.log("\n-------------------------------------");
+  console.log("📜 Deployment Summary:");
   console.log("-------------------------------------");
-  console.log("Deployment Summary:");
-  console.log("-------------------------------------");
-  console.log(`Network: ${hre.network.name}`);
-  console.log(`OracleConnector: ${oracleConnectorAddress}`);
-  console.log(`FlightInsurance: ${flightInsuranceAddress}`);
-  console.log("-------------------------------------");
+  console.log(`📌 Network: ${hre.network.name}`);
+  console.log(`🏛️ FlightPolicy: ${flightPolicyAddress}`);
+  console.log(`🛡️ Insurer: ${insurerAddress}`);
+  console.log("-------------------------------------\n");
 
-  // Allow some time for Etherscan to index the contracts
-  console.log("Waiting for block confirmation...");
-  await flightInsurance.deploymentTransaction().wait(5);
-  
-  // Verify contracts on Etherscan (if not on local network)
+  // Wait for block confirmations before verifying
+  console.log("⏳ Waiting for 5 block confirmations...");
+  await insurer.deploymentTransaction().wait(5);
+
+  // Verify contracts on Etherscan (if not on a local network)
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
-    console.log("Verifying contracts on Etherscan...");
+    console.log("🔍 Verifying contracts on Etherscan...");
     
     try {
       await hre.run("verify:verify", {
-        address: oracleConnectorAddress,
+        address: flightPolicyAddress,
         constructorArguments: [],
       });
-      
+
       await hre.run("verify:verify", {
-        address: flightInsuranceAddress,
-        constructorArguments: [oracleConnectorAddress],
+        address: insurerAddress,
+        constructorArguments: [flightPolicyAddress],  // ✅ Correctly pass argument
       });
-      
-      console.log("Contracts verified successfully on Etherscan!");
+
+      console.log("✅ Contracts successfully verified on Etherscan!");
     } catch (error) {
-      console.error("Error verifying contracts:", error);
+      console.error("❌ Error verifying contracts:", error);
     }
   }
 
-  // Export deployment data to a file
-  const fs = require("fs");
-  const deploymentData = {
-    network: hre.network.name,
-    oracleConnector: oracleConnectorAddress,
-    flightInsurance: flightInsuranceAddress,
-    timestamp: new Date().toISOString(),
+  // Update contractAddresses.json
+  const contractAddressesPath = "./contractAddresses.json";
+  let existingData = {};
+
+  try {
+    if (fs.existsSync(contractAddressesPath)) {
+      existingData = JSON.parse(fs.readFileSync(contractAddressesPath, "utf8"));
+    }
+  } catch (error) {
+    console.error("⚠️ Error reading contractAddresses.json:", error);
+  }
+
+  existingData[hre.network.config.chainId] = {
+    insurer: insurerAddress,
+    flightPolicy: flightPolicyAddress,
   };
 
   fs.writeFileSync(
-    `deployment-${hre.network.name}.json`,
-    JSON.stringify(deploymentData, null, 2)
+    contractAddressesPath,
+    JSON.stringify(existingData, null, 2)
   );
-  console.log(`Deployment data saved to deployment-${hre.network.name}.json`);
+
+  console.log(`✅ Contract addresses updated in ${contractAddressesPath}`);
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error("❌ Deployment failed:", error);
     process.exit(1);
   });
