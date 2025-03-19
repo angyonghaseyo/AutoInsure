@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./Policy.sol";
+import "./FlightPolicy.sol";
 //import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 
 contract Insurer {
-    Policy flightPolicyInstance;
+    FlightPolicy flightPolicyInstance;
     address company;
 
     constructor() {
-        flightPolicyInstance = new Policy();
+        flightPolicyInstance = new FlightPolicy();
         company = msg.sender;
     }
 
@@ -17,11 +17,12 @@ contract Insurer {
     event PolicyDeleted(uint256 policyTypeId);
     event PolicyBought(uint256 policyId);
     event Payout(uint256 amount, address recipient); 
+    event FlightAdded(string flightNumber, uint256 departureTime);
 
-    mapping(address => bool) public policyHolders; //maps to something...
+    mapping(address => uint256) public flightPolicyHolders;
 
     modifier holderOnly() {
-        require(policyHolders[msg.sender], "You do not own a policy");
+        require(flightPolicyHolders[msg.sender] != 0, "You do not own a flight policy");
         _;
     }
 
@@ -30,8 +31,8 @@ contract Insurer {
         _;
     }
 
-    function addPolicy(uint256 premium, uint256 delayPayout, uint256 maxPayout) public companyOnly {
-        uint256 policyTypeId = flightPolicyInstance.createPolicy(premium, delayPayout, maxPayout);
+    function addPolicy(uint256 premium, uint256 delayPayout, uint256 maxPayout, uint256 delayThreshold, uint256 activeDuration) public companyOnly {
+        uint256 policyTypeId = flightPolicyInstance.createPolicy(premium, delayPayout, maxPayout, delayThreshold, activeDuration);
         emit PolicyAdded(policyTypeId);
     }
 
@@ -41,18 +42,20 @@ contract Insurer {
     }
 
     function buyPolicy(uint256 policyType, string memory flight, uint256 departureTime) public payable {
-        Policy.policy memory policyDetails = flightPolicyInstance.getPolicyDetails(policyType);
+        FlightPolicy.policy memory policyDetails = flightPolicyInstance.getPolicyDetails(policyType);
+        require(getPolicyOfCustomer(true, msg.sender).length == 0, "customer has active flight policy");
         require(msg.value >= policyDetails.premium, "Not enough ether to purhcase plan");
         require(departureTime > block.timestamp, "Flight is not a future flight");
-        flightPolicyInstance.purchasePolicy(policyType, flight, msg.sender);
-        policyHolders[msg.sender] = true;
-        emit PolicyBought(policyType);
+        uint256 policyId = flightPolicyInstance.purchasePolicy(policyType, flight, departureTime, msg.sender);
+        flightPolicyHolders[msg.sender] = policyId;
+        emit PolicyBought(policyId);
     }
 
-    function claimPolicy() external holderOnly {
-        Policy.policy memory policyData = flightPolicyInstance.getPolicyOfInsured(msg.sender);
-        
-        require(!policyData.isClaimed, "Policy already claimed");
+    function claimPolicy() public holderOnly {
+        uint256 lastPolicyBought = flightPolicyHolders[msg.sender];
+        FlightPolicy.policy memory policyData = flightPolicyInstance.getPolicyOfInsured(msg.sender)[lastPolicyBought - 1];
+
+        require(policyData.status == FlightPolicy.PolicyStatus.Active, "Policy has been claimed or has expired");
         uint256 totalPayout = policyData.delayPayout;
         // TODO: Request flight status from oracle, multiply totalpayout with units of hours delayed
         
@@ -63,8 +66,59 @@ contract Insurer {
         
         // Transfer payout to policyholder
         payable(policyData.insured).transfer(totalPayout);
+
+        //if payout has reached maximum payout
         flightPolicyInstance.markAsClaimed(msg.sender);
         emit Payout(totalPayout, policyData.insured);
+    }
+
+    function addNewFlight(string memory flight, uint256 departureTime) public holderOnly() {
+        require(departureTime > block.timestamp, "Flight has already been scheduled to take off and cannot be added");
+        flightPolicyInstance.addFlightDetails(flight, departureTime, msg.sender, flightPolicyHolders[msg.sender]);
+        emit FlightAdded(flight, departureTime);
+    }
+
+    function getPolicyOfCustomer(bool isActive, address policyHolder) public returns (FlightPolicy.policy[] memory)  {
+        FlightPolicy.policy[] memory policies = flightPolicyInstance.getPolicyOfInsured(msg.sender);
+        uint256 numPolicies = policies.length;
+        FlightPolicy.policy[] memory result = new FlightPolicy.policy[](numPolicies);
+        if (policies.length == 0) {
+            return result;
+        }
+        FlightPolicy.policy memory lastPolicy = policies[flightPolicyHolders[policyHolder]];
+        if (isActive) {
+            if (lastPolicy.status == FlightPolicy.PolicyStatus.Active) {
+                result[0] = lastPolicy;
+            }
+        } 
+        else {
+            result = policies;
+            if (lastPolicy.status == FlightPolicy.PolicyStatus.Active) {
+                FlightPolicy.policy[] memory updatedResult = new FlightPolicy.policy[](numPolicies - 1);
+                for (uint256 i = 0; i < numPolicies - 1; i++) {
+                    updatedResult[i] = policies[i];
+                }
+                return updatedResult;
+            }
+        }
+        return result;
+    }
+
+    function getCompanyPolicies(bool onlyDiscontinued) public view returns (FlightPolicy.policy[] memory) {
+        FlightPolicy.policy[] memory policies = flightPolicyInstance.getAllPolicyTypes();
+        if (onlyDiscontinued) {
+            FlightPolicy.policy[] memory result = new FlightPolicy.policy[](policies.length);
+            //1-based array
+            uint256 count = 0;
+            for (uint256 i = 1; i < policies.length; i++){
+                if(policies[i].status == FlightPolicy.PolicyStatus.Discontinued) {
+                    result[count] = policies[i];
+                    count += 1;
+                }
+            }
+            return result;
+        }
+        return policies;
     }
     
     function withdrawFunds(uint256 amount) external payable companyOnly() {
