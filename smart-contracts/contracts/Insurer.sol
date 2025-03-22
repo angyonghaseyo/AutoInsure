@@ -8,9 +8,9 @@ contract Insurer {
     FlightPolicy flightPolicyInstance;
     address company;
 
-    constructor() {
-        flightPolicyInstance = new FlightPolicy();
-        company = msg.sender;
+    constructor(address companyWallet) {
+        flightPolicyInstance = new FlightPolicy(companyWallet);
+        company = companyWallet;
     }
 
     event PolicyAdded(uint256 policyTypeId);
@@ -127,4 +127,8 @@ contract Insurer {
     }
 
     receive() external payable {}
+
+    function isCompany() public view returns (bool) {
+        return company == msg.sender;
+    }
 }

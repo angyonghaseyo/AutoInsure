@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
 contract FlightPolicy { 
     
     address immutable companyContract;
@@ -34,12 +33,12 @@ contract FlightPolicy {
     mapping(address => policy[]) public policyHolders; //policy[] is 0-based
     policy[] policyTypes; // 0-based
 
-    constructor() {
-        companyContract = msg.sender;
+    constructor(address companyWallet) {
+        companyContract = companyWallet;
     }
 
     modifier companyOnly() {
-        require(msg.sender == companyContract, "Policy, Only the owner can call this function");
+        require(tx.origin == companyContract, "Policy, Only the owner can call this function");
         _;
     }
 
@@ -54,9 +53,9 @@ contract FlightPolicy {
         return numPolicyTypes;
     }
 
-    function deletePolicy(uint256 policyTypeId) public companyOnly view {
-        policy memory currPolicy = policyTypes[policyTypeId - 1];
-        currPolicy.status = PolicyStatus.Discontinued;
+    function deletePolicy(uint256 policyTypeId) public companyOnly {
+        require(policyTypeId > 0 && policyTypeId <= policyTypes.length, "Invalid Policy Type ID");
+        policyTypes[policyTypeId - 1].status = PolicyStatus.Discontinued;
     }
 
     function purchasePolicy(uint256 policyType, string memory flightNumber, uint256 departureTime, address policyHolder) public returns (uint256) {
