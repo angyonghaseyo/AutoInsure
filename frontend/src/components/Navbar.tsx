@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Layout, Menu } from "antd";
 import { useRouter } from "next/router";
 import WalletConnect from "../components/WalletConnect";
@@ -7,9 +7,15 @@ import { useWeb3 } from "./Web3Provider";
 
 const { Header } = Layout;
 
+export enum Role {
+  Company,
+  User,
+}
+
 const Navbar = () => {
   const router = useRouter();
-  const { account } = useWeb3();
+  const { account, insurerContract } = useWeb3();
+  const [role, setRole] = useState<Role | null>(null);
 
   const userMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
@@ -23,6 +29,22 @@ const Navbar = () => {
     { key: "/insurer/policies", label: <Link href="/insurer/policies">Policies</Link> },
     { key: "/insurer/claims", label: <Link href="/insurer/claims">Claims & Payouts</Link> },
   ];
+
+  const fetchUserRole = async () => {
+    try {
+      if (insurerContract) {
+        const isCompany = await insurerContract.isCompany();
+        isCompany ? setRole(Role.Company) : setRole(Role.User);
+        console.log("isCompany: ", isCompany);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserRole();
+  }, [insurerContract]);
 
   return (
     <Header
@@ -44,7 +66,7 @@ const Navbar = () => {
         </svg>
         <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "1.25rem", marginLeft: "0.5rem" }}>AutoInsure</span>
       </Link>
-      {account === "0x8c198625d252b5def8cc43c8bd244ccb0981151b" ? (
+      {role == Role.Company && (
         <Menu
           theme="light"
           mode="horizontal"
@@ -52,7 +74,8 @@ const Navbar = () => {
           items={insurerMenuItems}
           style={{ flex: 1, display: "flex", justifyContent: "center", background: "transparent" }}
         />
-      ) : (
+      )}
+      {role == Role.User && (
         <Menu
           theme="light"
           mode="horizontal"

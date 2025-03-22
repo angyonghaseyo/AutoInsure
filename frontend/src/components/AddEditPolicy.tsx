@@ -1,28 +1,25 @@
 import React, { useState } from "react";
 import { ethers } from "ethers";
-import { Card, Form, Input, Button, DatePicker, TimePicker, Alert, Spin } from "antd";
+import { Card, Form, Input, Button, DatePicker, TimePicker, Alert, Spin, InputNumber } from "antd";
 import { DollarOutlined, CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { useWeb3 } from "./Web3Provider";
 import { Policy } from "../services/flightInsurance";
 
 interface AddEditPolicyProps {
-  selectedPolicy: Policy | null;
+  selectedPolicy?: Policy | null;
   onClose: () => void;
+  onUpdate: () => void;
 }
 
-const AddEditPolicy: React.FC<AddEditPolicyProps> = ({ selectedPolicy, onClose }) => {
-  const { flightInsuranceContract, account } = useWeb3();
+const AddEditPolicy: React.FC<AddEditPolicyProps> = ({ selectedPolicy, onClose, onUpdate }) => {
+  const { insurerContract, account } = useWeb3();
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  if (!selectedPolicy) {
-    return <Spin tip="Loading policy details..." />;
-  }
-
-  const handlePurchase = async (values: any) => {
-    if (!flightInsuranceContract || !account) {
+  const handleAdd = async (values: { premium: number; delayPayout: number; maxPayout: number; delayThreshold: number; activeDuration: number }) => {
+    if (!insurerContract || !account) {
       setError("Please connect your wallet");
       return;
     }
@@ -32,56 +29,56 @@ const AddEditPolicy: React.FC<AddEditPolicyProps> = ({ selectedPolicy, onClose }
       setError(null);
       setSuccess(null);
 
-      const { flightNumber, departureDate, departureTime } = values;
-      const departureTimestamp = Math.floor(new Date(departureDate.format("YYYY-MM-DD") + " " + departureTime.format("HH:mm")).getTime() / 1000);
-
-      const premiumWei = ethers.parseEther(selectedPolicy.premium);
-      const tx = await flightInsuranceContract.purchasePolicy(flightNumber, departureTimestamp, { value: premiumWei });
+      console.log(values.premium, values.delayPayout, values.maxPayout, values.delayThreshold, values.activeDuration);
+      const tx = await insurerContract.addPolicy(values.premium, values.delayPayout, values.maxPayout, values.delayThreshold, values.activeDuration);
 
       await tx.wait();
-      setSuccess(`Successfully purchased policy for flight ${flightNumber}`);
+
+      insurerContract.on("PolicyAdded", (policyTypeId: any) => {
+        console.log("successfully added!");
+        setSuccess(`Successfully added flight insurance policy with ID: ${policyTypeId}`);
+      });
+
+      onClose();
+      onUpdate();
       form.resetFields();
     } catch (err: any) {
-      console.error("Error purchasing policy:", err);
-      setError(err.message || "An error occurred while purchasing the policy");
+      console.error("Error adding policy:", err);
+      setError("An error occurred while adding the policy");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card title={`Purchase ${selectedPolicy.name}`} bordered>
+    <Card title={selectedPolicy ? `Edit Policy` : `Add Policy`} bordered>
       {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
       {success && <Alert message={success} type="success" showIcon style={{ marginBottom: 16 }} />}
 
-      <Form form={form} layout="vertical" onFinish={handlePurchase}>
-        <Form.Item name="delaypayout" label="Flight Number" rules={[{ required: true, message: "Please enter your flight number" }]}>
-          <Input placeholder="e.g., AA123" />
+      <Form form={form} layout="vertical" onFinish={handleAdd}>
+        <Form.Item name="premium" label="Premium" rules={[{ required: true, message: "Please enter the premium" }]}>
+          <InputNumber placeholder="e.g., 1" addonAfter="ETH" />
         </Form.Item>
 
-        <Form.Item name="" label="Departure Date" rules={[{ required: true, message: "Please select your departure date" }]}>
-          <DatePicker style={{ width: "100%" }} />
+        <Form.Item name="delayPayout" label="Delay Payout" rules={[{ required: true, message: "Please enter the delay payout " }]}>
+          <InputNumber placeholder="e.g., 10" addonAfter="ETH" />
         </Form.Item>
 
-        <Form.Item name="departureTime" label="Departure Time" rules={[{ required: true, message: "Please select your departure time" }]}>
-          <TimePicker format="HH:mm" style={{ width: "100%" }} />
+        <Form.Item name="maxPayout" label="Maximum Payout" rules={[{ required: true, message: "Please enter the max payout" }]}>
+          <InputNumber placeholder="e.g., 100" addonAfter="ETH" />
         </Form.Item>
 
-        <Form.Item label="Premium">
-          <Input prefix={<DollarOutlined />} value={selectedPolicy.premium} disabled />
+        <Form.Item name="delayThreshold" label="Delay Threshold" rules={[{ required: true, message: "Please enter the delay threshold" }]}>
+          <InputNumber placeholder="e.g., 100" addonAfter="hours" />
         </Form.Item>
 
-        <Form.Item label="Payout Amount">
-          <Input prefix={<DollarOutlined />} value={selectedPolicy.payoutAmount} disabled />
-        </Form.Item>
-
-        <Form.Item label="Delay Threshold">
-          <Input prefix={<ClockCircleOutlined />} value={`${selectedPolicy.delayThreshold} min`} disabled />
+        <Form.Item name="activeDuration" label="Active Duration" rules={[{ required: true, message: "Please enter the active duration" }]}>
+          <InputNumber placeholder="e.g., 100" addonAfter="days" />
         </Form.Item>
 
         <Form.Item>
           <Button type="primary" htmlType="submit" block loading={isLoading}>
-            Purchase Policy
+            Add Policy
           </Button>
         </Form.Item>
       </Form>

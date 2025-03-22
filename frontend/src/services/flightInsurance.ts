@@ -1,24 +1,35 @@
-import { ethers } from 'ethers';
+import { ethers } from "ethers";
 
 export enum PolicyStatus {
   Active = "Active",
   Expired = "Expired",
   Claimed = "Claimed",
-  Cancelled = "Cancelled"
+  Discontinued = "Discontinued",
 }
 
+const PolicyStatusMap: { [key: number]: PolicyStatus } = {
+  0: PolicyStatus.Active,
+  1: PolicyStatus.Expired,
+  2: PolicyStatus.Claimed,
+  3: PolicyStatus.Discontinued,
+};
+
 export interface Policy {
-  name: string;
   policyId: number;
-  policyholder: string;
-  flightNumber: string;
-  departureTime: number;
-  premium: string;
-  payoutAmount: string;
-  isPaid: boolean;
-  isClaimed: boolean;
+  policyName: string;
+  numFlights: number;
+  flightNumbers: string[];
+  departureTimes: number[];
+  creationDate: number;
+  activeDuration: number;
+  premium: number;
+  delayPayout: number;
   delayThreshold: number;
-  status: PolicyStatus;
+  payoutToDate: number;
+  maxPayout: number;
+  insured: string;
+  insurer: string;
+  status: PolicyStatus; // Enum as string
 }
 
 /**
@@ -29,16 +40,20 @@ export interface Policy {
 export function formatPolicy(policyData: any): Policy {
   return {
     policyId: Number(policyData.policyId),
-    name: policyData.name || "Unknown Policy",
-    policyholder: policyData.policyholder,
-    flightNumber: policyData.flightNumber,
-    departureTime: Number(policyData.departureTime),
-    premium: ethers.formatEther(policyData.premium),
-    payoutAmount: ethers.formatEther(policyData.payoutAmount),
-    isPaid: policyData.isPaid,
-    isClaimed: policyData.isClaimed,
-    delayThreshold: Number(policyData.delayThreshold) / 60, // Convert from seconds to minutes
-    status: policyData.status as PolicyStatus
+    policyName: policyData.policyName,
+    numFlights: Number(policyData.numFlights),
+    flightNumbers: policyData.flightNumbers,
+    departureTimes: policyData.departureTimes.map((t: any) => Number(t)), // Convert timestamps
+    creationDate: Number(policyData.creationDate),
+    activeDuration: Number(policyData.activeDuration),
+    premium: Number(ethers.formatEther(policyData.premium)),
+    delayPayout: Number(ethers.formatEther(policyData.delayPayout)),
+    delayThreshold: Number(policyData.delayThreshold),
+    payoutToDate: Number(policyData.payoutToDate),
+    maxPayout: Number(ethers.formatEther(policyData.maxPayout)),
+    insured: policyData.insured,
+    insurer: policyData.insurer,
+    status: PolicyStatusMap[policyData.status],
   };
 }
 
@@ -49,13 +64,13 @@ export function formatPolicy(policyData: any): Policy {
  */
 export function formatDepartureTime(timestamp: number): string {
   const date = new Date(timestamp * 1000);
-  return date.toLocaleString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleString("en-US", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -76,15 +91,15 @@ export function getPolicyStatusText(status: PolicyStatus): string {
 export function getPolicyStatusColor(status: PolicyStatus): string {
   switch (status) {
     case PolicyStatus.Active:
-      return 'green';
+      return "green";
     case PolicyStatus.Expired:
-      return 'gray';
+      return "gray";
     case PolicyStatus.Claimed:
-      return 'blue';
+      return "blue";
     case PolicyStatus.Cancelled:
-      return 'red';
+      return "red";
     default:
-      return 'default';
+      return "default";
   }
 }
 
@@ -95,18 +110,18 @@ export function getPolicyStatusColor(status: PolicyStatus): string {
  */
 export function isEligibleForClaim(policy: Policy): boolean {
   const now = Math.floor(Date.now() / 1000);
-  
+
   // Policy must be active and not already claimed/paid
   if (policy.status !== PolicyStatus.Active || policy.isPaid || policy.isClaimed) {
     return false;
   }
-  
+
   // Policy must not be expired (24 hours after departure)
   const expirationTime = policy.departureTime + 24 * 60 * 60; // 24 hours in seconds
   if (now > expirationTime) {
     return false;
   }
-  
+
   // Past departure time (can only claim after scheduled departure)
   return now > policy.departureTime;
 }
@@ -118,12 +133,12 @@ export function isEligibleForClaim(policy: Policy): boolean {
  */
 export function isEligibleForCancellation(policy: Policy): boolean {
   const now = Math.floor(Date.now() / 1000);
-  
+
   // Policy must be active and not already claimed/paid
   if (policy.status !== PolicyStatus.Active || policy.isPaid || policy.isClaimed) {
     return false;
   }
-  
+
   // Policy can only be cancelled before departure
   return now < policy.departureTime;
 }
@@ -137,10 +152,10 @@ export function isEligibleForCancellation(policy: Policy): boolean {
 export function calculatePayoutAmount(premiumEther: string, maxPayoutEther: string): string {
   const premium = parseFloat(premiumEther);
   const maxPayout = parseFloat(maxPayoutEther);
-  
+
   // Payout is typically 3x the premium
   const calculatedPayout = premium * 3;
-  
+
   // Cap at maximum payout
   return (calculatedPayout > maxPayout ? maxPayout : calculatedPayout).toString();
 }

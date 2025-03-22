@@ -9,7 +9,7 @@ const { Title, Paragraph } = Typography;
 const { Option } = Select;
 
 const ClaimPage: React.FC = () => {
-  const { account, flightInsuranceContract } = useWeb3();
+  const { account, insurerContract } = useWeb3();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -17,12 +17,12 @@ const ClaimPage: React.FC = () => {
 
   useEffect(() => {
     const fetchPolicies = async () => {
-      if (!account || !flightInsuranceContract) return;
+      if (!account || !insurerContract) return;
       setIsLoading(true);
       setError(null);
 
       try {
-        const policyIds = await flightInsuranceContract.getPoliciesByUser(account);
+        const policyIds = await insurerContract.getPoliciesByUser(account);
         if (policyIds.length === 0) {
           setPolicies([]);
           return;
@@ -30,7 +30,7 @@ const ClaimPage: React.FC = () => {
 
         const policyDetails = await Promise.all(
           policyIds.map(async (id: bigint) => {
-            const policyData = await flightInsuranceContract.getPolicyDetails(id);
+            const policyData = await insurerContract.getPolicyDetails(id);
             return formatPolicy(policyData);
           })
         );
@@ -47,7 +47,7 @@ const ClaimPage: React.FC = () => {
     };
 
     fetchPolicies();
-  }, [account, flightInsuranceContract]);
+  }, [account, insurerContract]);
 
   const handlePolicySelect = (policyId: number) => {
     const policy = policies.find((p) => p.policyId === policyId);

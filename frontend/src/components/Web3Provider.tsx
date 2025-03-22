@@ -1,17 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ethers } from 'ethers';
-import { Web3Provider as EthersWeb3Provider } from '@ethersproject/providers';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { ethers } from "ethers";
+import { Web3Provider as EthersWeb3Provider } from "@ethersproject/providers";
 
 // Contract ABIs and addresses
-import FlightInsuranceABI from '../utils/abis/FlightInsurance.json';
-import contractAddresses from '../utils/contractAddresses.json';
+import insurerABI from "../utils/abis/Insurer.json";
+import contractAddresses from "../utils/contractAddresses.json";
 
 interface Web3ContextType {
   provider: EthersWeb3Provider | null;
   signer: ethers.Signer | null;
   account: string | null;
   chainId: number | null;
-  flightInsuranceContract: ethers.Contract | null;
+  insurerContract: ethers.Contract | null;
   isConnecting: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
@@ -26,12 +26,12 @@ const Web3Context = createContext<Web3ContextType>({
   signer: null,
   account: null,
   chainId: null,
-  flightInsuranceContract: null,
+  insurerContract: null,
   isConnecting: false,
   connectWallet: async () => {},
   disconnectWallet: () => {},
   network: {
-    name: '',
+    name: "",
     isSupported: false,
   },
 });
@@ -44,11 +44,11 @@ interface Web3ProviderProps {
 
 // Supported networks
 const SUPPORTED_NETWORKS = {
-  1: 'Ethereum Mainnet',
-  11155111: 'Sepolia Testnet',
-  137: 'Polygon Mainnet',
-  80001: 'Mumbai Testnet',
-  31337: 'Local Hardhat',
+  1: "Ethereum Mainnet",
+  11155111: "Sepolia Testnet",
+  137: "Polygon Mainnet",
+  80001: "Mumbai Testnet",
+  31337: "Local Hardhat",
 };
 
 export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
@@ -57,8 +57,8 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
   const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [flightInsuranceContract, setFlightInsuranceContract] = useState<ethers.Contract | null>(null);
-  const [network, setNetwork] = useState({ name: '', isSupported: false });
+  const [insurerContract, setinsurerContract] = useState<ethers.Contract | null>(null);
+  const [network, setNetwork] = useState({ name: "", isSupported: false });
 
   // Initialize contracts when provider and signer are available
   useEffect(() => {
@@ -66,24 +66,20 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
       try {
         // Get contract addresses for the current network
         const addresses = contractAddresses[chainId as keyof typeof contractAddresses] || {};
-        
-        if (addresses.flightInsurance) {
-          const flightInsurance = new ethers.Contract(
-            addresses.flightInsurance,
-            FlightInsuranceABI.abi,
-            signer
-          );
-          setFlightInsuranceContract(flightInsurance);
+
+        if (addresses.insurer) {
+          const insurer = new ethers.Contract(addresses.insurer, insurerABI.abi, signer);
+          setinsurerContract(insurer);
         } else {
-          console.warn(`FlightInsurance contract address not found for chainId ${chainId}`);
-          setFlightInsuranceContract(null);
+          console.warn(`insurer contract address not found for chainId ${chainId}`);
+          setinsurerContract(null);
         }
       } catch (error) {
-        console.error('Error initializing contracts:', error);
-        setFlightInsuranceContract(null);
+        console.error("Error initializing contracts:", error);
+        setinsurerContract(null);
       }
     } else {
-      setFlightInsuranceContract(null);
+      setinsurerContract(null);
     }
   }, [provider, signer, chainId]);
 
@@ -94,7 +90,7 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
       const isSupported = Object.keys(SUPPORTED_NETWORKS).includes(chainId.toString());
       setNetwork({ name: networkName, isSupported });
     } else {
-      setNetwork({ name: '', isSupported: false });
+      setNetwork({ name: "", isSupported: false });
     }
   }, [chainId]);
 
@@ -121,13 +117,13 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
         window.location.reload();
       };
 
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      window.ethereum.on("chainChanged", handleChainChanged);
 
       // Cleanup event listeners
       return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+        window.ethereum.removeListener("chainChanged", handleChainChanged);
       };
     }
   }, [account, provider]);
@@ -135,27 +131,27 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
   // Connect wallet function
   const connectWallet = async () => {
     if (!window.ethereum) {
-      alert('Please install MetaMask or another web3 provider');
+      alert("Please install MetaMask or another web3 provider");
       return;
     }
 
     try {
       setIsConnecting(true);
-      
+
       // Request accounts from wallet
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+
       // Create ethers provider and signer
       const web3Provider = new ethers.BrowserProvider(window.ethereum);
-      const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+      const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
       const networkChainId = parseInt(chainIdHex, 16);
-      
+
       setProvider(web3Provider as unknown as EthersWeb3Provider);
       setSigner(await web3Provider.getSigner());
       setAccount(accounts[0]);
       setChainId(networkChainId);
     } catch (error) {
-      console.error('Error connecting wallet:', error);
+      console.error("Error connecting wallet:", error);
     } finally {
       setIsConnecting(false);
     }
@@ -167,7 +163,7 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
     setSigner(null);
     setAccount(null);
     setChainId(null);
-    setFlightInsuranceContract(null);
+    setinsurerContract(null);
   };
 
   // Auto-connect if previously connected (optional)
@@ -176,12 +172,12 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
       if (window.ethereum) {
         try {
           // Check if already connected
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          const accounts = await window.ethereum.request({ method: "eth_accounts" });
           if (accounts.length > 0) {
             await connectWallet();
           }
         } catch (error) {
-          console.error('Error auto-connecting:', error);
+          console.error("Error auto-connecting:", error);
         }
       }
     };
@@ -196,7 +192,7 @@ export const Web3Provider: React.FC<Web3ProviderProps> = ({ children }) => {
         signer,
         account,
         chainId,
-        flightInsuranceContract,
+        insurerContract,
         isConnecting,
         connectWallet,
         disconnectWallet,

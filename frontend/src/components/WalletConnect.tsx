@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Dropdown, Button } from 'antd';
-import { useWeb3 } from './Web3Provider';
-import { DownOutlined, LogoutOutlined, LinkOutlined, WalletOutlined } from '@ant-design/icons';
+import React, { useState } from "react";
+import { Dropdown, Button } from "antd";
+import { useWeb3 } from "./Web3Provider";
+import { DownOutlined, LogoutOutlined, LinkOutlined, WalletOutlined } from "@ant-design/icons";
 
 const WalletConnect: React.FC = () => {
   const { account, chainId, isConnecting, connectWallet, disconnectWallet, network } = useWeb3();
@@ -11,7 +11,7 @@ const WalletConnect: React.FC = () => {
 
   const menuItems = [
     {
-      key: 'view',
+      key: "view",
       label: (
         <a href={`https://etherscan.io/address/${account}`} target="_blank" rel="noopener noreferrer">
           <LinkOutlined /> View on Etherscan
@@ -19,7 +19,7 @@ const WalletConnect: React.FC = () => {
       ),
     },
     {
-      key: 'disconnect',
+      key: "disconnect",
       label: (
         <Button type="text" icon={<LogoutOutlined />} onClick={disconnectWallet}>
           Disconnect Wallet
@@ -29,12 +29,7 @@ const WalletConnect: React.FC = () => {
   ];
 
   return (
-    <Dropdown
-      menu={{ items: menuItems }}
-      trigger={["click"]}
-      open={isDropdownOpen}
-      onOpenChange={setIsDropdownOpen}
-    >
+    <Dropdown menu={{ items: menuItems }} trigger={["click"]} open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       {account ? (
         <Button type="primary" icon={<WalletOutlined />}>
           {shortenAddress(account)} <DownOutlined />

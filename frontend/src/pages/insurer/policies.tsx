@@ -1,42 +1,13 @@
-import React, { useState } from "react";
-import { Card, Row, Col, Typography, Button, Modal, Grid, Spin, Menu, Checkbox, Dropdown } from "antd";
+import React, { useEffect, useState } from "react";
+import { Card, Row, Col, Typography, Button, Modal, Spin, Menu, Checkbox, Dropdown, message } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { DollarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import AddEditPolicy from "../../components/AddEditPolicy";
-import { Policy, PolicyStatus } from "../../services/flightInsurance";
+import { Policy } from "../../services/flightInsurance";
+import { useWeb3 } from "@/components/Web3Provider";
+import { formatPolicy, PolicyStatus } from "../../services/flightInsurance";
 
 const { Title, Paragraph } = Typography;
-const { useBreakpoint } = Grid;
-
-// Sample Policies Catalogue
-const samplePolicies: Policy[] = [
-  {
-    policyId: 1,
-    name: "Basic Flight Delay Cover",
-    premium: "0.03 ETH",
-    payoutAmount: "0.09 ETH",
-    delayThreshold: 60,
-    policyholder: "",
-    flightNumber: "",
-    departureTime: 0,
-    isPaid: false,
-    isClaimed: false,
-    status: PolicyStatus.Active,
-  },
-  {
-    policyId: 2,
-    name: "Standard Flight Protection",
-    premium: "0.05 ETH",
-    payoutAmount: "0.15 ETH",
-    delayThreshold: 90,
-    policyholder: "",
-    flightNumber: "",
-    departureTime: 0,
-    isPaid: false,
-    isClaimed: false,
-    status: PolicyStatus.Active,
-  },
-];
 
 const FilterDropdown = ({ options, selectedFilters, setSelectedFilters }) => {
   // Handle checkbox change
@@ -63,14 +34,15 @@ const FilterDropdown = ({ options, selectedFilters, setSelectedFilters }) => {
 };
 
 const InsurerPolicies: React.FC = () => {
-  const screens = useBreakpoint();
   const [editedPolicy, setEditedPolicy] = useState<Policy | null>(null);
   const [addPolicy, setAddPolicy] = useState<Boolean>(false);
+  const [displayPolicies, setDisplayPolicies] = useState<Policy[]>([]);
+  const { insurerContract } = useWeb3();
+
+  const [messageApi] = message.useMessage();
 
   const filterOptions = [
     { label: "Active", value: "active" }, // In use by users
-    { label: "Inactive", value: "inactive" }, // Not in use by users (including cancelled)
-    { label: "Current", value: "current" }, // Valid policies
     { label: "Deleted", value: "deleted" }, // Invalid policies
   ];
 
@@ -82,18 +54,57 @@ const InsurerPolicies: React.FC = () => {
 
   const [selectedFilters, setSelectedFilters] = useState([]);
 
-  const handleEditClick = (policy: Policy) => {
-    setEditedPolicy({ ...policy });
-  };
-
-  const handleDeleteClick = (policy: Policy) => {};
-
-  const handleAddClick = () => {
-    setAddPolicy(true);
-  };
-
   const handleCloseModal = () => {
     setEditedPolicy(null);
+    setAddPolicy(false);
+  };
+
+  const fetchPolicies = async () => {
+    if (!insurerContract) {
+      return;
+    }
+
+    try {
+      const policies = await insurerContract.getCompanyPolicies(false);
+      const formattedPolicies: Policy[] = policies.map((policy: any) => formatPolicy(policy));
+      setDisplayPolicies(formattedPolicies);
+    } catch (error) {
+      console.error("Error fetching company policies:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!insurerContract) return;
+
+    const handlePolicyDeleted = (policyTypeId: any) => {
+      console.log("Hello");
+      messageApi.open({
+        type: "success",
+        content: `Successfully deleted flight insurance policy with ID: ${policyTypeId}`,
+      });
+
+      fetchPolicies();
+    };
+
+    insurerContract.on("PolicyDeleted", handlePolicyDeleted);
+
+    fetchPolicies();
+    return () => {
+      insurerContract.off("PolicyDeleted", handlePolicyDeleted); // Clean up on unmount
+    };
+  }, [insurerContract]);
+
+  const handlePolicyAction = async (action: "edit" | "delete" | "add", policy?: Policy, policyTypeId?: number) => {
+    if (action === "edit" && policy) {
+      setEditedPolicy({ ...policy });
+    }
+    if (action === "delete" && insurerContract && policyTypeId) {
+      const tx = await insurerContract.deletePolicy(policyTypeId);
+      await tx.wait();
+    }
+    if (action === "add") {
+      setAddPolicy(true);
+    }
   };
 
   return (
@@ -106,47 +117,84 @@ const InsurerPolicies: React.FC = () => {
 
         {/* Right-side container for FilterDropdown and Button */}
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <FilterDropdown options={filterOptions} selectedFilters={selectedFilters} setSelectedFilters={setSelectedFilters} />
-          <Button type="primary" onClick={() => handleAddClick()}>
+          {/* <FilterDropdown options={filterOptions} selectedFilters={selectedFilters} setSelectedFilters={setSelectedFilters} /> */}
+          <Button type="primary" onClick={() => handlePolicyAction("add")}>
             Add Policy
           </Button>
         </div>
       </div>
 
-      <Paragraph>{getFilterDescription()}</Paragraph>
+      <Paragraph>Current Policies</Paragraph>
       <Row gutter={[24, 24]} justify="start">
-        {samplePolicies.map((policy) => (
-          <Col xs={24} sm={12} md={8} lg={6} key={policy.policyId}>
-            <Card title={policy.name} bordered>
-              <p>
-                <strong>Premium:</strong> <DollarOutlined /> {policy.premium}
-              </p>
-              <p>
-                <strong>Payout Amount:</strong> <DollarOutlined /> {policy.payoutAmount}
-              </p>
-              <p>
-                <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {policy.delayThreshold} min
-              </p>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
-                <Button type="primary" onClick={() => handleEditClick(policy)}>
-                  Edit Policy
-                </Button>
-                <Button danger onClick={() => handleDeleteClick(policy)}>
-                  Delete Policy
-                </Button>
-              </div>
-            </Card>
-          </Col>
-        ))}
+        {displayPolicies.map(
+          (policy, index) =>
+            policy.status !== PolicyStatus.Discontinued && (
+              <Col xs={24} sm={12} md={8} lg={6} key={index}>
+                <Card title={`Policy #${index + 1}`} bordered>
+                  <p>
+                    <strong>Premium:</strong> <DollarOutlined /> {policy.premium} ETH
+                  </p>
+                  <p>
+                    <strong>Payout Amount:</strong> <DollarOutlined /> {policy.maxPayout} ETH
+                  </p>
+                  <p>
+                    <strong>Delay Payout:</strong> <DollarOutlined /> {policy.delayPayout} ETH
+                  </p>
+                  <p>
+                    <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {policy.delayThreshold} hours
+                  </p>
+                  <p>
+                    <strong>Active Duration:</strong> <ClockCircleOutlined /> {policy.activeDuration} days
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
+                    <Button type="primary" onClick={() => handlePolicyAction("edit", policy)}>
+                      Edit Policy
+                    </Button>
+                    <Button danger onClick={() => handlePolicyAction("delete", policy, index + 1)}>
+                      Delete Policy
+                    </Button>
+                  </div>
+                </Card>
+              </Col>
+            )
+        )}
       </Row>
 
-      <Modal title="Edit Policy" visible={!!editedPolicy} onCancel={handleCloseModal} footer={null} width={600}>
-        {editedPolicy ? <AddEditPolicy selectedPolicy={editedPolicy} onClose={handleCloseModal} /> : <Spin tip="Loading policy details..." />}
+      <Paragraph>Deleted Policies</Paragraph>
+      <Row gutter={[24, 24]} justify="start">
+        {displayPolicies.map(
+          (policy, index) =>
+            policy.status === PolicyStatus.Discontinued && (
+              <Col xs={24} sm={12} md={8} lg={6} key={index}>
+                <Card title={`Policy #${index + 1}`} bordered>
+                  <p>
+                    <strong>Premium:</strong> <DollarOutlined /> {policy.premium} ETH
+                  </p>
+                  <p>
+                    <strong>Payout Amount:</strong> <DollarOutlined /> {policy.maxPayout} ETH
+                  </p>
+                  <p>
+                    <strong>Delay Payout:</strong> <DollarOutlined /> {policy.delayPayout} ETH
+                  </p>
+                  <p>
+                    <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {policy.delayThreshold} hours
+                  </p>
+                  <p>
+                    <strong>Active Duration:</strong> <ClockCircleOutlined /> {policy.activeDuration} days
+                  </p>
+                </Card>
+              </Col>
+            )
+        )}
+      </Row>
+
+      <Modal visible={!!editedPolicy} onCancel={handleCloseModal} footer={null} width={600}>
+        {editedPolicy ? <AddEditPolicy selectedPolicy={editedPolicy} onClose={handleCloseModal} onUpdate={fetchPolicies} /> : <Spin tip="Loading policy details..." />}
       </Modal>
 
-      {/* <Modal title="Add Policy" visible={!!editedPolicy} onCancel={handleCloseModal} footer={null} width={600}>
-        {addPolicy ? <AddEditPolicy selectedPolicy={addPolicy} onClose={handleCloseModal} /> : <Spin tip="Loading policy details..." />}
-      </Modal> */}
+      <Modal visible={!!addPolicy} onCancel={handleCloseModal} footer={null} width={600}>
+        {addPolicy ? <AddEditPolicy onClose={handleCloseModal} onUpdate={fetchPolicies} /> : <Spin tip="Loading policy details..." />}
+      </Modal>
     </div>
   );
 };
