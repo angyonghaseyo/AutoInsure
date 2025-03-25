@@ -1,45 +1,39 @@
-import React, { useState } from 'react';
-import { Card, Row, Col, Typography, Button, Modal, Grid, Spin } from 'antd';
-import { DollarOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import PurchasePolicy from '../components/PurchasePolicy';
-import { Policy, PolicyStatus } from '../services/flightInsurance';
+import React, { useState, useEffect } from "react";
+import { Card, Row, Col, Typography, Button, Modal, Grid, Spin, Alert } from "antd";
+import { DollarOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import PurchasePolicy from "../components/PurchasePolicy";
+import { useFlightInsurance, Policy } from "../services/flightInsurance";
 
 const { Title, Paragraph } = Typography;
 const { useBreakpoint } = Grid;
 
-// Sample Policies Catalogue
-const samplePolicies: Policy[] = [
-  {
-    policyId: 1,
-    name: "Basic Flight Delay Cover",
-    premium: "0.03 ETH",
-    payoutAmount: "0.09 ETH",
-    delayThreshold: 60,
-    policyholder: "",
-    flightNumber: "",
-    departureTime: 0,
-    isPaid: false,
-    isClaimed: false,
-    status: PolicyStatus.Active,
-  },
-  {
-    policyId: 2,
-    name: "Standard Flight Protection",
-    premium: "0.05 ETH",
-    payoutAmount: "0.15 ETH",
-    delayThreshold: 90,
-    policyholder: "",
-    flightNumber: "",
-    departureTime: 0,
-    isPaid: false,
-    isClaimed: false,
-    status: PolicyStatus.Active,
-  },
-];
-
-const BrowsePolicies: React.FC = () => {
+const BrowsePolicies = () => {
   const screens = useBreakpoint();
+  const { getAvailablePolicies } = useFlightInsurance(); // Fetch policies from blockchain
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+
+  /**
+   * Fetch policies from the blockchain when the component mounts.
+   */
+  useEffect(() => {
+    const fetchPolicies = async () => {
+      try {
+        setLoading(true);
+        const fetchedPolicies = await getAvailablePolicies();
+        setPolicies(fetchedPolicies);
+      } catch (err) {
+        console.error("Error fetching policies:", err);
+        setError("Failed to load policies. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPolicies();
+  }, []);
 
   const handlePurchaseClick = (policy: Policy) => {
     setSelectedPolicy({ ...policy });
@@ -51,22 +45,35 @@ const BrowsePolicies: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <Title level={2} style={{ marginBottom: '20px' }}>Browse Insurance Policies</Title>
+      <Title level={2} style={{ marginBottom: "20px" }}>Browse Insurance Policies</Title>
       <Paragraph>Explore different policy options and choose the one that best fits your needs.</Paragraph>
-      <Row gutter={[24, 24]} justify="start">
-        {samplePolicies.map((policy) => (
-          <Col xs={24} sm={12} md={8} lg={6} key={policy.policyId}>
-            <Card title={policy.name} bordered>
-              <p><strong>Premium:</strong> <DollarOutlined /> {policy.premium}</p>
-              <p><strong>Payout Amount:</strong> <DollarOutlined /> {policy.payoutAmount}</p>
-              <p><strong>Delay Threshold:</strong> <ClockCircleOutlined /> {policy.delayThreshold} min</p>
-              <Button type="primary" block onClick={() => handlePurchaseClick(policy)}>
-                Purchase Policy
-              </Button>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+
+      {/* Show loading spinner while fetching policies */}
+      {loading ? (
+        <div className="flex justify-center my-10">
+          <Spin size="large" tip="Loading policies..." />
+        </div>
+      ) : error ? (
+        <Alert message="Error" description={error} type="error" showIcon />
+      ) : policies.length === 0 ? (
+        <Alert message="No policies available" description="There are currently no active insurance policies available." type="info" showIcon />
+      ) : (
+        <Row gutter={[24, 24]} justify="start">
+          {policies.map((policy) => (
+            <Col xs={24} sm={12} md={8} lg={6} key={policy.policyId}>
+              <Card title={policy.name} bordered>
+                <p><strong>Premium:</strong> <DollarOutlined /> {policy.premium} ETH</p>
+                <p><strong>Payout Amount:</strong> <DollarOutlined /> {policy.payoutAmount} ETH</p>
+                <p><strong>Delay Threshold:</strong> <ClockCircleOutlined /> {policy.delayThreshold} min</p>
+                <Button type="primary" block onClick={() => handlePurchaseClick(policy)}>
+                  Purchase Policy
+                </Button>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
+
       <Modal
         title="Purchase Policy"
         visible={!!selectedPolicy}
