@@ -7,7 +7,7 @@ async function main() {
 
   // Deploy FlightPolicy contract first
   const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
-  const flightPolicy = await FlightPolicy.deploy();
+  const flightPolicy = await FlightPolicy.deploy(process.env.COMPANY_WALLET_ADDRESS);
   await flightPolicy.waitForDeployment();
 
   const flightPolicyAddress = await flightPolicy.getAddress();
@@ -15,7 +15,7 @@ async function main() {
 
   // Deploy Insurer contract and pass the FlightPolicy address as a constructor argument (properly)
   const Insurer = await hre.ethers.getContractFactory("Insurer");
-  const insurer = await Insurer.deploy(flightPolicyAddress);  // ✅ Pass as argument, not overrides
+  const insurer = await Insurer.deploy(flightPolicyAddress); // ✅ Pass as argument, not overrides
   await insurer.waitForDeployment();
 
   const insurerAddress = await insurer.getAddress();
@@ -37,7 +37,7 @@ async function main() {
   // Verify contracts (for non-local networks)
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
     console.log("🔍 Verifying contracts on Etherscan...");
-    
+
     try {
       await hre.run("verify:verify", {
         address: flightPolicyAddress,
@@ -46,7 +46,7 @@ async function main() {
 
       await hre.run("verify:verify", {
         address: insurerAddress,
-        constructorArguments: [flightPolicyAddress],  // ✅ Correctly pass argument
+        constructorArguments: [flightPolicyAddress], // ✅ Correctly pass argument
       });
 
       console.log("✅ Contracts successfully verified on Etherscan!");
@@ -72,10 +72,7 @@ async function main() {
     flightPolicy: flightPolicyAddress,
   };
 
-  fs.writeFileSync(
-    contractAddressesPath,
-    JSON.stringify(existingData, null, 2)
-  );
+  fs.writeFileSync(contractAddressesPath, JSON.stringify(existingData, null, 2));
 
   console.log(`✅ Contract addresses updated in ${contractAddressesPath}`);
 
@@ -88,14 +85,8 @@ async function main() {
   const flightPolicyArtifact = await hre.artifacts.readArtifact("FlightPolicy");
   const insurerArtifact = await hre.artifacts.readArtifact("Insurer");
 
-  fs.writeFileSync(
-    path.join(abisOutputPath, "FlightPolicy.json"),
-    JSON.stringify(flightPolicyArtifact, null, 2)
-  );
-  fs.writeFileSync(
-    path.join(abisOutputPath, "Insurer.json"),
-    JSON.stringify(insurerArtifact, null, 2)
-  );
+  fs.writeFileSync(path.join(abisOutputPath, "FlightPolicy.json"), JSON.stringify(flightPolicyArtifact, null, 2));
+  fs.writeFileSync(path.join(abisOutputPath, "Insurer.json"), JSON.stringify(insurerArtifact, null, 2));
 
   console.log(`✅ ABIs exported to: ${abisOutputPath}`);
 }
