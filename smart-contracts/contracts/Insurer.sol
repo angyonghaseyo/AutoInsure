@@ -4,134 +4,104 @@ pragma solidity ^0.8.0;
 import "./FlightPolicy.sol";
 
 contract Insurer {
-    FlightPolicy public flightPolicyInstance;
-    address public company;
+    address public insurerAddress;
+    FlightPolicy public flightPolicy;
 
-    constructor(address _flightPolicyAddress) {
-        flightPolicyInstance = FlightPolicy(_flightPolicyAddress);
-        company = msg.sender;
-    }
-
-    event PolicyAdded(uint256 policyTypeId);
-    event PolicyDeleted(uint256 policyTypeId);
+    event PolicyAdded(uint256 templateId);
+    event PolicyDeleted(uint256 templateId);
     event PolicyBought(uint256 policyId);
-    event Payout(uint256 amount, address recipient); 
-    event FlightAdded(string flightNumber, uint256 departureTime);
-
-    // Maps user to their last purchased policy ID
-    mapping(address => uint256) public flightPolicyHolders;
-
-    modifier holderOnly() {
-        require(flightPolicyHolders[msg.sender] != 0, "You do not own a flight policy");
-        _;
-    }
+    event Payout(uint256 amount, address recipient);
 
     modifier companyOnly() {
-        require(msg.sender == company, "Only the company can call this function");
+        require(msg.sender == insurerAddress, "Only company can call this");
         _;
     }
 
-    function isCompany(address user) public view returns (bool) {
-        return user == company;
+    constructor(address _flightPolicyAddress) {
+        insurerAddress = msg.sender;
+        flightPolicy = FlightPolicy(_flightPolicyAddress);
     }
 
-    // ========== Company Functions ==========
-    function addPolicy(uint256 premium, uint256 delayPayout, uint256 maxPayout, uint256 delayThreshold, uint256 activeDuration) external companyOnly {
-        uint256 policyTypeId = flightPolicyInstance.createPolicy(activeDuration, premium, delayPayout, delayThreshold, maxPayout);
-        emit PolicyAdded(policyTypeId);
+    // ========== Company Actions ==========
+
+    function createPolicyTemplate(
+        uint256 activeDuration,
+        uint256 premium,
+        uint256 delayPayout,
+        uint256 delayThreshold,
+        uint256 maxPayout
+    ) external companyOnly {
+        uint256 templateId = flightPolicy.createPolicyTemplate(
+            activeDuration,
+            premium,
+            delayPayout,
+            delayThreshold,
+            maxPayout
+        );
+        emit PolicyAdded(templateId);
     }
 
-    function deletePolicy(uint256 policyTypeId) external companyOnly {
-        flightPolicyInstance.deletePolicy(policyTypeId);
-        emit PolicyDeleted(policyTypeId);
+    function deletePolicyTemplate(uint256 templateId) external companyOnly {
+        flightPolicy.deletePolicyTemplate(templateId);
+        emit PolicyDeleted(templateId);
     }
 
-    function withdrawFunds(uint256 amountInWei) external companyOnly() {
+    function withdrawFunds(uint256 amountInWei) external companyOnly {
         require(amountInWei <= address(this).balance, "Insufficient balance");
-        payable(company).transfer(amountInWei);
+        payable(insurerAddress).transfer(amountInWei);
     }
 
-    // ========== User Functions ==========
-    function buyPolicy(uint256 policyType, string memory flight, uint256 departureTime) external payable {
-        // Fetch the policy template
-        FlightPolicy.policy memory policyDetails = flightPolicyInstance.getPolicyDetails(policyType);
+    // ========== User Actions ==========
 
-        // Check ETH sent
-        require(msg.value >= policyDetails.premium, "Not enough ETH to purchase policy");
-
-        // Validate flight timing
+    function purchasePolicy(
+        uint256 templateId,
+        string memory flight,
+        uint256 departureTime
+    ) external payable {
+        // Validate template
+        FlightPolicy.PolicyTemplate memory tpl = flightPolicy.getPolicyTemplate(templateId);
+        require(msg.value >= tpl.premium, "Insufficient ETH sent");
         require(departureTime > block.timestamp, "Flight must be in the future");
 
-        // Fetch all policies for this user
-        FlightPolicy.policy[] memory userPolicies = flightPolicyInstance.getPolicyOfInsured(msg.sender);
-
-        // Check if any existing policy is still active
-        for (uint256 i = 0; i < userPolicies.length; i++) {
-            if (userPolicies[i].status == FlightPolicy.PolicyStatus.Active) {
-                revert("You already have an active policy");
-            }
-        }
+        // Allow user to purchase multiple policies, including overlapping ones
 
         // Proceed with purchase
-        uint256 policyId = flightPolicyInstance.purchasePolicy(policyType, flight, departureTime, msg.sender);
-        flightPolicyHolders[msg.sender] = policyId;
-
-        emit PolicyBought(policyId);
+        uint256 newPolicyId = flightPolicy.purchasePolicy(templateId, flight, departureTime, msg.sender);
+        emit PolicyBought(newPolicyId);
     }
 
+    function claimPolicy(uint256 userPolicyIndex) external {
+        FlightPolicy.UserPolicy[] memory policies = flightPolicy.getPoliciesOf(msg.sender);
+        require(userPolicyIndex < policies.length, "Invalid policy index");
 
-    function claimPolicy() external holderOnly {
-        uint256 lastPolicyIndex = flightPolicyHolders[msg.sender] - 1;
-        FlightPolicy.policy[] memory policies = flightPolicyInstance.getPolicyOfInsured(msg.sender);
-        FlightPolicy.policy memory policyData = policies[lastPolicyIndex];
+        FlightPolicy.UserPolicy memory userPolicy = policies[userPolicyIndex];
+        FlightPolicy.PolicyTemplate memory tpl = flightPolicy.getPolicyTemplate(userPolicy.templateId);
 
-        require(policyData.status == FlightPolicy.PolicyStatus.Active, "Policy already claimed or expired");
+        require(userPolicy.status == FlightPolicy.PolicyStatus.Active, "Policy is not active");
 
-        uint256 totalPayout = policyData.delayPayout;
-
-        // Cap payout at max
-        if (totalPayout > policyData.maxPayout) {
-            totalPayout = policyData.maxPayout;
+        uint256 payout = tpl.delayPayout;
+        if (payout > tpl.maxPayout) {
+            payout = tpl.maxPayout;
         }
-        
-        // Transfer payout
-        payable(policyData.insured).transfer(totalPayout);
 
-        flightPolicyInstance.markAsClaimed(msg.sender);
-        emit Payout(totalPayout, policyData.insured);
-    }
-
-    function addNewFlight(string memory flight, uint256 departureTime) external holderOnly() {
-        require(departureTime > block.timestamp, "Flight must be in the future");
-        flightPolicyInstance.addFlightDetails(flight, departureTime, msg.sender, flightPolicyHolders[msg.sender]);
-        emit FlightAdded(flight, departureTime);
+        payable(userPolicy.insured).transfer(payout);
+        flightPolicy.markAsClaimed(msg.sender, userPolicyIndex);
+        emit Payout(payout, userPolicy.insured);
     }
 
     // ========== Public View Functions ==========
-    function getPolicyOfCustomer(address user) public view returns (FlightPolicy.policy[] memory) {
-        return flightPolicyInstance.getPolicyOfInsured(user);
+
+    function getPolicyOfCustomer(address user) external view returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getPoliciesOf(user);
     }
 
-    function getCompanyPolicies() public view returns (FlightPolicy.policy[] memory) {
-        FlightPolicy.policy[] memory allPolicies = flightPolicyInstance.getAllPolicyTypes();
-
-        // Count how many are active
-        uint256 activeCount = 0;
-        for (uint256 i = 0; i < allPolicies.length; i++) {
-            if (allPolicies[i].status == FlightPolicy.PolicyStatus.Active) {
-                activeCount++;
-            }
-        }
-
-        // Collect the active ones
-        FlightPolicy.policy[] memory activePolicies = new FlightPolicy.policy[](activeCount);
-        uint256 index = 0;
-        for (uint256 i = 0; i < allPolicies.length; i++) {
-            if (allPolicies[i].status == FlightPolicy.PolicyStatus.Active) {
-                activePolicies[index++] = allPolicies[i];
-            }
-        }
-
-        return activePolicies;
+    function getCompanyPolicies() external view returns (FlightPolicy.PolicyTemplate[] memory) {
+        return flightPolicy.getAllPolicyTemplates();
     }
+
+    function isCompany(address user) public view returns (bool) {
+        return user == insurerAddress;
+    }
+
+    receive() external payable {}
 }

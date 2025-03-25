@@ -30,9 +30,10 @@ async function main() {
   console.log(`🛡️ Insurer: ${insurerAddress}`);
   console.log("-------------------------------------\n");
 
-  // Wait for block confirmations before verifying
-  console.log("⏳ Waiting for 5 block confirmations...");
-  await insurer.deploymentTransaction().wait(5);
+  if (!["hardhat", "localhost"].includes(hre.network.name)) {
+    console.log("⏳ Waiting for 5 block confirmations...");
+    await insurer.deploymentTransaction().wait(5);
+  }
 
   // Verify contracts (for non-local networks)
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
@@ -68,8 +69,8 @@ async function main() {
   }
 
   existingData[hre.network.config.chainId] = {
-    insurer: insurerAddress,
-    flightPolicy: flightPolicyAddress,
+    Insurer: insurerAddress,
+    FlightPolicy: flightPolicyAddress,
   };
 
   fs.writeFileSync(
@@ -96,6 +97,9 @@ async function main() {
     path.join(abisOutputPath, "Insurer.json"),
     JSON.stringify(insurerArtifact, null, 2)
   );
+
+  console.log(`✅ FlightPolicy ABI written to: ${path.join(abisOutputPath, "FlightPolicy.json")}`);
+  console.log(`✅ Insurer ABI written to: ${path.join(abisOutputPath, "Insurer.json")}`);
 
   console.log(`✅ ABIs exported to: ${abisOutputPath}`);
 }
