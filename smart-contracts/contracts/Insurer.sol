@@ -31,6 +31,10 @@ contract Insurer {
         _;
     }
 
+    function isCompany(address user) public view returns (bool) {
+        return user == company;
+    }
+
     // ========== Company Functions ==========
     function addPolicy(uint256 premium, uint256 delayPayout, uint256 maxPayout, uint256 delayThreshold, uint256 activeDuration) external companyOnly {
         uint256 policyTypeId = flightPolicyInstance.createPolicy(activeDuration, premium, delayPayout, delayThreshold, maxPayout);

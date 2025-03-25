@@ -3,53 +3,32 @@ import { Layout, Menu } from "antd";
 import { useRouter } from "next/router";
 import WalletConnect from "../components/WalletConnect";
 import Link from "next/link";
-import { useWeb3 } from "./Web3Provider";
+import { useWeb3, Role } from "./Web3Provider";
 
 const { Header } = Layout;
 
-export enum Role {
-  Company,
-  User,
-}
-
 const Navbar = () => {
   const router = useRouter();
-  const { account, insurerContract } = useWeb3();
-  const [role, setRole] = useState<Role | null>(null);
+  const { role } = useWeb3();
 
-  const userMenuItems = [
+   // Menu items for regular users
+   const userMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
     { key: "/policies", label: <Link href="/policies">Browse Policies</Link> },
     { key: "/my-policies", label: <Link href="/my-policies">My Policies</Link> },
     { key: "/claims", label: <Link href="/claims">Claims & Payouts</Link> },
   ];
 
+  // Menu items for the insurer
   const insurerMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
     { key: "/insurer/policies", label: <Link href="/insurer/policies">Policies</Link> },
     { key: "/insurer/claims", label: <Link href="/insurer/claims">Claims & Payouts</Link> },
   ];
-
-  const fetchUserRole = async () => {
-    try {
-      if (insurerContract) {
-        const isCompany = await insurerContract.isCompany();
-        isCompany ? setRole(Role.Company) : setRole(Role.User);
-        console.log("isCompany: ", isCompany);
-      }
-    } catch (error) {
-      console.error("Error fetching user role:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchUserRole();
-  }, [insurerContract]);
-
+    
   return (
-    <Header
-      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "white", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}
-    >
+    <Header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "white", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}>
+      {/* Logo and brand */}
       <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -66,6 +45,8 @@ const Navbar = () => {
         </svg>
         <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "1.25rem", marginLeft: "0.5rem" }}>AutoInsure</span>
       </Link>
+
+      {/* Display tab menu based on role */}
       {role == Role.Company && (
         <Menu
           theme="light"
@@ -75,6 +56,7 @@ const Navbar = () => {
           style={{ flex: 1, display: "flex", justifyContent: "center", background: "transparent" }}
         />
       )}
+
       {role == Role.User && (
         <Menu
           theme="light"
@@ -84,6 +66,8 @@ const Navbar = () => {
           style={{ flex: 1, display: "flex", justifyContent: "center", background: "transparent" }}
         />
       )}
+
+      {/* Connect/Disconnect Wallet */}
       <WalletConnect />
     </Header>
   );

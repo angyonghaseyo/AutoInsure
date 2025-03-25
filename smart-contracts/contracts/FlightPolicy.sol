@@ -34,8 +34,8 @@ contract FlightPolicy {
     policy[] public policyTypes;                                // All policy templates (0-based)
     mapping(address => policy[]) public policyHolders;          // User address to list of policies
 
-    constructor(address companyWallet) {
-        companyContract = companyWallet;
+    constructor() {
+        companyContract = msg.sender;
     }
 
     modifier companyOnly() {
