@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { ethers } from "ethers";
 import { Web3Provider as EthersWeb3Provider } from "@ethersproject/providers";
 import InsurerABI from "../utils/abis/Insurer.json";
-import FlightPolicyABI from "../utils/abis/FlightPolicy.json";  // Import FlightPolicy ABI
+import FlightPolicyABI from "../utils/abis/FlightPolicy.json";
 import contractAddresses from "../utils/contractAddresses.json";
 
 // Extend the Window interface to recognize `ethereum`
@@ -18,7 +18,7 @@ interface Web3ContextType {
   account: string | null;
   chainId: number | null;
   insurerContract: ethers.Contract | null;
-  flightPolicyContract: ethers.Contract | null;  // Add flight policy contract
+  flightPolicyContract: ethers.Contract | null;
   isConnecting: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
@@ -65,10 +65,13 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   /**
    * Compute network name and support status based on chainId.
    */
-  const network = useMemo(() => ({
-    name: chainId ? SUPPORTED_NETWORKS[chainId] || `Unknown (${chainId})` : "",
-    isSupported: !!chainId && SUPPORTED_NETWORKS.hasOwnProperty(String(chainId)),
-  }), [chainId]);
+  const network = useMemo(
+    () => ({
+      name: chainId ? SUPPORTED_NETWORKS[chainId] || `Unknown (${chainId})` : "",
+      isSupported: !!chainId && SUPPORTED_NETWORKS.hasOwnProperty(String(chainId)),
+    }), 
+    [chainId]
+  );
 
   /**
    * Function to connect the wallet and initialize provider, signer, and chainId.
