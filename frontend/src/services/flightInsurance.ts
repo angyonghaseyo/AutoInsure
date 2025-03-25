@@ -2,68 +2,60 @@ import { ethers } from "ethers";
 import { useWeb3 } from "../components/Web3Provider";
 
 export enum PolicyStatus {
-  Active = "Active",
-  Expired = "Expired",
-  Claimed = "Claimed",
-  Discontinued = "Discontinued",
+  Active = 0,
+  Expired = 1,
+  Claimed = 2,
+  Discontinued = 3,
 }
 
 export interface Policy {
   policyId: number;
   name: string;
   policyholder: string;
-  flightNumber: string;
-  departureTime: number;
+  flightNumbers: string[];
+  departureTimes: number[];
   premium: string;
   payoutAmount: string;
-  isPaid: boolean;
-  isClaimed: boolean;
+  payoutToDate: string;
   delayThreshold: number;
   status: PolicyStatus;
+  isClaimed: boolean;
+  isPaid: boolean;
+}
+
+/**
+ * Converts raw policy from contract to frontend format
+ */
+function formatPolicy(raw: any): Policy {
+  return {
+    policyId: Number(raw.policyId),
+    name: `Policy #${Number(raw.policyId)}`,
+    policyholder: raw.insured,
+    flightNumbers: raw.flightNumbers,
+    departureTimes: raw.departureTimes.map((ts: any) => Number(ts)),
+    premium: ethers.formatEther(raw.premium),
+    payoutAmount: ethers.formatEther(raw.maxPayout),
+    payoutToDate: ethers.formatEther(raw.payoutToDate),
+    delayThreshold: Number(raw.delayThreshold),
+    status: raw.status,
+    isClaimed: raw.status === PolicyStatus.Claimed,
+    isPaid: !!raw.payoutToDate && BigInt(raw.payoutToDate.toString()) > 0n,
+  };
 }
 
 export function useFlightInsurance() {
   const { insurerContract, signer, account } = useWeb3();
 
-  if (!insurerContract || !signer) {
-    console.error("Web3 is not initialized. Connect wallet first.");
-    return {
-      getAvailablePolicies: async () => [],
-      getUserPolicies: async () => [],
-      purchasePolicy: async () => {
-        throw new Error("Contract not initialized. Connect wallet first.");
-      },
-      claimPolicy: async () => {
-        throw new Error("Contract not initialized. Connect wallet first.");
-      },
-    };
-  }
-
   /**
-   * Fetch available policies from the blockchain.
+   * Fetch available policies (active company-offered policy types).
    */
   async function getAvailablePolicies(): Promise<Policy[]> {
-    if (!insurerContract) {
-      console.error("Error: Insurer contract is not initialized.");
-      return [];
-    }
-
+    if (!insurerContract) return [];
     try {
-      const policies = await insurerContract?.getCompanyPolicies(false);
-      if (!policies) return [];
-
-      return policies.map((policy: any, index: number) => ({
-        policyId: index + 1,
-        name: `Policy #${index + 1}`,
-        premium: ethers.formatEther(policy.premium),
-        payoutAmount: ethers.formatEther(policy.maxPayout),
-        delayThreshold: policy.delayThreshold,
-        policyholder: "",
-        flightNumber: "",
-        departureTime: 0,
-        isPaid: false,
-        isClaimed: false,
-        status: policy.status,
+      const rawPolicies = await insurerContract.getCompanyPolicies();
+      return rawPolicies.map((p: any, i: number) => ({
+        ...formatPolicy(p),
+        policyId: i + 1,
       }));
     } catch (error) {
       console.error("Error fetching available policies:", error);
@@ -72,31 +64,13 @@ export function useFlightInsurance() {
   }
 
   /**
-   * Fetch policies owned by the current user.
+   * Fetch user-owned policies from contract.
    */
   async function getUserPolicies(): Promise<Policy[]> {
-    if (!account || !insurerContract) {
-      console.error("Error: No connected wallet or contract not initialized.");
-      return [];
-    }
-
+    if (!account || !insurerContract) return [];
     try {
-      const policies = await insurerContract?.getPolicyOfCustomer(true, account);
-      if (!policies) return [];
-
-      return policies.map((policy: any) => ({
-        policyId: policy.policyId,
-        name: `Policy #${policy.policyId}`,
-        policyholder: policy.insured,
-        flightNumber: policy.flightNumbers?.[0] || "N/A",
-        departureTime: Number(policy.departureTimes?.[0]) || 0,
-        premium: ethers.formatEther(policy.premium),
-        payoutAmount: ethers.formatEther(policy.maxPayout),
-        isPaid: false,
-        isClaimed: policy.status === PolicyStatus.Claimed,
-        delayThreshold: policy.delayThreshold,
-        status: policy.status,
-      }));
+      const rawPolicies = await insurerContract.getPolicyOfCustomer(account);
+      return rawPolicies.map(formatPolicy);
     } catch (error) {
       console.error("Error fetching user policies:", error);
       return [];
@@ -104,7 +78,7 @@ export function useFlightInsurance() {
   }
 
   /**
-   * Purchase a policy.
+   * Purchase a new policy.
    */
   async function purchasePolicy(
     policyTypeId: number,
@@ -112,12 +86,10 @@ export function useFlightInsurance() {
     departureTime: number,
     premium: string
   ) {
-    if (!insurerContract) {
-      throw new Error("Error: Contract is not initialized.");
-    }
+    if (!insurerContract) throw new Error("Insurer contract not initialized");
 
     try {
-      const tx = await insurerContract?.buyPolicy(policyTypeId, flightNumber, departureTime, {
+      const tx = await insurerContract.buyPolicy(policyTypeId, flightNumber, departureTime, {
         value: ethers.parseEther(premium),
       });
 
@@ -132,13 +104,11 @@ export function useFlightInsurance() {
   /**
    * Claim an active policy payout.
    */
-  async function claimPolicy() {
-    if (!insurerContract) {
-      throw new Error("Error: Contract is not initialized.");
-    }
+  async function claimPolicy(): Promise<string> {
+    if (!insurerContract) throw new Error("Insurer contract not initialized");
 
     try {
-      const tx = await insurerContract?.claimPolicy();
+      const tx = await insurerContract.claimPolicy();
       await tx.wait();
       return tx.hash;
     } catch (error) {
@@ -147,5 +117,10 @@ export function useFlightInsurance() {
     }
   }
 
-  return { getAvailablePolicies, getUserPolicies, purchasePolicy, claimPolicy };
+  return {
+    getAvailablePolicies,
+    getUserPolicies,
+    purchasePolicy,
+    claimPolicy,
+  };
 }
