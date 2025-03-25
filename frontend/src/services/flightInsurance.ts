@@ -1,161 +1,126 @@
 import { ethers } from "ethers";
+import { useWeb3 } from "../components/Web3Provider";
 
 export enum PolicyStatus {
-  Active = "Active",
-  Expired = "Expired",
-  Claimed = "Claimed",
-  Discontinued = "Discontinued",
+  Active = 0,
+  Expired = 1,
+  Claimed = 2,
+  Discontinued = 3,
 }
-
-const PolicyStatusMap: { [key: number]: PolicyStatus } = {
-  0: PolicyStatus.Active,
-  1: PolicyStatus.Expired,
-  2: PolicyStatus.Claimed,
-  3: PolicyStatus.Discontinued,
-};
 
 export interface Policy {
   policyId: number;
-  policyName: string;
-  numFlights: number;
+  name: string;
+  policyholder: string;
   flightNumbers: string[];
   departureTimes: number[];
-  creationDate: number;
-  activeDuration: number;
-  premium: number;
-  delayPayout: number;
+  premium: string;
+  payoutAmount: string;
+  payoutToDate: string;
   delayThreshold: number;
-  payoutToDate: number;
-  maxPayout: number;
-  insured: string;
-  insurer: string;
-  status: PolicyStatus; // Enum as string
+  status: PolicyStatus;
+  isClaimed: boolean;
+  isPaid: boolean;
 }
 
 /**
- * Formats raw policy data from contract to a more usable format
- * @param policyData Raw policy data from the contract
- * @returns Formatted policy object
+ * Converts raw policy from contract to frontend format
  */
-export function formatPolicy(policyData: any): Policy {
+function formatPolicy(raw: any): Policy {
   return {
-    policyId: Number(policyData.policyId),
-    policyName: policyData.policyName,
-    numFlights: Number(policyData.numFlights),
-    flightNumbers: policyData.flightNumbers,
-    departureTimes: policyData.departureTimes.map((t: any) => Number(t)), // Convert timestamps
-    creationDate: Number(policyData.creationDate),
-    activeDuration: Number(policyData.activeDuration),
-    premium: Number(ethers.formatEther(policyData.premium)),
-    delayPayout: Number(ethers.formatEther(policyData.delayPayout)),
-    delayThreshold: Number(policyData.delayThreshold),
-    payoutToDate: Number(policyData.payoutToDate),
-    maxPayout: Number(ethers.formatEther(policyData.maxPayout)),
-    insured: policyData.insured,
-    insurer: policyData.insurer,
-    status: PolicyStatusMap[policyData.status],
+    policyId: Number(raw.policyId),
+    name: `Policy #${Number(raw.policyId)}`,
+    policyholder: raw.insured,
+    flightNumbers: raw.flightNumbers,
+    departureTimes: raw.departureTimes.map((ts: any) => Number(ts)),
+    premium: ethers.formatEther(raw.premium),
+    payoutAmount: ethers.formatEther(raw.maxPayout),
+    payoutToDate: ethers.formatEther(raw.payoutToDate),
+    delayThreshold: Number(raw.delayThreshold),
+    status: raw.status,
+    isClaimed: raw.status === PolicyStatus.Claimed,
+    isPaid: !!raw.payoutToDate && BigInt(raw.payoutToDate.toString()) > 0n,
   };
 }
 
-/**
- * Formats departure time to a human-readable string
- * @param timestamp Unix timestamp
- * @returns Formatted date and time string
- */
-export function formatDepartureTime(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleString("en-US", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+export function useFlightInsurance() {
+  const { insurerContract, signer, account } = useWeb3();
 
-/**
- * Gets the display text for a policy status
- * @param status Policy status enum value
- * @returns Human-readable status text
- */
-export function getPolicyStatusText(status: PolicyStatus): string {
-  return status;
-}
-
-/**
- * Gets the CSS color class for a policy status
- * @param status Policy status enum value
- * @returns Ant Design color class
- */
-export function getPolicyStatusColor(status: PolicyStatus): string {
-  switch (status) {
-    case PolicyStatus.Active:
-      return "green";
-    case PolicyStatus.Expired:
-      return "gray";
-    case PolicyStatus.Claimed:
-      return "blue";
-    case PolicyStatus.Cancelled:
-      return "red";
-    default:
-      return "default";
-  }
-}
-
-/**
- * Checks if a policy is eligible for claiming
- * @param policy Policy object
- * @returns Whether the policy can be claimed
- */
-export function isEligibleForClaim(policy: Policy): boolean {
-  const now = Math.floor(Date.now() / 1000);
-
-  // Policy must be active and not already claimed/paid
-  if (policy.status !== PolicyStatus.Active || policy.isPaid || policy.isClaimed) {
-    return false;
+  /**
+   * Fetch available policies (active company-offered policy types).
+   */
+  async function getAvailablePolicies(): Promise<Policy[]> {
+    if (!insurerContract) return [];
+    try {
+      const rawPolicies = await insurerContract.getCompanyPolicies();
+      return rawPolicies.map((p: any, i: number) => ({
+        ...formatPolicy(p),
+        policyId: i + 1,
+      }));
+    } catch (error) {
+      console.error("Error fetching available policies:", error);
+      return [];
+    }
   }
 
-  // Policy must not be expired (24 hours after departure)
-  const expirationTime = policy.departureTime + 24 * 60 * 60; // 24 hours in seconds
-  if (now > expirationTime) {
-    return false;
+  /**
+   * Fetch user-owned policies from contract.
+   */
+  async function getUserPolicies(): Promise<Policy[]> {
+    if (!account || !insurerContract) return [];
+    try {
+      const rawPolicies = await insurerContract.getPolicyOfCustomer(account);
+      return rawPolicies.map(formatPolicy);
+    } catch (error) {
+      console.error("Error fetching user policies:", error);
+      return [];
+    }
   }
 
-  // Past departure time (can only claim after scheduled departure)
-  return now > policy.departureTime;
-}
+  /**
+   * Purchase a new policy.
+   */
+  async function purchasePolicy(
+    policyTypeId: number,
+    flightNumber: string,
+    departureTime: number,
+    premium: string
+  ) {
+    if (!insurerContract) throw new Error("Insurer contract not initialized");
 
-/**
- * Checks if a policy is eligible for cancellation
- * @param policy Policy object
- * @returns Whether the policy can be cancelled
- */
-export function isEligibleForCancellation(policy: Policy): boolean {
-  const now = Math.floor(Date.now() / 1000);
+    try {
+      const tx = await insurerContract.buyPolicy(policyTypeId, flightNumber, departureTime, {
+        value: ethers.parseEther(premium),
+      });
 
-  // Policy must be active and not already claimed/paid
-  if (policy.status !== PolicyStatus.Active || policy.isPaid || policy.isClaimed) {
-    return false;
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error("Error purchasing policy:", error);
+      throw new Error("Transaction failed.");
+    }
   }
 
-  // Policy can only be cancelled before departure
-  return now < policy.departureTime;
-}
+  /**
+   * Claim an active policy payout.
+   */
+  async function claimPolicy(): Promise<string> {
+    if (!insurerContract) throw new Error("Insurer contract not initialized");
 
-/**
- * Calculates the payout amount based on the premium
- * @param premiumEther Premium amount in Ether
- * @param maxPayoutEther Maximum payout amount in Ether
- * @returns Payout amount in Ether
- */
-export function calculatePayoutAmount(premiumEther: string, maxPayoutEther: string): string {
-  const premium = parseFloat(premiumEther);
-  const maxPayout = parseFloat(maxPayoutEther);
+    try {
+      const tx = await insurerContract.claimPolicy();
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error("Error claiming policy:", error);
+      throw new Error("Claim transaction failed.");
+    }
+  }
 
-  // Payout is typically 3x the premium
-  const calculatedPayout = premium * 3;
-
-  // Cap at maximum payout
-  return (calculatedPayout > maxPayout ? maxPayout : calculatedPayout).toString();
+  return {
+    getAvailablePolicies,
+    getUserPolicies,
+    purchasePolicy,
+    claimPolicy,
+  };
 }
