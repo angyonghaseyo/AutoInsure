@@ -34,12 +34,12 @@ contract FlightPolicy {
     policy[] public policyTypes;                                // All policy templates (0-based)
     mapping(address => policy[]) public policyHolders;          // User address to list of policies
 
-    constructor() {
-        companyContract = msg.sender;
+    constructor(address companyWallet) {
+        companyContract = companyWallet;
     }
 
     modifier companyOnly() {
-        require(msg.sender == companyContract, "Policy, Only the owner can call this function");
+        require(tx.origin == companyContract, "Policy, Only the owner can call this function");
         _;
     }
 

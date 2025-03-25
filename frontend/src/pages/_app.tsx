@@ -15,7 +15,6 @@ function MyApp({ Component, pageProps }: AppProps) {
         <title>AutoInsure | Decentralized Flight Insurance</title>
         <meta name="description" content="Decentralized flight delay insurance powered by blockchain and Chainlink oracles" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" href="/favicon.ico" />
       </Head>
       <Layout style={{ minHeight: "100vh" }}>
         <Navbar />
