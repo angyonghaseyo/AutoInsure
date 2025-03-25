@@ -1,5 +1,6 @@
 const hre = require("hardhat");
 const fs = require("fs");
+const path = require("path");
 
 async function main() {
   console.log("🚀 Deploying Flight Insurance contracts...");
@@ -33,7 +34,7 @@ async function main() {
   console.log("⏳ Waiting for 5 block confirmations...");
   await insurer.deploymentTransaction().wait(5);
 
-  // Verify contracts on Etherscan (if not on a local network)
+  // Verify contracts (for non-local networks)
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
     console.log("🔍 Verifying contracts on Etherscan...");
     
@@ -77,6 +78,26 @@ async function main() {
   );
 
   console.log(`✅ Contract addresses updated in ${contractAddressesPath}`);
+
+  // Export ABIs to frontend
+  const abisOutputPath = path.join(__dirname, "../frontend/src/utils/abis");
+  if (!fs.existsSync(abisOutputPath)) {
+    fs.mkdirSync(abisOutputPath, { recursive: true });
+  }
+
+  const flightPolicyArtifact = await hre.artifacts.readArtifact("FlightPolicy");
+  const insurerArtifact = await hre.artifacts.readArtifact("Insurer");
+
+  fs.writeFileSync(
+    path.join(abisOutputPath, "FlightPolicy.json"),
+    JSON.stringify(flightPolicyArtifact, null, 2)
+  );
+  fs.writeFileSync(
+    path.join(abisOutputPath, "Insurer.json"),
+    JSON.stringify(insurerArtifact, null, 2)
+  );
+
+  console.log(`✅ ABIs exported to: ${abisOutputPath}`);
 }
 
 main()
