@@ -7,7 +7,7 @@ async function main() {
 
   // 1. Deploy FlightPolicy (modular contract)
   const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
-  const flightPolicy = await FlightPolicy.deploy();
+  const flightPolicy = await FlightPolicy.deploy(process.env.COMPANY_WALLET_ADDRESS);
   await flightPolicy.waitForDeployment();
 
   const flightPolicyAddress = await flightPolicy.getAddress();
@@ -73,10 +73,7 @@ async function main() {
     FlightPolicy: flightPolicyAddress,
   };
 
-  fs.writeFileSync(
-    contractAddressesPath,
-    JSON.stringify(existingData, null, 2)
-  );
+  fs.writeFileSync(contractAddressesPath, JSON.stringify(existingData, null, 2));
 
   console.log(`✅ Updated contract addresses in ${contractAddressesPath}`);
 
@@ -89,14 +86,8 @@ async function main() {
   const flightPolicyArtifact = await hre.artifacts.readArtifact("FlightPolicy");
   const insurerArtifact = await hre.artifacts.readArtifact("Insurer");
 
-  fs.writeFileSync(
-    path.join(abisOutputPath, "FlightPolicy.json"),
-    JSON.stringify(flightPolicyArtifact, null, 2)
-  );
-  fs.writeFileSync(
-    path.join(abisOutputPath, "Insurer.json"),
-    JSON.stringify(insurerArtifact, null, 2)
-  );
+  fs.writeFileSync(path.join(abisOutputPath, "FlightPolicy.json"), JSON.stringify(flightPolicyArtifact, null, 2));
+  fs.writeFileSync(path.join(abisOutputPath, "Insurer.json"), JSON.stringify(insurerArtifact, null, 2));
 
   console.log(`✅ ABIs saved to: ${abisOutputPath}`);
 }
