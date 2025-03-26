@@ -31,10 +31,13 @@ async function main() {
   console.log("-------------------------------------\n");
 
   // 4. Optional: Wait for Etherscan index (5 blocks)
-  if (!["hardhat", "localhost"].includes(hre.network.name)) {
-    console.log("⏳ Waiting for 5 block confirmations...");
-    await insurer.deploymentTransaction().wait(5);
-  }
+  console.log("⏳ Waiting for 5 block confirmations...");
+  await insurer.deploymentTransaction().wait(5);
+
+  // if (!["hardhat", "localhost"].includes(hre.network.name)) {
+  //   console.log("⏳ Waiting for 5 block confirmations...");
+  //   await insurer.deploymentTransaction().wait(5);
+  // }
 
   // 5. Verify contracts (only for testnet/mainnet)
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
