@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { ethers } from "ethers";
 import { Web3Provider as EthersWeb3Provider } from "@ethersproject/providers";
 import InsurerABI from "../utils/abis/Insurer.json";
@@ -14,7 +14,7 @@ declare global {
 
 // Define roles
 export enum Role {
-  Company = "Company",
+  Insurer = "Insurer",
   User = "User",
 }
 
@@ -145,7 +145,7 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     setRole(null);
   }, []);
 
-  // Detect if account is company (based on isCompany(account))
+  // Detect if account is insurer (based on isInsurer(account))
   const fetchUserRole = useCallback(async () => {
     if (!insurerContract || !account) {
       setRole(null);
@@ -153,10 +153,10 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     }
 
     try {
-      const isCompany = await insurerContract.isCompany(account);
-      setRole(isCompany ? Role.Company : Role.User);
+      const isInsurer = await insurerContract.isInsurer(account);
+      setRole(isInsurer ? Role.Insurer : Role.User);
     } catch (err) {
-      console.error("Error checking company role:", err);
+      console.error("Error checking insurer role:", err);
       setRole(null);
     }
   }, [insurerContract, account]);
