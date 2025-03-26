@@ -68,7 +68,9 @@ async function main() {
     console.error("⚠️ Error reading contractAddresses.json:", error);
   }
 
-  existingData[hre.network.config.chainId] = {
+  const chainId = (await hre.ethers.provider.getNetwork()).chainId.toString();
+
+  existingData[chainId] = {
     Insurer: insurerAddress,
     FlightPolicy: flightPolicyAddress,
   };
