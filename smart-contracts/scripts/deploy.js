@@ -7,7 +7,7 @@ async function main() {
 
   // 1. Deploy FlightPolicy (modular contract)
   const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
-  const flightPolicy = await FlightPolicy.deploy(process.env.COMPANY_WALLET_ADDRESS);
+  const flightPolicy = await FlightPolicy.deploy();
   await flightPolicy.waitForDeployment();
 
   const flightPolicyAddress = await flightPolicy.getAddress();
@@ -57,7 +57,7 @@ async function main() {
   }
 
   // 6. Update frontend contractAddresses.json
-  const contractAddressesPath = "./contractAddresses.json";
+  const contractAddressesPath = path.join(__dirname, "../../frontend/src/utils/contractAddresses.json");
   let existingData = {};
 
   try {
