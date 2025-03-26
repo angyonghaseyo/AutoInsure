@@ -5,39 +5,40 @@ const path = require("path");
 async function main() {
   console.log("🚀 Deploying Flight Insurance contracts...");
 
-  // Deploy FlightPolicy contract first
+  // 1. Deploy FlightPolicy (modular contract)
   const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
   const flightPolicy = await FlightPolicy.deploy(process.env.COMPANY_WALLET_ADDRESS);
   await flightPolicy.waitForDeployment();
 
   const flightPolicyAddress = await flightPolicy.getAddress();
-  console.log(`✅ FlightPolicy deployed to: ${flightPolicyAddress}`);
+  console.log(`📦 FlightPolicy (Library) deployed at: ${flightPolicyAddress}`);
 
-  // Deploy Insurer contract and pass the FlightPolicy address as a constructor argument (properly)
+  // 2. Deploy Insurer as the main application entry point
   const Insurer = await hre.ethers.getContractFactory("Insurer");
-  const insurer = await Insurer.deploy(flightPolicyAddress); // ✅ Pass as argument, not overrides
+  const insurer = await Insurer.deploy(flightPolicyAddress);
   await insurer.waitForDeployment();
 
   const insurerAddress = await insurer.getAddress();
-  console.log(`✅ Insurer deployed to: ${insurerAddress}`);
+  console.log(`🛡️ Insurer (Main Entry) deployed at: ${insurerAddress}`);
 
-  // Deployment Summary
+  // 3. Deployment Summary
   console.log("\n-------------------------------------");
   console.log("📜 Deployment Summary:");
   console.log("-------------------------------------");
   console.log(`📌 Network: ${hre.network.name}`);
-  console.log(`🏛️ FlightPolicy: ${flightPolicyAddress}`);
+  console.log(`📦 FlightPolicy: ${flightPolicyAddress}`);
   console.log(`🛡️ Insurer: ${insurerAddress}`);
   console.log("-------------------------------------\n");
 
-  // Wait for block confirmations before verifying
-  console.log("⏳ Waiting for 5 block confirmations...");
-  await insurer.deploymentTransaction().wait(5);
+  // 4. Optional: Wait for Etherscan index (5 blocks)
+  if (!["hardhat", "localhost"].includes(hre.network.name)) {
+    console.log("⏳ Waiting for 5 block confirmations...");
+    await insurer.deploymentTransaction().wait(5);
+  }
 
-  // Verify contracts (for non-local networks)
+  // 5. Verify contracts (only for testnet/mainnet)
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
     console.log("🔍 Verifying contracts on Etherscan...");
-
     try {
       await hre.run("verify:verify", {
         address: flightPolicyAddress,
@@ -46,16 +47,16 @@ async function main() {
 
       await hre.run("verify:verify", {
         address: insurerAddress,
-        constructorArguments: [flightPolicyAddress], // ✅ Correctly pass argument
+        constructorArguments: [flightPolicyAddress],
       });
 
-      console.log("✅ Contracts successfully verified on Etherscan!");
+      console.log("✅ Contracts verified on Etherscan!");
     } catch (error) {
-      console.error("❌ Error verifying contracts:", error);
+      console.error("❌ Verification error:", error);
     }
   }
 
-  // Update contractAddresses.json
+  // 6. Update frontend contractAddresses.json
   const contractAddressesPath = "./contractAddresses.json";
   let existingData = {};
 
@@ -68,16 +69,16 @@ async function main() {
   }
 
   existingData[hre.network.config.chainId] = {
-    insurer: insurerAddress,
-    flightPolicy: flightPolicyAddress,
+    Insurer: insurerAddress,
+    FlightPolicy: flightPolicyAddress,
   };
 
   fs.writeFileSync(contractAddressesPath, JSON.stringify(existingData, null, 2));
 
-  console.log(`✅ Contract addresses updated in ${contractAddressesPath}`);
+  console.log(`✅ Updated contract addresses in ${contractAddressesPath}`);
 
-  // Export ABIs to frontend
-  const abisOutputPath = path.join(__dirname, "../frontend/src/utils/abis");
+  // 7. Export ABIs to frontend for use with ethers.js
+  const abisOutputPath = path.join(__dirname, "../../frontend/src/utils/abis");
   if (!fs.existsSync(abisOutputPath)) {
     fs.mkdirSync(abisOutputPath, { recursive: true });
   }
@@ -88,7 +89,7 @@ async function main() {
   fs.writeFileSync(path.join(abisOutputPath, "FlightPolicy.json"), JSON.stringify(flightPolicyArtifact, null, 2));
   fs.writeFileSync(path.join(abisOutputPath, "Insurer.json"), JSON.stringify(insurerArtifact, null, 2));
 
-  console.log(`✅ ABIs exported to: ${abisOutputPath}`);
+  console.log(`✅ ABIs saved to: ${abisOutputPath}`);
 }
 
 main()
