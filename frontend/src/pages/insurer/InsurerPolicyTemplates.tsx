@@ -109,7 +109,7 @@ const InsurerPolicyTemplates = () => {
       <div className="flex justify-between mb-5 items-center">
         <Title level={2}>Flight Policy Templates</Title>
 
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
           <Select defaultValue="all" onChange={handleStatusFilter} style={{ width: 200 }}>
             <Option value="all">All Statuses</Option>
             <Option value={FlightPolicyTemplateStatus.Active.toString()}>Active</Option>
@@ -127,27 +127,34 @@ const InsurerPolicyTemplates = () => {
           <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
             <Card
               title={tpl.name}
+              bordered
+              style={{ minHeight: 340, display: "flex", flexDirection: "column", justifyContent: "space-between" }}
               extra={
-                <Tag color={getStatusColor(tpl.status)}>
-                  {FlightPolicyTemplateStatus[tpl.status]}
-                </Tag>
+                <Tag color={getStatusColor(tpl.status)}>{FlightPolicyTemplateStatus[tpl.status]}</Tag>
               }
             >
-              <Paragraph>{tpl.description}</Paragraph>
-              <p><strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH</p>
-              <p><strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH</p>
-              <p><strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH</p>
-              <p><strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs</p>
-              <p><strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days</p>
+              <div>
+                <p>{tpl.description}</p>
+                <p><strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH</p>
+                <p><strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH</p>
+                <p><strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH</p>
+                <p><strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs</p>
+                <p><strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days</p>
+              </div>
 
-              <div className="flex justify-between mt-3">
-                <Button icon={<EditOutlined />} disabled>
-                  Edit
-                </Button>
-                {tpl.status === FlightPolicyTemplateStatus.Active && (
-                  <Button danger icon={<DeleteOutlined />} onClick={() => handleTemplateAction("delete", tpl)}>
+              <div style={{ marginTop: "auto" }}>
+                {tpl.status === FlightPolicyTemplateStatus.Active ? (
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleTemplateAction("delete", tpl)}
+                  >
                     Deactivate
                   </Button>
+                ) : (
+                  <div style={{ visibility: "hidden" }}>
+                    <Button icon={<DeleteOutlined />}>Deactivate</Button>
+                  </div>
                 )}
               </div>
             </Card>

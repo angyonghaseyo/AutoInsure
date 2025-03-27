@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 contract FlightPolicy {
     address public immutable insurerAddress;
 
-    constructor(address accountAddress) {
-        insurerAddress = accountAddress;
+    constructor() {
+        insurerAddress = msg.sender;
     }
 
     modifier onlyInsurer() {
-        require(msg.sender == insurerAddress, "FlightPolicy: Only the insurer can call this function");
+        require(tx.origin == insurerAddress, "FlightPolicy: Only the insurer can call this function");
         _;
     }
 
