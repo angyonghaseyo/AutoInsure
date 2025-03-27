@@ -21,7 +21,7 @@ const Navbar = () => {
   // Menu items for the insurer
   const insurerMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
-    { key: "/insurer/policies", label: <Link href="/insurer/policies">Policies</Link> },
+    { key: "/insurer/InsurerPolicyTemplates", label: <Link href="/insurer/InsurerPolicyTemplates">Policy Templates</Link> },
     { key: "/insurer/claims", label: <Link href="/insurer/claims">Claims & Payouts</Link> },
   ];
     
