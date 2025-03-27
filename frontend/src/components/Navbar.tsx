@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from "react";
 import { Layout, Menu } from "antd";
 import { useRouter } from "next/router";
 import WalletConnect from "../components/WalletConnect";
@@ -11,8 +10,8 @@ const Navbar = () => {
   const router = useRouter();
   const { role } = useWeb3();
 
-   // Menu items for regular users
-   const userMenuItems = [
+  // Menu items for regular users
+  const userMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
     { key: "/policies", label: <Link href="/policies">Browse Policies</Link> },
     { key: "/my-policies", label: <Link href="/my-policies">My Policies</Link> },
@@ -22,7 +21,7 @@ const Navbar = () => {
   // Menu items for the insurer
   const insurerMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
-    { key: "/insurer/policies", label: <Link href="/insurer/policies">Policies</Link> },
+    { key: "/insurer/InsurerPolicyTemplates", label: <Link href="/insurer/InsurerPolicyTemplates">Policy Templates</Link> },
     { key: "/insurer/claims", label: <Link href="/insurer/claims">Claims & Payouts</Link> },
   ];
     
@@ -47,7 +46,7 @@ const Navbar = () => {
       </Link>
 
       {/* Display tab menu based on role */}
-      {role == Role.Company && (
+      {role == Role.Insurer && (
         <Menu
           theme="light"
           mode="horizontal"

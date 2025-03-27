@@ -82,11 +82,11 @@ const HomePage: React.FC = () => {
         <Title level={2} className="text-gray-900 text-3xl font-semibold">Available Policies</Title>
       </Divider>
 
-      <div id="get-started" className="py-20 bg-white text-center text-black">
+      {/* <div id="get-started" className="py-20 bg-white text-center text-black">
         <div className="max-w-6xl mx-auto">
           <BrowsePolicies />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

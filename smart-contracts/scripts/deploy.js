@@ -7,7 +7,7 @@ async function main() {
 
   // 1. Deploy FlightPolicy (modular contract)
   const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
-  const flightPolicy = await FlightPolicy.deploy(process.env.COMPANY_WALLET_ADDRESS);
+  const flightPolicy = await FlightPolicy.deploy();
   await flightPolicy.waitForDeployment();
 
   const flightPolicyAddress = await flightPolicy.getAddress();
@@ -31,6 +31,9 @@ async function main() {
   console.log("-------------------------------------\n");
 
   // 4. Optional: Wait for Etherscan index (5 blocks)
+  // console.log("⏳ Waiting for 5 block confirmations...");
+  // await insurer.deploymentTransaction().wait(5);
+
   if (!["hardhat", "localhost"].includes(hre.network.name)) {
     console.log("⏳ Waiting for 5 block confirmations...");
     await insurer.deploymentTransaction().wait(5);
@@ -57,7 +60,7 @@ async function main() {
   }
 
   // 6. Update frontend contractAddresses.json
-  const contractAddressesPath = "./contractAddresses.json";
+  const contractAddressesPath = path.join(__dirname, "../../frontend/src/utils/contractAddresses.json");
   let existingData = {};
 
   try {
@@ -68,7 +71,9 @@ async function main() {
     console.error("⚠️ Error reading contractAddresses.json:", error);
   }
 
-  existingData[hre.network.config.chainId] = {
+  const chainId = (await hre.ethers.provider.getNetwork()).chainId.toString();
+
+  existingData[chainId] = {
     Insurer: insurerAddress,
     FlightPolicy: flightPolicyAddress,
   };

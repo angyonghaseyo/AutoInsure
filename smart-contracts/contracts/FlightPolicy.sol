@@ -9,7 +9,7 @@ contract FlightPolicy {
     }
 
     modifier onlyInsurer() {
-        require(msg.sender == insurerAddress, "FlightPolicy: Only the insurer can call this function");
+        require(tx.origin == insurerAddress, "FlightPolicy: Only the insurer can call this function");
         _;
     }
 
@@ -59,7 +59,7 @@ contract FlightPolicy {
     mapping(address => uint256[]) public userPolicyIds;
     uint256 public nextUserPolicyId;
 
-    // ====== Company Functions ======
+    // ====== Insurer Functions ======
     // Create a new policy template
     function createPolicyTemplate(string memory name, string memory description, uint256 premium, uint256 payoutPerHour, uint256 delayThresholdHours, uint256 maxTotalPayout, uint256 coverageDurationDays) external onlyInsurer returns (uint256) {
         uint256 templateId = nextPolicyTemplateId;
