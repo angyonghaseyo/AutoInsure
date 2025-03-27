@@ -27,8 +27,8 @@ const ENVIRONMENTS = {
 };
 
 // Directory paths
-const FRONTEND_DIR = path.join(__dirname, 'frontend');
-const CONFIG_DIR = path.join(FRONTEND_DIR, 'src', 'utils');
+const DAPP_DIR = path.join(__dirname, 'dapp');
+const CONFIG_DIR = path.join(DAPP_DIR, 'src', 'utils');
 const DEPLOYMENT_FILES = {
   local: path.join(__dirname, 'deployment-localhost.json'),
   staging: path.join(__dirname, 'deployment-sepolia.json'),
@@ -87,7 +87,7 @@ async function promptConfirmation(question) {
 }
 
 /**
- * Updates contract addresses in the frontend config
+ * Updates contract addresses in the dapp config
  */
 function updateContractAddresses(environment) {
   logStatus(`Updating contract addresses for ${environment} environment...`);
@@ -166,7 +166,7 @@ function updateEnvironmentConfig(environment) {
     // Read environment config
     const envConfig = JSON.parse(fs.readFileSync(envConfigFile, 'utf8'));
     
-    // Write environment config to frontend
+    // Write environment config to dapp
     const envConfigDest = path.join(CONFIG_DIR, 'environment.json');
     fs.writeFileSync(
       envConfigDest,
@@ -182,14 +182,14 @@ function updateEnvironmentConfig(environment) {
 }
 
 /**
- * Builds the frontend application
+ * Builds the dapp application
  */
-function buildFrontend() {
-  logStatus('Building frontend application...');
+function buildDapp() {
+  logStatus('Building dapp application...');
 
   try {
-    // Ensure we're in the frontend directory
-    process.chdir(FRONTEND_DIR);
+    // Ensure we're in the dapp directory
+    process.chdir(DAPP_DIR);
     
     // Install dependencies
     logStatus('Installing dependencies...');
@@ -199,18 +199,18 @@ function buildFrontend() {
     logStatus('Running build...');
     execSync('npm run build', { stdio: 'inherit' });
     
-    logStatus('Frontend built successfully', 'success');
+    logStatus('Dapp built successfully', 'success');
     return true;
   } catch (error) {
-    logStatus(`Error building frontend: ${error.message}`, 'error');
+    logStatus(`Error building dapp: ${error.message}`, 'error');
     return false;
   }
 }
 
 /**
- * Deploys the frontend to the hosting provider
+ * Deploys the dapp to the hosting provider
  */
-async function deployFrontend(environment) {
+async function deployDapp(environment) {
   // Different deployment commands based on environment
   const deployCommands = {
     local: 'npm run start',
@@ -218,17 +218,17 @@ async function deployFrontend(environment) {
     production: 'vercel --prod --confirm'
   };
 
-  logStatus(`Deploying frontend to ${environment}...`);
+  logStatus(`Deploying dapp to ${environment}...`);
 
   try {
     // Deploy based on environment
     const deployCommand = deployCommands[environment];
     execSync(deployCommand, { stdio: 'inherit' });
     
-    logStatus(`Frontend deployed successfully to ${environment}`, 'success');
+    logStatus(`Dapp deployed successfully to ${environment}`, 'success');
     return true;
   } catch (error) {
-    logStatus(`Error deploying frontend: ${error.message}`, 'error');
+    logStatus(`Error deploying dapp: ${error.message}`, 'error');
     return false;
   }
 }
@@ -237,7 +237,7 @@ async function deployFrontend(environment) {
  * Main function
  */
 async function main() {
-  logStatus('AutoInsure Frontend Deployment', 'info');
+  logStatus('AutoInsure Dapp Deployment', 'info');
   logStatus('------------------------------', 'info');
   
   try {
@@ -270,8 +270,8 @@ async function main() {
     // Update environment config
     updateEnvironmentConfig(environment);
 
-    // Build frontend
-    const buildSuccessful = buildFrontend();
+    // Build dapp
+    const buildSuccessful = buildDapp();
     if (!buildSuccessful) {
       logStatus('Deployment aborted due to build failure', 'error');
       rl.close();
@@ -280,11 +280,11 @@ async function main() {
 
     // Ask if user wants to deploy
     const deployConfirmed = await promptConfirmation(
-      'Do you want to deploy the frontend now?'
+      'Do you want to deploy the dapp now?'
     );
     
     if (deployConfirmed) {
-      await deployFrontend(environment);
+      await deployDapp(environment);
     } else {
       logStatus('Deployment skipped. Build is ready for manual deployment.', 'info');
     }

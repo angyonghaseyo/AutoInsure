@@ -59,8 +59,8 @@ async function main() {
     }
   }
 
-  // 6. Update frontend contractAddresses.json
-  const contractAddressesPath = path.join(__dirname, "../../frontend/src/utils/contractAddresses.json");
+  // 6. Update dapp contractAddresses.json
+  const contractAddressesPath = path.join(__dirname, "../../dapp/src/utils/contractAddresses.json");
   let existingData = {};
 
   try {
@@ -82,8 +82,8 @@ async function main() {
 
   console.log(`✅ Updated contract addresses in ${contractAddressesPath}`);
 
-  // 7. Export ABIs to frontend for use with ethers.js
-  const abisOutputPath = path.join(__dirname, "../../frontend/src/utils/abis");
+  // 7. Export ABIs to dapp for use with ethers.js
+  const abisOutputPath = path.join(__dirname, "../../dapp/src/utils/abis");
   if (!fs.existsSync(abisOutputPath)) {
     fs.mkdirSync(abisOutputPath, { recursive: true });
   }

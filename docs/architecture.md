@@ -6,13 +6,13 @@ This document provides a detailed overview of the architecture for the decentral
 
 The platform consists of three main layers:
 
-1. **Frontend Layer**: User interface for interacting with the system
+1. **Dapp Layer**: User interface for interacting with the system
 2. **Blockchain Layer**: Smart contracts that handle policy creation, payment, and claims
 3. **Oracle Layer**: Chainlink oracles that fetch flight data from external sources
 
 ```
                        +---------------------------------+
-                       |         Frontend (dApp)        |
+                       |         dApp                   |
                        |  React (Next.js) + Web3.js     |
                        |  User connects via MetaMask    |
                        |  Buys insurance via contract   |
@@ -46,9 +46,9 @@ The platform consists of three main layers:
 
 ## Component Breakdown
 
-### A. Frontend (React + Web3.js)
+### A. Dapp (React + Web3.js)
 
-The frontend is a React application that provides a user interface for:
+The dapp is a React application that provides a user interface for:
 
 1. **User Authentication**:
    - Users connect their Ethereum wallets (MetaMask, WalletConnect)
@@ -124,7 +124,7 @@ The system follows this process flow:
    - User receives funds automatically to their wallet
 
 4. **User Interface Updates**:
-   - Frontend keeps users informed about policy status
+   - Dapp keeps users informed about policy status
    - Shows flight information and claim eligibility
 
 ## Security Considerations
@@ -155,7 +155,7 @@ The system follows this process flow:
    - Architecture supports deployment on multiple EVM chains
    - Configuration based on network ID
 
-3. **Frontend Performance**:
+3. **Dapp Performance**:
    - React optimizations for responsive UI
    - Caching of blockchain data to reduce RPC calls
 

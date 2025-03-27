@@ -95,14 +95,14 @@ deploy_contracts() {
   print_success "Contracts deployed successfully"
 }
 
-# Update frontend config with new contract addresses
-update_frontend_config() {
-  print_status "Updating frontend contract addresses..."
+# Update dapp config with new contract addresses
+update_dapp_config() {
+  print_status "Updating dapp contract addresses..."
   
   # Directory paths
-  FRONTEND_DIR="frontend"
+  DAPP_DIR="dapp"
   DEPLOYMENT_FILE="deployment-$NETWORK.json"
-  CONFIG_FILE="$FRONTEND_DIR/src/utils/contractAddresses.json"
+  CONFIG_FILE="$DAPP_DIR/src/utils/contractAddresses.json"
   
   if [ ! -f "$DEPLOYMENT_FILE" ]; then
     print_error "Deployment file not found: $DEPLOYMENT_FILE"
@@ -135,33 +135,33 @@ update_frontend_config() {
   jq ".$NETWORK_ID.flightInsurance = \"$FLIGHT_INSURANCE_ADDRESS\" | .$NETWORK_ID.oracleConnector = \"$ORACLE_CONNECTOR_ADDRESS\"" $CONFIG_FILE > $CONFIG_FILE.tmp
   mv $CONFIG_FILE.tmp $CONFIG_FILE
   
-  print_success "Frontend configuration updated"
+  print_success "Dapp configuration updated"
 }
 
-# Build and deploy frontend
-build_frontend() {
-  print_status "Building frontend..."
+# Build and deploy dapp
+build_dapp() {
+  print_status "Building dapp..."
   
-  cd frontend
+  cd dapp
   
   # Install dependencies
-  print_status "Installing frontend dependencies..."
+  print_status "Installing dapp dependencies..."
   npm install
   
   # Build production version
   print_status "Building production version..."
   npm run build
   
-  print_success "Frontend built successfully"
+  print_success "Dapp built successfully"
   
-  # Ask if user wants to deploy frontend
-  read -p "Do you want to deploy the frontend? (y/n): " deploy_frontend
-  if [[ "$deploy_frontend" == "y" || "$deploy_frontend" == "Y" ]]; then
+  # Ask if user wants to deploy dapp
+  read -p "Do you want to deploy the dapp? (y/n): " deploy_dapp
+  if [[ "$deploy_dapp" == "y" || "$deploy_dapp" == "Y" ]]; then
     # This is a placeholder for the deployment command
     # Replace with your actual deployment command based on your hosting service
-    print_status "Deploying frontend (placeholder)..."
+    print_status "Deploying dapp (placeholder)..."
     # Example: npm run deploy
-    print_success "Frontend deployed"
+    print_success "Dapp deployed"
   fi
   
   cd ..
@@ -176,11 +176,11 @@ select_network
 # Deploy contracts
 deploy_contracts
 
-# Update frontend config
-update_frontend_config
+# Update dapp config
+update_dapp_config
 
-# Build and deploy frontend
-build_frontend
+# Build and deploy dapp
+build_dapp
 
 print_success "Deployment process completed successfully!"
 
