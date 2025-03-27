@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 contract FlightPolicy {
     address public immutable insurerAddress;
 
-    constructor() {
-        insurerAddress = msg.sender;
+    constructor(address accountAddress) {
+        insurerAddress = accountAddress;
     }
 
     modifier onlyInsurer() {

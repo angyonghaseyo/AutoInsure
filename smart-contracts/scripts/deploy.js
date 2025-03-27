@@ -7,7 +7,7 @@ async function main() {
 
   // 1. Deploy FlightPolicy (modular contract)
   const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
-  const flightPolicy = await FlightPolicy.deploy();
+  const flightPolicy = await FlightPolicy.deploy(process.env.INSURER_ADDRESS);
   await flightPolicy.waitForDeployment();
 
   const flightPolicyAddress = await flightPolicy.getAddress();
