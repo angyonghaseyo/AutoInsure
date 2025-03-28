@@ -71,6 +71,7 @@ contract Insurer {
     // Purchase a policy based on a template
     function purchaseFlightPolicy(uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
         uint256 policyId = flightPolicy.purchasePolicy{value: msg.value}(
+            msg.sender,
             templateId,
             flightNumber,
             departureAirportCode,

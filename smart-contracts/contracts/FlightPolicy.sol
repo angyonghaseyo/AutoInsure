@@ -127,7 +127,7 @@ contract FlightPolicy {
 
     // ====== User Functions ======
     // Purchase a policy based on a template
-    function purchasePolicy(uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable returns (uint256) {
+    function purchasePolicy(address buyer, uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable returns (uint256) {
         require(templateId < nextPolicyTemplateId, "Invalid templateId");
 
         PolicyTemplate memory template = policyTemplates[templateId];
@@ -145,11 +145,11 @@ contract FlightPolicy {
             departureTime: departureTime,
             createdAt: block.timestamp,
             payoutToDate: 0,
-            buyer: msg.sender,
+            buyer: buyer,
             status: PolicyStatus.Active
         });
 
-        userPolicyIds[msg.sender].push(policyId);
+        userPolicyIds[buyer].push(policyId);
         return policyId;
     }
 
