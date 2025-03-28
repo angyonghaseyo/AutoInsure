@@ -1,16 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Tag,
-  Alert,
-  Modal,
-  Select,
-  message,
-  Spin,
-} from "antd";
+import { Card, Row, Col, Typography, Tag, Alert, Modal, Select, message, Spin } from "antd";
 import { WalletOutlined } from "@ant-design/icons";
 
 import { useWeb3 } from "@/components/Web3Provider";
@@ -33,7 +22,7 @@ const getStatusTag = (status: FlightPolicyStatus) => {
 };
 
 const MyFlightPolicies = () => {
-  const { account } = useWeb3();
+  const { insurerContract, account } = useWeb3();
   const { getUserFlightPolicies } = useFlightInsurance();
 
   const [policies, setPolicies] = useState<FlightUserPolicy[]>([]);
@@ -65,7 +54,7 @@ const MyFlightPolicies = () => {
     if (account) {
       fetchPolicies();
     }
-  }, [account]);
+  }, [account, insurerContract]);
 
   /**
    * Filter by status dropdown
@@ -98,24 +87,12 @@ const MyFlightPolicies = () => {
           <Spin size="large" />
         </div>
       ) : policies.length === 0 ? (
-        <Alert
-          message="No Policies Found"
-          description="You have not purchased any flight policies yet."
-          type="info"
-          showIcon
-          style={{ marginBottom: "20px" }}
-        />
+        <Alert message="No Policies Found" description="You have not purchased any flight policies yet." type="info" showIcon style={{ marginBottom: "20px" }} />
       ) : (
         <>
           <div className="flex justify-between items-center mb-5">
-            <Paragraph>
-              Below are the flight insurance policies you've purchased.
-            </Paragraph>
-            <Select
-              defaultValue="all"
-              style={{ width: 200 }}
-              onChange={handleStatusChange}
-            >
+            <Paragraph>Below are the flight insurance policies you've purchased.</Paragraph>
+            <Select defaultValue="all" style={{ width: 200 }} onChange={handleStatusChange}>
               <Option value="all">All Statuses</Option>
               <Option value={FlightPolicyStatus.Active.toString()}>Active</Option>
               <Option value={FlightPolicyStatus.Claimed.toString()}>Claimed</Option>
@@ -139,11 +116,21 @@ const MyFlightPolicies = () => {
                   }}
                 >
                   <div>
-                    <p><strong>Departure:</strong> {new Date(policy.departureTime * 1000).toLocaleString()}</p>
-                    <p><strong>From:</strong> {policy.departureAirportCode}</p>
-                    <p><strong>To:</strong> {policy.arrivalAirportCode}</p>
-                    <p><strong>Premium:</strong> {policy.payoutToDate} ETH</p>
-                    <p><strong>Status:</strong> {getStatusTag(policy.status)}</p>
+                    <p>
+                      <strong>Departure:</strong> {new Date(policy.departureTime * 1000).toLocaleString()}
+                    </p>
+                    <p>
+                      <strong>From:</strong> {policy.departureAirportCode}
+                    </p>
+                    <p>
+                      <strong>To:</strong> {policy.arrivalAirportCode}
+                    </p>
+                    <p>
+                      <strong>Premium:</strong> {policy.payoutToDate} ETH
+                    </p>
+                    <p>
+                      <strong>Status:</strong> {getStatusTag(policy.status)}
+                    </p>
                   </div>
                 </Card>
               </Col>
@@ -153,22 +140,30 @@ const MyFlightPolicies = () => {
       )}
 
       {/* Optional Modal to show more details (can link to ViewPolicy component) */}
-      <Modal
-        title="Flight Policy Details"
-        open={!!selectedPolicy}
-        onCancel={() => setSelectedPolicy(null)}
-        footer={null}
-        destroyOnClose
-      >
+      <Modal title="Flight Policy Details" open={!!selectedPolicy} onCancel={() => setSelectedPolicy(null)} footer={null} destroyOnClose>
         {selectedPolicy ? (
           <div>
-            <p><strong>Flight:</strong> {selectedPolicy.flightNumber}</p>
-            <p><strong>From:</strong> {selectedPolicy.departureAirportCode}</p>
-            <p><strong>To:</strong> {selectedPolicy.arrivalAirportCode}</p>
-            <p><strong>Departure Time:</strong> {new Date(selectedPolicy.departureTime * 1000).toLocaleString()}</p>
-            <p><strong>Purchased On:</strong> {new Date(selectedPolicy.createdAt * 1000).toLocaleString()}</p>
-            <p><strong>Premium Paid:</strong> {selectedPolicy.payoutToDate} ETH</p>
-            <p><strong>Status:</strong> {getStatusTag(selectedPolicy.status)}</p>
+            <p>
+              <strong>Flight:</strong> {selectedPolicy.flightNumber}
+            </p>
+            <p>
+              <strong>From:</strong> {selectedPolicy.departureAirportCode}
+            </p>
+            <p>
+              <strong>To:</strong> {selectedPolicy.arrivalAirportCode}
+            </p>
+            <p>
+              <strong>Departure Time:</strong> {new Date(selectedPolicy.departureTime * 1000).toLocaleString()}
+            </p>
+            <p>
+              <strong>Purchased On:</strong> {new Date(selectedPolicy.createdAt * 1000).toLocaleString()}
+            </p>
+            <p>
+              <strong>Premium Paid:</strong> {selectedPolicy.payoutToDate} ETH
+            </p>
+            <p>
+              <strong>Status:</strong> {getStatusTag(selectedPolicy.status)}
+            </p>
           </div>
         ) : (
           <Spin />

@@ -1,27 +1,9 @@
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Button,
-  Modal,
-  Tag,
-  Select,
-  message,
-} from "antd";
-import {
-  DollarOutlined,
-  ClockCircleOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
+import { Card, Row, Col, Typography, Button, Modal, Tag, Select, message } from "antd";
+import { DollarOutlined, ClockCircleOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
-import {
-  useFlightInsurance,
-  FlightPolicyTemplate,
-  FlightPolicyTemplateStatus,
-} from "@/services/flightInsurance";
+import { useFlightInsurance, FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/services/flightInsurance";
+import { useWeb3 } from "@/components/Web3Provider";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -49,6 +31,8 @@ const InsurerPolicyTemplates = () => {
   const [showModal, setShowModal] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
+  const { insurerContract } = useWeb3();
+
   /**
    * Load policy templates from the blockchain.
    */
@@ -64,7 +48,7 @@ const InsurerPolicyTemplates = () => {
 
   useEffect(() => {
     fetchTemplates();
-  }, []);
+  }, [insurerContract]);
 
   /**
    * Filter templates by status.
@@ -82,10 +66,7 @@ const InsurerPolicyTemplates = () => {
   /**
    * Handle add or delete actions.
    */
-  const handleTemplateAction = async (
-    action: "add" | "delete",
-    template?: FlightPolicyTemplate
-  ) => {
+  const handleTemplateAction = async (action: "add" | "delete", template?: FlightPolicyTemplate) => {
     if (action === "delete" && template) {
       try {
         await deactivateFlightPolicyTemplate(template.templateId);
@@ -127,26 +108,30 @@ const InsurerPolicyTemplates = () => {
               title={tpl.name}
               bordered
               style={{ minHeight: 340, display: "flex", flexDirection: "column", justifyContent: "space-between" }}
-              extra={
-                <Tag color={getStatusColor(tpl.status)}>{FlightPolicyTemplateStatus[tpl.status]}</Tag>
-              }
+              extra={<Tag color={getStatusColor(tpl.status)}>{FlightPolicyTemplateStatus[tpl.status]}</Tag>}
             >
               <div>
                 <p>{tpl.description}</p>
-                <p><strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH</p>
-                <p><strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH</p>
-                <p><strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH</p>
-                <p><strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs</p>
-                <p><strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days</p>
+                <p>
+                  <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
+                </p>
+                <p>
+                  <strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH
+                </p>
+                <p>
+                  <strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH
+                </p>
+                <p>
+                  <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs
+                </p>
+                <p>
+                  <strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days
+                </p>
               </div>
 
               <div style={{ marginTop: "auto" }}>
                 {tpl.status === FlightPolicyTemplateStatus.Active ? (
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleTemplateAction("delete", tpl)}
-                  >
+                  <Button danger icon={<DeleteOutlined />} onClick={() => handleTemplateAction("delete", tpl)}>
                     Deactivate
                   </Button>
                 ) : (
