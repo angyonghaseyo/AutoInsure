@@ -13,8 +13,8 @@ const Navbar = () => {
   // Menu items for regular users
   const userMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
-    { key: "/policies", label: <Link href="/policies">Browse Policies</Link> },
-    { key: "/my-policies", label: <Link href="/my-policies">My Policies</Link> },
+    { key: "/user/BrowsePolicyTemplates", label: <Link href="/user/BrowsePolicyTemplates">Browse Flight Policies</Link> },
+    { key: "/user/MyPolicies", label: <Link href="/user/MyPolicies">My Flight Policies</Link> },
     { key: "/claims", label: <Link href="/claims">Claims & Payouts</Link> },
   ];
 
