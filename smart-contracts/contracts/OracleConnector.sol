@@ -12,18 +12,29 @@ contract OracleConnector is ChainlinkClient, Ownable {
     using Chainlink for Chainlink.Request;
     
     // Oracle parameters
-    address private oracle;
-    bytes32 private jobId;
+    struct OracleInfo {
+        address oracle;
+        string oracleAPIUrl;
+        bytes32 jobId;
+    }
+
+    OracleInfo[] public oracles;
     uint256 private fee;
     
     // Flight data storage
     struct FlightData {
         string flightNumber;
-        uint256 departureTime;
-        bool isDelayed;
-        uint256 delayMinutes;
-        bool dataReceived;
+        uint256 departureTime; // refering to original departure
+        bool isDelayed; 
+        uint256 delaySum; // total delay time responded by oracle
+        bool dataReceived; // track whether final data processed alr
+        uint256 responseCount; // track number of oracles responded
+        uint256 avgDelay; // computed avg delay after aggregation
+        mapping(address => bool) respondedOracles; // track which oracles responded
     }
+
+    // delayThreshold in minutes
+    uint256 delayThreshold; 
     
     // Mapping from request ID to flight data
     mapping(bytes32 => string) private requestToFlightNumber;
@@ -49,76 +60,88 @@ contract OracleConnector is ChainlinkClient, Ownable {
         // 0.1 LINK
         fee = 0.1 * 10 ** 18;
     }
+
+    function addOracle(address _oracle, bytes32 _jobId) external onlyOwner {
+        oracles.push(OracleInfo({oracle: _oracle, oracleAPIUrl: _oracleAPIUrl, jobId: _jobId}));
+    }
     
-    /**
-     * @dev Request flight data from Chainlink oracle
-     * @param _flightNumber Flight number (e.g., "AA123")
-     * @param _departureTime Unix timestamp of scheduled departure
-     * @return requestId Chainlink request ID
-     */
-    function requestFlightData(string memory _flightNumber, uint256 _departureTime) 
-        public
-        returns (bytes32 requestId) 
+    // /**
+    //  * @dev Request flight data from Chainlink oracle
+    //  * @param _flightNumber Flight number (e.g., "AA123")
+    //  * @param _departureTime Unix timestamp of scheduled departure
+    //  * @return requestId Chainlink request ID
+    //  */
+    function requestFlightData(string memory _flightNumber, uint256 _departureTime) public returns (bytes32 requestId) 
     {
-        Chainlink.Request memory request = buildChainlinkRequest(
-            jobId,
-            address(this),
-            this.fulfillFlightData.selector
-        );
-        
-        // Set the URL to fetch flight data
-        // Note: This URL would be replaced with an actual flight data API
-        request.add("get", string(abi.encodePacked(
-            "https://api.flightdata.example/flight/",
-            _flightNumber,
-            "?departure=",
-            uint2str(_departureTime)
-        )));
-        
-        // Set the path to find the flight delay data
-        request.add("path", "data,isDelayed");
-        request.add("path", "data,delayMinutes");
-        
-        // Send the request
-        requestId = sendChainlinkRequestTo(oracle, request, fee);
-        
-        // Store request mapping
-        requestToFlightNumber[requestId] = _flightNumber;
-        requestToDepartureTime[requestId] = _departureTime;
-        
-        emit FlightDataRequested(requestId, _flightNumber, _departureTime);
+        require(oracles.length > 0, "No oracles set");
+
+        for (uint256 i = 0; i < oracles.length; i++) {
+            Chainlink.Request memory request = buildChainlinkRequest(
+                oracles[i].jobId,
+                address(this),
+                this.fulfillFlightData.selector
+            );
+            
+            // Set the URL to fetch flight data
+            // Note: This URL called from each indiv oracle api 
+            string memory fullUrl = string(abi.encodePacked(
+                oracles[i].oracleAPIUrl,
+                _flightNumber,
+                "?departure=",
+                uint2str(_departureTime)
+            ));
+            request.add("get", fullUrl);
+            
+            // Set the path to find the flight delay data 
+            request.add("path", "data.delayMinutes");
+            
+            // Send the request to oracle address
+            requestId = sendChainlinkRequestTo(oracles[i].oracle, request, fee);
+            
+            // Store request mapping
+            requestToFlightNumber[requestId] = _flightNumber;
+            requestToDepartureTime[requestId] = _departureTime;
+            
+            emit FlightDataRequested(requestId, _flightNumber, _departureTime);
+        }
         
         return requestId;
     }
-    
+
     /**
-     * @dev Callback function for Chainlink oracle response
+     * @dev Callback function for Chainlink oracle response (async called by each oracle ie msg.sender is oracle)
      * @param _requestId The request ID
      * @param _isDelayed Whether the flight is delayed
      * @param _delayMinutes The number of minutes the flight is delayed
      */
-    function fulfillFlightData(
-        bytes32 _requestId,
-        bool _isDelayed,
-        uint256 _delayMinutes
-    ) 
-        public
-        recordChainlinkFulfillment(_requestId)
-    {
+    function fulfillFlightData(bytes32 _requestId,  uint256 _delayMinutes) public recordChainlinkFulfillment(_requestId) {
         string memory flightNumber = requestToFlightNumber[_requestId];
         uint256 departureTime = requestToDepartureTime[_requestId];
-        
-        // Store flight data
+
         FlightData storage data = flightDataStore[flightNumber][departureTime];
-        data.flightNumber = flightNumber;
-        data.departureTime = departureTime;
-        data.isDelayed = _isDelayed;
-        data.delayMinutes = _delayMinutes;
-        data.dataReceived = true;
+
+        require(!data.respondedOracles[msg.sender], "Oracle already responded"); // No double response per oracle
         
-        emit FlightDataReceived(_requestId, flightNumber, departureTime, _isDelayed, _delayMinutes);
+        data.delaySum += _delayMinutes; // since we only request for the delayMinutes from each oracle 
+        data.responseCount++;
+        data.respondedOracles[msg.sender] = true;
+
+        if (data.responseCount == oracles.length) {
+            uint256 avgDelay = data.delaySum / data.responseCount;
+            data.delayMinutes = averageDelay;
+            data.dataReceived = true;
+
+            if (avgDelay >= delayThreshold) {
+                data.isDelayed = true;
+            } 
+            else {
+                data.isDelayed = false;
+            }
+
+            emit FlightDataReceived(_requestId, flightNumber, departureTime, isDelayed, delayMinutes);
+        }
     }
-    
+        
     /**
      * @dev Get flight status (cached or new request if not available)
      * @param _flightNumber Flight number
