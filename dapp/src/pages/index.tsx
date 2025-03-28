@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Button, Card, Col, Row, Typography, Alert, Divider, Carousel } from 'antd';
 import { useWeb3 } from '../components/Web3Provider';
-import BrowsePolicies from './policies';
+import BrowsePolicies from './user/BrowsePolicyTemplates';
 import { ArrowRightOutlined, CheckCircleOutlined, WalletOutlined, ExclamationCircleOutlined, CloudOutlined, ThunderboltOutlined, SafetyOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;

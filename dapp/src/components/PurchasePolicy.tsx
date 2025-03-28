@@ -1,95 +1,161 @@
-import React, { useState } from 'react';
-import { ethers } from 'ethers';
-import { Card, Form, Input, Button, DatePicker, TimePicker, Alert, Spin } from 'antd';
-import { DollarOutlined, CalendarOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { useWeb3 } from '../components/Web3Provider';
-import { Policy } from '../services/flightInsurance';
+import { useState } from "react";
+import { Card, Form, Input, Button, DatePicker, TimePicker, Alert, Spin } from "antd";
+import { DollarOutlined, CalendarOutlined, ClockCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+
+import { useFlightInsurance, FlightPolicyTemplate } from "@/services/flightInsurance";
 
 interface PurchasePolicyProps {
-  selectedPolicy: Policy | null;
+  selectedTemplate: FlightPolicyTemplate;
   onClose: () => void;
 }
 
-const PurchasePolicy: React.FC<PurchasePolicyProps> = ({ selectedPolicy, onClose }) => {
-  const { flightInsuranceContract, account } = useWeb3();
+const PurchasePolicy = ({ selectedTemplate, onClose }: PurchasePolicyProps) => {
   const [form] = Form.useForm();
+  const { purchaseFlightPolicy } = useFlightInsurance();
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  if (!selectedPolicy) {
-    return <Spin tip="Loading policy details..." />;
-  }
+  /**
+   * Convert date + time input into Unix timestamp
+   */
+  const getDepartureTimestamp = (date: any, time: any): number => {
+    const dateStr = date.format("YYYY-MM-DD");
+    const timeStr = time.format("HH:mm");
+    return Math.floor(dayjs(`${dateStr} ${timeStr}`).valueOf() / 1000);
+  };
 
-  const handlePurchase = async (values: any) => {
-    if (!flightInsuranceContract || !account) {
-      setError('Please connect your wallet');
+  /**
+   * Handle form submission
+   */
+  const handleSubmit = async (values: any) => {
+    const { flightNumber, departureDate, departureTime, fromAirport, toAirport } = values;
+
+    if (!departureDate || !departureTime) {
+      setError("Please select both departure date and time.");
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
-      setSuccess(null);
-      
-      const { flightNumber, departureDate, departureTime } = values;
-      const departureTimestamp = Math.floor(
-        new Date(departureDate.format('YYYY-MM-DD') + ' ' + departureTime.format('HH:mm')).getTime() / 1000
-      );
-      
-      const premiumWei = ethers.parseEther(selectedPolicy.premium);
-      const tx = await flightInsuranceContract.purchasePolicy(
+      setSuccessMsg(null);
+
+      const departureTimestamp = getDepartureTimestamp(departureDate, departureTime);
+
+      await purchaseFlightPolicy(
+        selectedTemplate.templateId,
         flightNumber,
+        fromAirport,
+        toAirport,
         departureTimestamp,
-        { value: premiumWei }
+        selectedTemplate.premium
       );
-      
-      await tx.wait();
-      setSuccess(`Successfully purchased policy for flight ${flightNumber}`);
+
+      setSuccessMsg(`Policy for flight ${flightNumber} purchased successfully!`);
       form.resetFields();
     } catch (err: any) {
-      console.error('Error purchasing policy:', err);
-      setError(err.message || 'An error occurred while purchasing the policy');
+      console.error("❌ Purchase failed:", err);
+      setError(err?.message || "An error occurred while purchasing the policy.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card title={`Purchase ${selectedPolicy.name}`} bordered>
+    <Card title={`Purchase ${selectedTemplate.name}`}>
       {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
-      {success && <Alert message={success} type="success" showIcon style={{ marginBottom: 16 }} />}
-      
-      <Form form={form} layout="vertical" onFinish={handlePurchase}>
-        <Form.Item name="flightNumber" label="Flight Number" rules={[{ required: true, message: 'Please enter your flight number' }]}>
-          <Input placeholder="e.g., AA123" />
+      {successMsg && (
+        <Alert
+          message={successMsg}
+          type="success"
+          showIcon
+          icon={<CheckCircleOutlined />}
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      <Form layout="vertical" form={form} onFinish={handleSubmit}>
+        {/* Flight Details */}
+        <Form.Item
+          name="flightNumber"
+          label="Flight Number"
+          rules={[{ required: true, message: "Please enter your flight number" }]}
+        >
+          <Input placeholder="e.g. SQ322" />
         </Form.Item>
 
-        <Form.Item name="departureDate" label="Departure Date" rules={[{ required: true, message: 'Please select your departure date' }]}>
-          <DatePicker style={{ width: '100%' }} />
+        <Form.Item
+          name="fromAirport"
+          label="Departure Airport (IATA Code)"
+          rules={[{ required: true, message: "Please enter departure airport code" }]}
+        >
+          <Input placeholder="e.g. SIN" />
         </Form.Item>
 
-        <Form.Item name="departureTime" label="Departure Time" rules={[{ required: true, message: 'Please select your departure time' }]}>
-          <TimePicker format="HH:mm" style={{ width: '100%' }} />
+        <Form.Item
+          name="toAirport"
+          label="Arrival Airport (IATA Code)"
+          rules={[{ required: true, message: "Please enter arrival airport code" }]}
+        >
+          <Input placeholder="e.g. LHR" />
         </Form.Item>
 
+        <Form.Item
+          name="departureDate"
+          label="Departure Date"
+          rules={[{ required: true, message: "Please select a departure date" }]}
+        >
+          <DatePicker style={{ width: "100%" }} suffixIcon={<CalendarOutlined />} />
+        </Form.Item>
+
+        <Form.Item
+          name="departureTime"
+          label="Departure Time"
+          rules={[{ required: true, message: "Please select a departure time" }]}
+        >
+          <TimePicker format="HH:mm" style={{ width: "100%" }} suffixIcon={<ClockCircleOutlined />} />
+        </Form.Item>
+
+        {/* Policy Info (readonly) */}
         <Form.Item label="Premium">
-          <Input prefix={<DollarOutlined />} value={selectedPolicy.premium} disabled />
+          <Input
+            prefix={<DollarOutlined />}
+            value={`${selectedTemplate.premium} ETH`}
+            disabled
+          />
         </Form.Item>
 
-        <Form.Item label="Payout Amount">
-          <Input prefix={<DollarOutlined />} value={selectedPolicy.payoutAmount} disabled />
+        <Form.Item label="Payout Per Hour">
+          <Input
+            prefix={<DollarOutlined />}
+            value={`${selectedTemplate.payoutPerHour} ETH`}
+            disabled
+          />
+        </Form.Item>
+
+        <Form.Item label="Maximum Payout">
+          <Input
+            prefix={<DollarOutlined />}
+            value={`${selectedTemplate.maxTotalPayout} ETH`}
+            disabled
+          />
         </Form.Item>
 
         <Form.Item label="Delay Threshold">
-          <Input prefix={<ClockCircleOutlined />} value={`${selectedPolicy.delayThreshold} min`} disabled />
+          <Input
+            prefix={<ClockCircleOutlined />}
+            value={`${selectedTemplate.delayThresholdHours} hrs`}
+            disabled
+          />
         </Form.Item>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit" block loading={isLoading}>
-            Purchase Policy
-          </Button>
-        </Form.Item>
+        {/* Submit */}
+        <Button type="primary" htmlType="submit" block loading={isLoading}>
+          Purchase Policy
+        </Button>
       </Form>
     </Card>
   );

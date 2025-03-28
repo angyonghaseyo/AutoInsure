@@ -6,7 +6,6 @@ import {
   Typography,
   Button,
   Modal,
-  Spin,
   Tag,
   Select,
   message,
@@ -15,7 +14,6 @@ import {
   DollarOutlined,
   ClockCircleOutlined,
   PlusOutlined,
-  EditOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
 import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
@@ -25,7 +23,7 @@ import {
   FlightPolicyTemplateStatus,
 } from "@/services/flightInsurance";
 
-const { Title, Paragraph } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
 
 /**
