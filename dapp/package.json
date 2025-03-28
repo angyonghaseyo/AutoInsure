@@ -1,0 +1,46 @@
+{
+    "name": "flight-insurance-frontend",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+    },
+    "dependencies": {
+        "@ant-design/web3": "^1.22.0",
+        "@chainlink/contracts": "^0.6.1",
+        "@openzeppelin/contracts": "^4.9.0",
+        "@tailwindcss/forms": "^0.5.3",
+        "antd": "^5.24.3",
+        "autoprefixer": "^10.4.14",
+        "browserify-zlib": "^0.2.0",
+        "crypto-browserify": "^3.12.0",
+        "ethers": "^6.13.5",
+        "https-browserify": "^1.0.0",
+        "lucide-react": "^0.479.0",
+        "mongodb": "^6.15.0",
+        "next": "13.4.4",
+        "os-browserify": "^0.3.0",
+        "path-browserify": "^1.0.1",
+        "postcss": "^8.4.24",
+        "react": "18.2.0",
+        "react-datepicker": "^4.12.0",
+        "react-dom": "18.2.0",
+        "react-router-dom": "^6.12.1",
+        "stream-browserify": "^3.0.0",
+        "stream-http": "^3.2.0",
+        "tailwindcss": "^3.3.2"
+    },
+    "devDependencies": {
+        "@types/mongodb": "^4.0.7",
+        "@types/node": "^20.17.28",
+        "@types/react": "^18.2.8",
+        "@types/react-datepicker": "^4.11.2",
+        "@types/react-dom": "^18.2.4",
+        "eslint": "^8.42.0",
+        "eslint-config-next": "^13.4.4",
+        "typescript": "^5.1.3"
+    }
+}

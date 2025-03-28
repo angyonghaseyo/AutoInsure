@@ -10,7 +10,7 @@ This guide provides detailed instructions for deploying the AutoInsure platform 
   - [Local Deployment](#local-deployment)
   - [Testnet Deployment](#testnet-deployment)
   - [Mainnet Deployment](#mainnet-deployment)
-- [Frontend Deployment](#frontend-deployment)
+- [Dapp Deployment](#dapp-deployment)
 - [Verifying Smart Contracts](#verifying-smart-contracts)
 - [Post-Deployment Configuration](#post-deployment-configuration)
 - [Troubleshooting](#troubleshooting)
@@ -118,24 +118,24 @@ For production deployment to Ethereum or Polygon mainnet:
 4. The script will:
    - Deploy the contracts
    - Verify them on Etherscan/Polygonscan
-   - Update frontend configuration
-   - Optionally build and deploy the frontend
+   - Update dapp configuration
+   - Optionally build and deploy the dapp
 
-## Frontend Deployment
+## Dapp Deployment
 
 After deploying the contracts:
 
-1. Update the contract addresses in the frontend:
+1. Update the contract addresses in the dapp:
 
 ```bash
 # If not already done by deploy.sh
-cp deployment-{network}.json frontend/src/utils/contractAddresses.json
+cp deployment-{network}.json dapp/src/utils/contractAddresses.json
 ```
 
-2. Build the frontend:
+2. Build the dapp:
 
 ```bash
-cd frontend
+cd dapp
 npm install
 npm run build
 ```
@@ -189,7 +189,7 @@ await linkToken.transfer("ORACLE_CONNECTOR_ADDRESS", ethers.utils.parseEther("10
    - Contract has LINK tokens
    - Chainlink node is operational on the network
 
-3. **Frontend can't connect to contracts**: Check:
+3. **Dapp can't connect to contracts**: Check:
    - Contract addresses are correct in `contractAddresses.json`
    - Network ID matches what the user's wallet is connected to
    - RPC endpoint is functioning properly

@@ -1,77 +1,105 @@
 const hre = require("hardhat");
+const fs = require("fs");
+const path = require("path");
 
 async function main() {
-  console.log("Deploying Flight Insurance contracts...");
+  console.log("🚀 Deploying Flight Insurance contracts...");
 
-  // First deploy the OracleConnector
-  const OracleConnector = await hre.ethers.getContractFactory("OracleConnector");
-  const oracleConnector = await OracleConnector.deploy();
-  await oracleConnector.waitForDeployment();
-  
-  const oracleConnectorAddress = await oracleConnector.getAddress();
-  console.log(`OracleConnector deployed to: ${oracleConnectorAddress}`);
+  // 1. Deploy FlightPolicy (modular contract)
+  const FlightPolicy = await hre.ethers.getContractFactory("FlightPolicy");
+  const flightPolicy = await FlightPolicy.deploy();
+  await flightPolicy.waitForDeployment();
 
-  // Then deploy the FlightInsurance contract using the OracleConnector address
-  const FlightInsurance = await hre.ethers.getContractFactory("FlightInsurance");
-  const flightInsurance = await FlightInsurance.deploy(oracleConnectorAddress);
-  await flightInsurance.waitForDeployment();
-  
-  const flightInsuranceAddress = await flightInsurance.getAddress();
-  console.log(`FlightInsurance deployed to: ${flightInsuranceAddress}`);
+  const flightPolicyAddress = await flightPolicy.getAddress();
+  console.log(`📦 FlightPolicy (Library) deployed at: ${flightPolicyAddress}`);
 
-  // Display deployment information for verification
+  // 2. Deploy Insurer as the main application entry point
+  const Insurer = await hre.ethers.getContractFactory("Insurer");
+  const insurer = await Insurer.deploy(flightPolicyAddress);
+  await insurer.waitForDeployment();
+
+  const insurerAddress = await insurer.getAddress();
+  console.log(`🛡️ Insurer (Main Entry) deployed at: ${insurerAddress}`);
+
+  // 3. Deployment Summary
+  console.log("\n-------------------------------------");
+  console.log("📜 Deployment Summary:");
   console.log("-------------------------------------");
-  console.log("Deployment Summary:");
-  console.log("-------------------------------------");
-  console.log(`Network: ${hre.network.name}`);
-  console.log(`OracleConnector: ${oracleConnectorAddress}`);
-  console.log(`FlightInsurance: ${flightInsuranceAddress}`);
-  console.log("-------------------------------------");
+  console.log(`📌 Network: ${hre.network.name}`);
+  console.log(`📦 FlightPolicy: ${flightPolicyAddress}`);
+  console.log(`🛡️ Insurer: ${insurerAddress}`);
+  console.log("-------------------------------------\n");
 
-  // Allow some time for Etherscan to index the contracts
-  console.log("Waiting for block confirmation...");
-  await flightInsurance.deploymentTransaction().wait(5);
-  
-  // Verify contracts on Etherscan (if not on local network)
+  // 4. Optional: Wait for Etherscan index (5 blocks)
+  // console.log("⏳ Waiting for 5 block confirmations...");
+  // await insurer.deploymentTransaction().wait(5);
+
+  if (!["hardhat", "localhost"].includes(hre.network.name)) {
+    console.log("⏳ Waiting for 5 block confirmations...");
+    await insurer.deploymentTransaction().wait(5);
+  }
+
+  // 5. Verify contracts (only for testnet/mainnet)
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
-    console.log("Verifying contracts on Etherscan...");
-    
+    console.log("🔍 Verifying contracts on Etherscan...");
     try {
       await hre.run("verify:verify", {
-        address: oracleConnectorAddress,
+        address: flightPolicyAddress,
         constructorArguments: [],
       });
-      
+
       await hre.run("verify:verify", {
-        address: flightInsuranceAddress,
-        constructorArguments: [oracleConnectorAddress],
+        address: insurerAddress,
+        constructorArguments: [flightPolicyAddress],
       });
-      
-      console.log("Contracts verified successfully on Etherscan!");
+
+      console.log("✅ Contracts verified on Etherscan!");
     } catch (error) {
-      console.error("Error verifying contracts:", error);
+      console.error("❌ Verification error:", error);
     }
   }
 
-  // Export deployment data to a file
-  const fs = require("fs");
-  const deploymentData = {
-    network: hre.network.name,
-    oracleConnector: oracleConnectorAddress,
-    flightInsurance: flightInsuranceAddress,
-    timestamp: new Date().toISOString(),
+  // 6. Update dapp contractAddresses.json
+  const contractAddressesPath = path.join(__dirname, "../../dapp/src/utils/contractAddresses.json");
+  let existingData = {};
+
+  try {
+    if (fs.existsSync(contractAddressesPath)) {
+      existingData = JSON.parse(fs.readFileSync(contractAddressesPath, "utf8"));
+    }
+  } catch (error) {
+    console.error("⚠️ Error reading contractAddresses.json:", error);
+  }
+
+  const chainId = (await hre.ethers.provider.getNetwork()).chainId.toString();
+
+  existingData[chainId] = {
+    Insurer: insurerAddress,
+    FlightPolicy: flightPolicyAddress,
   };
 
-  fs.writeFileSync(
-    `deployment-${hre.network.name}.json`,
-    JSON.stringify(deploymentData, null, 2)
-  );
-  console.log(`Deployment data saved to deployment-${hre.network.name}.json`);
+  fs.writeFileSync(contractAddressesPath, JSON.stringify(existingData, null, 2));
+
+  console.log(`✅ Updated contract addresses in ${contractAddressesPath}`);
+
+  // 7. Export ABIs to dapp for use with ethers.js
+  const abisOutputPath = path.join(__dirname, "../../dapp/src/utils/abis");
+  if (!fs.existsSync(abisOutputPath)) {
+    fs.mkdirSync(abisOutputPath, { recursive: true });
+  }
+
+  const flightPolicyArtifact = await hre.artifacts.readArtifact("FlightPolicy");
+  const insurerArtifact = await hre.artifacts.readArtifact("Insurer");
+
+  fs.writeFileSync(path.join(abisOutputPath, "FlightPolicy.json"), JSON.stringify(flightPolicyArtifact, null, 2));
+  fs.writeFileSync(path.join(abisOutputPath, "Insurer.json"), JSON.stringify(insurerArtifact, null, 2));
+
+  console.log(`✅ ABIs saved to: ${abisOutputPath}`);
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error("❌ Deployment failed:", error);
     process.exit(1);
   });

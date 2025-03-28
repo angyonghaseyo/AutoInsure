@@ -12,13 +12,13 @@ This decentralized flight insurance platform allows travelers to purchase insura
 - **Automatic Payouts**: Smart contracts automatically execute payouts for delayed flights
 - **Oracle Integration**: Chainlink oracles fetch reliable flight data from external APIs
 - **Transparent Process**: All policies and claims are recorded on the blockchain
-- **User-friendly Interface**: React-based frontend with Web3 wallet integration
+- **User-friendly Interface**: React-based dapp with Web3 wallet integration
 
 ## Architecture
 
 The platform consists of three main components:
 
-1. **Frontend (dApp)**: React application with Web3.js integration for wallet connection and contract interaction
+1. **App**: React application with Web3.js integration for wallet connection and contract interaction
 2. **Smart Contracts**: Solidity contracts deployed on Ethereum/EVM-compatible blockchains
 3. **Oracle Layer**: Chainlink oracles that fetch and verify flight data
 
@@ -33,7 +33,7 @@ The platform consists of three main components:
 │   └── interact.js           # Contract interaction script
 ├── test/                     # Test files
 │   └── FlightInsurance.test.js # Contract tests
-├── frontend/                 # React frontend application
+├── dapp/                 # React dapp application
 │   ├── src/                  # Source files
 │   │   ├── components/       # React components
 │   │   ├── pages/            # Page components
@@ -64,8 +64,8 @@ cd flight-insurance-dapp
 # Install smart contract dependencies
 npm install
 
-# Install frontend dependencies
-cd frontend
+# Install dapp dependencies
+cd dapp
 npm install
 ```
 
@@ -101,16 +101,16 @@ npx hardhat run scripts/deploy.js --network localhost
 npx hardhat run scripts/deploy.js --network sepolia
 ```
 
-### Frontend Development
+### Dapp Development
 
 1. Update contract addresses
 ```bash
-# After deployment, update the contract addresses in frontend/src/utils/contractAddresses.json
+# After deployment, update the contract addresses in dapp/src/utils/contractAddresses.json
 ```
 
 2. Start the development server
 ```bash
-cd frontend
+cd dapp
 npm run dev
 ```
 
@@ -145,7 +145,7 @@ The platform uses Chainlink oracles to:
 2. Verify flight delays and report the data on-chain
 3. Trigger smart contract functions based on delay conditions
 
-### Frontend
+### Dapp
 
 - React with Next.js for the UI
 - Web3.js for blockchain interaction
