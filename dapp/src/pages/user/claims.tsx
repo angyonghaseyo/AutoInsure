@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useWeb3 } from '../components/Web3Provider';
-import { Policy, formatPolicy, PolicyStatus } from '../services/flightInsurance';
+import { useWeb3 } from '../../components/Web3Provider';
+import { Policy, formatPolicy, PolicyStatus } from '../../services/flightInsurance';
 import { Card, Select, Alert, Typography, Spin, Button } from 'antd';
 import { CheckCircleOutlined, ExclamationCircleOutlined, WalletOutlined } from '@ant-design/icons';
-import ClaimStatus from '../components/ClaimStatus';
+import ClaimStatus from '../../components/ClaimStatus';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
