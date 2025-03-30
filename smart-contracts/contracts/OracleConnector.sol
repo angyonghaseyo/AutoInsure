@@ -24,10 +24,11 @@ contract OracleConnector is ChainlinkClient, Ownable {
     // Flight data storage
     struct FlightData {
         string flightNumber;
-        uint256 departureTime; // refering to original departure
+        string departureTime; // refering to original departure
         bool isDelayed; 
         uint256 delaySum; // total delay time responded by oracle
         uint256 delayMinutes;
+        uint256 delayHours;
         bool dataReceived; // track whether final data processed alr
         uint256 responseCount; // track number of oracles responded
         uint256 avgDelay; // computed avg delay after aggregation
@@ -39,12 +40,12 @@ contract OracleConnector is ChainlinkClient, Ownable {
     
     // Mapping from request ID to flight data
     mapping(bytes32 => string) private requestToFlightNumber;
-    mapping(bytes32 => uint256) private requestToDepartureTime;
-    mapping(string => mapping(uint256 => FlightData)) private flightDataStore;
+    mapping(bytes32 => string) private requestToDepartureTime;
+    mapping(string => mapping(string => FlightData)) private flightDataStore;
     
     // Events
-    event FlightDataRequested(bytes32 indexed requestId, string flightNumber, uint256 departureTime);
-    event FlightDataReceived(bytes32 indexed requestId, string flightNumber, uint256 departureTime, bool isDelayed, uint256 delayMinutes);
+    event FlightDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime);
+    event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
     
     constructor() Ownable() {
         // Set Chainlink token address (for the relevant network)
@@ -53,7 +54,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
         
         oracles.push(OracleInfo(
             0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD, //  Chainlink node operator on Sepolia
-            "https://122c3532-129a-4b6e-a4c9-88b555567aab.mock.pstmn.io/flightdata", // mock api url
+            "https://122c3532-129a-4b6e-a4c9-88b555567aab.mock.pstmn.io/", // mock api url
             "7d80a6386ef543a3abb52817f6707e3b" // JobID for flight data API request
         ));
 
@@ -71,7 +72,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     //  * @param _departureTime Unix timestamp of scheduled departure
     //  * @return requestId Chainlink request ID
     //  */
-    function requestFlightData(string memory _flightNumber, uint256 _departureTime) public returns (bytes32 requestId) 
+    function requestFlightData(string memory _flightNumber, string memory _departureTime) private returns (bytes32 requestId) 
     {
         require(oracles.length > 0, "No oracles set");
 
@@ -88,7 +89,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
                 oracles[i].oracleAPIUrl,
                 _flightNumber,
                 "?departure=",
-                uint2str(_departureTime)
+                _departureTime
             ));
             request.add("get", fullUrl);
             
@@ -114,9 +115,9 @@ contract OracleConnector is ChainlinkClient, Ownable {
     //  * @param _isDelayed Whether the flight is delayed
     //  * @param _delayMinutes The number of minutes the flight is delayed
     //  */
-    function fulfillFlightData(bytes32 _requestId,  uint256 _delayMinutes) public recordChainlinkFulfillment(_requestId) {
+    function fulfillFlightData(bytes32 _requestId, uint256 _delayMinutes) public recordChainlinkFulfillment(_requestId) {
         string memory flightNumber = requestToFlightNumber[_requestId];
-        uint256 departureTime = requestToDepartureTime[_requestId];
+        string memory departureTime = requestToDepartureTime[_requestId];
 
         FlightData storage data = flightDataStore[flightNumber][departureTime];
 
@@ -129,6 +130,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
         if (data.responseCount == oracles.length) {
             uint256 avgDelay = data.delaySum / data.responseCount;
             data.delayMinutes = avgDelay;
+            data.delayHours = avgDelay / 60;
             data.dataReceived = true;
 
             if (avgDelay >= delayThreshold) {
@@ -142,47 +144,26 @@ contract OracleConnector is ChainlinkClient, Ownable {
         }
     }
         
-    /**
-     * @dev Get flight status (cached or new request if not available)
-     * @param _flightNumber Flight number
-     * @param _departureTime Departure time
-     * @return isDelayed Whether the flight is delayed
-     * @return delayMinutes The number of minutes the flight is delayed
-     */
-    function getFlightStatus(string memory _flightNumber, uint256 _departureTime)
-        external
-        returns (bool isDelayed, uint256 delayMinutes)
+    // /**
+    //  * @dev Get flight status (cached or new request if not available)
+    //  * @param _flightNumber Flight number
+    //  * @param _departureTime Departure time
+    //  * @return isDelayed Whether the flight is delayed
+    //  * @return delayMinutes The number of minutes the flight is delayed
+    //  */
+    function getFlightStatus(string memory _flightNumber, string memory _departureTime) public
+    returns (bool isDelayed, uint256 delayHours)
     {
         FlightData storage data = flightDataStore[_flightNumber][_departureTime];
         
         // If we already have the data, return it
         if (data.dataReceived) {
-            return (data.isDelayed, data.delayMinutes);
-        }
-        
-        // Otherwise, request it
+            return (data.isDelayed, data.delayHours);
+        } 
+
         requestFlightData(_flightNumber, _departureTime);
-        
-        // For simplicity in this example, we'll return a default value
-        // In a real implementation, you would need to handle waiting for the oracle response
-        return (false, 0);
-    }
-    
-    /**
-     * @dev Get cached flight data without making a new request
-     * @param _flightNumber Flight number
-     * @param _departureTime Departure time
-     * @return isDelayed Whether the flight is delayed
-     * @return delayMinutes The number of minutes the flight is delayed
-     * @return dataReceived Whether we have received data for this flight
-     */
-    function getCachedFlightData(string memory _flightNumber, uint256 _departureTime)
-        external
-        view
-        returns (bool isDelayed, uint256 delayMinutes, bool dataReceived)
-    {
-        FlightData storage data = flightDataStore[_flightNumber][_departureTime];
-        return (data.isDelayed, data.delayMinutes, data.dataReceived);
+        FlightData storage new_data = flightDataStore[_flightNumber][_departureTime];
+        return (new_data.isDelayed, new_data.delayHours);
     }
     
     /**
@@ -207,31 +188,5 @@ contract OracleConnector is ChainlinkClient, Ownable {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
-    
-    /**
-     * @dev Helper function to convert uint to string
-     * @param _i The uint to convert
-     * @return The string representation of the uint
-     */
-    function uint2str(uint256 _i) internal pure returns (string memory) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint256 j = _i;
-        uint256 length;
-        while (j != 0) {
-            length++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(length);
-        uint256 k = length;
-        while (_i != 0) {
-            k = k-1;
-            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
-    }
+
 }
