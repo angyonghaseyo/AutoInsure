@@ -27,6 +27,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
         uint256 departureTime; // refering to original departure
         bool isDelayed; 
         uint256 delaySum; // total delay time responded by oracle
+        uint256 delayMinutes;
         bool dataReceived; // track whether final data processed alr
         uint256 responseCount; // track number of oracles responded
         uint256 avgDelay; // computed avg delay after aggregation
@@ -50,18 +51,17 @@ contract OracleConnector is ChainlinkClient, Ownable {
         // This is Sepolia testnet LINK token address
         setChainlinkToken(0x779877A7B0D9E8603169DdbD7836e478b4624789);
         
-        // Set Chainlink Oracle address
-        // This is a Chainlink node operator on Sepolia
-        oracle = 0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD;
-        
-        // JobID for flight data API request
-        jobId = "7d80a6386ef543a3abb52817f6707e3b";
-        
+        oracles.push(OracleInfo(
+            0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD, //  Chainlink node operator on Sepolia
+            "https://122c3532-129a-4b6e-a4c9-88b555567aab.mock.pstmn.io/flightdata", // mock api url
+            "7d80a6386ef543a3abb52817f6707e3b" // JobID for flight data API request
+        ));
+
         // 0.1 LINK
         fee = 0.1 * 10 ** 18;
     }
 
-    function addOracle(address _oracle, bytes32 _jobId) external onlyOwner {
+    function addOracle(address _oracle, string memory _oracleAPIUrl, bytes32 _jobId) external onlyOwner {
         oracles.push(OracleInfo({oracle: _oracle, oracleAPIUrl: _oracleAPIUrl, jobId: _jobId}));
     }
     
@@ -108,12 +108,12 @@ contract OracleConnector is ChainlinkClient, Ownable {
         return requestId;
     }
 
-    /**
-     * @dev Callback function for Chainlink oracle response (async called by each oracle ie msg.sender is oracle)
-     * @param _requestId The request ID
-     * @param _isDelayed Whether the flight is delayed
-     * @param _delayMinutes The number of minutes the flight is delayed
-     */
+    // /*
+    //  * @dev Callback function for Chainlink oracle response (async called by each oracle ie msg.sender is oracle)
+    //  * @param _requestId The request ID
+    //  * @param _isDelayed Whether the flight is delayed
+    //  * @param _delayMinutes The number of minutes the flight is delayed
+    //  */
     function fulfillFlightData(bytes32 _requestId,  uint256 _delayMinutes) public recordChainlinkFulfillment(_requestId) {
         string memory flightNumber = requestToFlightNumber[_requestId];
         uint256 departureTime = requestToDepartureTime[_requestId];
@@ -128,7 +128,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
 
         if (data.responseCount == oracles.length) {
             uint256 avgDelay = data.delaySum / data.responseCount;
-            data.delayMinutes = averageDelay;
+            data.delayMinutes = avgDelay;
             data.dataReceived = true;
 
             if (avgDelay >= delayThreshold) {
@@ -138,7 +138,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
                 data.isDelayed = false;
             }
 
-            emit FlightDataReceived(_requestId, flightNumber, departureTime, isDelayed, delayMinutes);
+            emit FlightDataReceived(_requestId, flightNumber, departureTime, data.isDelayed, data.delayMinutes);
         }
     }
         
@@ -191,15 +191,15 @@ contract OracleConnector is ChainlinkClient, Ownable {
      * @param _jobId New job ID
      * @param _fee New fee amount
      */
-    function updateOracleParams(address _oracle, bytes32 _jobId, uint256 _fee)
-        external
-        onlyOwner
-    {
-        oracle = _oracle;
-        jobId = _jobId;
-        fee = _fee;
-    }
-    
+    // function updateOracleParams(address _oracle, bytes32 _jobId, uint256 _fee)
+    //     external
+    //     onlyOwner
+    //     {
+    //         oracle = _oracle;
+    //         jobId = _jobId;
+    //         fee = _fee;
+    //     }
+        
     /**
      * @dev Withdraw LINK tokens from the contract
      */
