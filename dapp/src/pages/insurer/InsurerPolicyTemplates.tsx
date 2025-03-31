@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Card, Row, Col, Typography, Button, Modal, Tag, Select, message } from "antd";
-import { DollarOutlined, ClockCircleOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { DollarOutlined, ClockCircleOutlined, PlusOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
 import { useFlightInsurance, FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/services/flightInsurance";
 import { useWeb3 } from "@/components/Web3Provider";
+import PolicyTemplateDrawer from "@/components/PolicyTemplateDrawer";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -30,6 +31,9 @@ const InsurerPolicyTemplates = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [viewPolicyTemplate, setViewPolicyTemplate] = useState<FlightPolicyTemplate>();
 
   const { insurerContract } = useWeb3();
 
@@ -129,7 +133,7 @@ const InsurerPolicyTemplates = () => {
                 </p>
               </div>
 
-              <div style={{ marginTop: "auto" }}>
+              <div style={{ marginTop: "auto", display: "flex", gap: "10px" }}>
                 {tpl.status === FlightPolicyTemplateStatus.Active ? (
                   <Button danger icon={<DeleteOutlined />} onClick={() => handleTemplateAction("delete", tpl)}>
                     Deactivate
@@ -139,6 +143,15 @@ const InsurerPolicyTemplates = () => {
                     <Button icon={<DeleteOutlined />}>Deactivate</Button>
                   </div>
                 )}
+                <Button
+                  icon={<EyeOutlined />}
+                  onClick={async () => {
+                    setDrawerVisible(true);
+                    setViewPolicyTemplate(tpl);
+                  }}
+                >
+                  View Purchased Policies
+                </Button>
               </div>
             </Card>
           </Col>
@@ -149,6 +162,8 @@ const InsurerPolicyTemplates = () => {
       <Modal open={showModal} onCancel={() => setShowModal(false)} footer={null} destroyOnClose>
         <CreatePolicyTemplate onClose={() => setShowModal(false)} onUpdate={fetchTemplates} />
       </Modal>
+
+      {viewPolicyTemplate && <PolicyTemplateDrawer setDrawerVisible={setDrawerVisible} policyTemplate={viewPolicyTemplate} visible={drawerVisible} />}
     </div>
   );
 };
