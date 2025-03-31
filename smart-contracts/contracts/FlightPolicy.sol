@@ -134,6 +134,24 @@ contract FlightPolicy {
         policy.status = PolicyStatus.Expired;
     }
 
+    function getUserPoliciesByTemplate(uint256 templateId) external view returns (UserPolicy[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < nextUserPolicyId; i++) {
+            if (userPolicies[i].templateId == templateId) {
+                count++;
+            }
+        }
+        UserPolicy[] memory result = new UserPolicy[](count);
+        uint256 j = 0;
+        for (uint256 i = 0; i < nextUserPolicyId; i++) {
+            if (userPolicies[i].templateId == templateId) {
+                result[j] = userPolicies[i];
+                j++;
+            }
+        }
+        return result;
+    }
+
 
     // ====== User Functions ======
     // Purchase a policy based on a template

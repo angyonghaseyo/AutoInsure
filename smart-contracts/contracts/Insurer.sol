@@ -66,6 +66,10 @@ contract Insurer {
         flightPolicy.markPolicyAsExpired(policyId);
     }
 
+    function getUserPoliciesByTemplate(uint256 templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getUserPoliciesByTemplate(templateId);
+    }
+
     function withdraw(uint256 amountInWei) external onlyInsurer {
         require(address(this).balance >= amountInWei, "Insufficient balance");
         payable(insurerAddress).transfer(amountInWei);

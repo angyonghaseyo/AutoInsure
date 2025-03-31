@@ -72,18 +72,18 @@ export function useFlightInsurance() {
   const { insurerContract, account } = useWeb3();
 
   // ====== Insurer Functions ======
-  async function createFlightPolicyTemplate(name: string, description: string, premium: number, payoutPerHour: number, delayThresholdHours: number, maxTotalPayout: number, coverageDurationDays: number): Promise<void> {
+  async function createFlightPolicyTemplate(
+    name: string,
+    description: string,
+    premium: number,
+    payoutPerHour: number,
+    delayThresholdHours: number,
+    maxTotalPayout: number,
+    coverageDurationDays: number
+  ): Promise<void> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
 
-    const tx = await insurerContract.createFlightPolicyTemplate(
-      name,
-      description,
-      premium,
-      payoutPerHour,
-      maxTotalPayout,
-      delayThresholdHours,
-      coverageDurationDays
-    );
+    const tx = await insurerContract.createFlightPolicyTemplate(name, description, premium, payoutPerHour, maxTotalPayout, delayThresholdHours, coverageDurationDays);
     await tx.wait();
   }
 
@@ -111,6 +111,18 @@ export function useFlightInsurance() {
     }
   }
 
+  async function getUserPoliciesByTemplate(templatedId: number): Promise<FlightUserPolicy[]> {
+    if (!insurerContract) return [];
+    try {
+      console.log("Fetching user flight policies for templateId: ", templatedId);
+      const raw = await insurerContract.getUserPoliciesByTemplate(templatedId);
+      console.log(raw);
+      return raw.map(formatUserPolicy);
+    } catch (error) {
+      console.error(`Error fetching user flight policies for templateId ${templatedId}:`, error);
+      return [];
+    }
+  }
   async function getAllFlightPolicies(): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
     const rawPolicies = await insurerContract.getAllFlightPolicies();
@@ -118,21 +130,21 @@ export function useFlightInsurance() {
   }
 
   // ====== User Functions ======
-  async function purchaseFlightPolicy(templateId: number, flightNumber: string, departureAirportCode: string, arrivalAirportCode: string, departureTime: number, premium: string): Promise<string> {
+  async function purchaseFlightPolicy(
+    templateId: number,
+    flightNumber: string,
+    departureAirportCode: string,
+    arrivalAirportCode: string,
+    departureTime: number,
+    premium: string
+  ): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
     console.log("Purchasing flight policy:", { templateId, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, premium });
     console.log(account);
 
-    const tx = await insurerContract.purchaseFlightPolicy(
-      templateId,
-      flightNumber,
-      departureAirportCode,
-      arrivalAirportCode,
-      departureTime,
-      {
-        value: ethers.parseEther(premium),
-      }
-    );
+    const tx = await insurerContract.purchaseFlightPolicy(templateId, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, {
+      value: ethers.parseEther(premium),
+    });
     await tx.wait();
     return tx.hash;
   }
@@ -181,6 +193,7 @@ export function useFlightInsurance() {
     deactivateFlightPolicyTemplate,
     getAllFlightPolicyTemplates,
     getFlightPolicyTemplateById,
+    getUserPoliciesByTemplate,
     getAllFlightPolicies,
     purchaseFlightPolicy,
     getUserFlightPolicies,
