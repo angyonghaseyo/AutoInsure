@@ -123,6 +123,11 @@ export function useFlightInsurance() {
       return [];
     }
   }
+  async function getAllFlightPolicies(): Promise<FlightUserPolicy[]> {
+    if (!insurerContract) return [];
+    const rawPolicies = await insurerContract.getAllFlightPolicies();
+    return rawPolicies.map(formatUserPolicy);
+  }
 
   // ====== User Functions ======
   async function purchaseFlightPolicy(
@@ -189,6 +194,7 @@ export function useFlightInsurance() {
     getAllFlightPolicyTemplates,
     getFlightPolicyTemplateById,
     getUserPoliciesByTemplate,
+    getAllFlightPolicies,
     purchaseFlightPolicy,
     getUserFlightPolicies,
     getFlightPolicyWithTemplate,
