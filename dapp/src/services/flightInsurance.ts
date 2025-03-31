@@ -111,6 +111,12 @@ export function useFlightInsurance() {
     }
   }
 
+  async function getAllFlightPolicies(): Promise<FlightUserPolicy[]> {
+    if (!insurerContract) return [];
+    const rawPolicies = await insurerContract.getAllFlightPolicies();
+    return rawPolicies.map(formatUserPolicy);
+  }
+
   // ====== User Functions ======
   async function purchaseFlightPolicy(templateId: number, flightNumber: string, departureAirportCode: string, arrivalAirportCode: string, departureTime: number, premium: string): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
@@ -175,6 +181,7 @@ export function useFlightInsurance() {
     deactivateFlightPolicyTemplate,
     getAllFlightPolicyTemplates,
     getFlightPolicyTemplateById,
+    getAllFlightPolicies,
     purchaseFlightPolicy,
     getUserFlightPolicies,
     getFlightPolicyWithTemplate,

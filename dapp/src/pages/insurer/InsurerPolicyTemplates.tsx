@@ -24,14 +24,13 @@ const getStatusColor = (status: FlightPolicyTemplateStatus): string => {
 
 const InsurerPolicyTemplates = () => {
   const { getAllFlightPolicyTemplates, deactivateFlightPolicyTemplate } = useFlightInsurance();
+  const { insurerContract } = useWeb3();
 
   const [templates, setTemplates] = useState<FlightPolicyTemplate[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<FlightPolicyTemplate[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-
-  const { insurerContract } = useWeb3();
 
   /**
    * Load policy templates from the blockchain.
@@ -106,7 +105,6 @@ const InsurerPolicyTemplates = () => {
           <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
             <Card
               title={tpl.name}
-              bordered
               style={{ minHeight: 340, display: "flex", flexDirection: "column", justifyContent: "space-between" }}
               extra={<Tag color={getStatusColor(tpl.status)}>{FlightPolicyTemplateStatus[tpl.status]}</Tag>}
             >

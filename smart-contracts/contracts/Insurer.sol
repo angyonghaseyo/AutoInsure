@@ -44,13 +44,18 @@ contract Insurer {
     }
 
     // View all flight policy templates (including deactivated)
-    function getAllFlightPolicyTemplates() external view returns (FlightPolicy.PolicyTemplate[] memory) {
+    function getAllFlightPolicyTemplates() external view onlyInsurer returns (FlightPolicy.PolicyTemplate[] memory) {
         return flightPolicy.getAllPolicyTemplates();
     }
 
     // View a single flight policy template by ID
-    function getFlightPolicyTemplateById(uint256 templateId) external view returns (FlightPolicy.PolicyTemplate memory) {
+    function getFlightPolicyTemplateById(uint256 templateId) external view onlyInsurer returns (FlightPolicy.PolicyTemplate memory) {
         return flightPolicy.getPolicyTemplateById(templateId);
+    }
+
+    // View all purchased flight policies
+    function getAllFlightPolicies() external view onlyInsurer returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getAllPolicies();
     }
 
     function markFlightPolicyAsClaimed(address buyer, uint256 policyId) external onlyInsurer {

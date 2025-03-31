@@ -1,8 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Button, Card, Col, Row, Typography, Divider, Carousel } from "antd";
-import { ArrowRightOutlined, CloudOutlined, SafetyOutlined, ThunderboltOutlined,
-} from "@ant-design/icons";
+import { ArrowRightOutlined, CloudOutlined, SafetyOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { useWeb3, Role } from "../components/Web3Provider";
 
 const { Title, Paragraph } = Typography;
