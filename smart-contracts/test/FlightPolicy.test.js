@@ -25,11 +25,11 @@ describe("FlightPolicy", function () {
     const tx = await flightPolicy.createPolicyTemplate(
       "Basic Cover",
       "Protects against delays",
-      1,  // premium
-      1,  // payoutPerHour
-      1,  // delayThreshold
-      3,  // maxPayout
-      2   // coverageDuration
+      1, // premium
+      1, // payoutPerHour
+      1, // delayThreshold
+      3, // maxPayout
+      2 // coverageDuration
     );
     await tx.wait();
 
@@ -62,15 +62,7 @@ describe("FlightPolicy", function () {
   // 6. Attempt to purchase a deactivated policy
   it("should not allow purchase of deactivated policy", async function () {
     await expect(
-      flightPolicy.connect(user1).purchasePolicy(
-        templateId,
-        "SQ101",
-        "SIN",
-        "NRT",
-        Math.floor(Date.now() / 1000) + 3600,
-        user1.address,
-        { value: ethers.parseEther("1") }
-      )
+      flightPolicy.connect(user1).purchasePolicy(templateId, "SQ101", "SIN", "NRT", Math.floor(Date.now() / 1000) + 3600, user1.address, { value: ethers.parseEther("1") })
     ).to.be.revertedWith("Policy template is not active");
   });
 
@@ -79,15 +71,9 @@ describe("FlightPolicy", function () {
     await flightPolicy.createPolicyTemplate("Active Plan", "Active", 1, 1, 1, 3, 1);
     const newTemplateId = 1;
 
-    const tx = await flightPolicy.connect(user1).purchasePolicy(
-      newTemplateId,
-      "SQ222",
-      "SIN",
-      "LAX",
-      Math.floor(Date.now() / 1000) + 3600,
-      user1.address,
-      { value: ethers.parseEther("1") }
-    );
+    const tx = await flightPolicy
+      .connect(user1)
+      .purchasePolicy(newTemplateId, "SQ222", "SIN", "LAX", Math.floor(Date.now() / 1000) + 3600, user1.address, { value: ethers.parseEther("1") });
     await tx.wait();
 
     const policies = await flightPolicy.getUserPolicies(user1.address);
@@ -116,5 +102,16 @@ describe("FlightPolicy", function () {
     expect(activeTemplates.length).to.equal(1);
     expect(activeTemplates[0].status).to.equal(0); // Active
     expect(activeTemplates[0].name).to.equal("Active Plan");
+  });
+
+  // 11. Get user policies by template
+  it("should return only policies for a given template", async function () {
+    const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(1);
+    expect(policiesTemplate1.length).to.equal(1);
+    const flightNumbersTemplate1 = policiesTemplate1.map((policy) => policy.flightNumber);
+    expect(flightNumbersTemplate1).to.include("SQ222");
+
+    const policiesTemplate2 = await flightPolicy.getUserPoliciesByTemplate(2);
+    expect(policiesTemplate2.length).to.equal(0);
   });
 });
