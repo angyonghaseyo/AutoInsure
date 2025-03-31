@@ -36,7 +36,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     }
 
     // delayThreshold in minutes
-    uint256 delayThreshold; 
+    uint256 delayThreshold = 60; 
     
     // Mapping from request ID to flight data
     mapping(bytes32 => string) private requestToFlightNumber;
@@ -47,16 +47,20 @@ contract OracleConnector is ChainlinkClient, Ownable {
     event FlightDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime);
     event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
     
-    constructor() Ownable() {
+    constructor(address _linkToken) Ownable() {
         // Set Chainlink token address (for the relevant network)
-        // This is Sepolia testnet LINK token address
-        setChainlinkToken(0x779877A7B0D9E8603169DdbD7836e478b4624789);
+        setChainlinkToken(_linkToken);
+
         
-        oracles.push(OracleInfo(
-            0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD, //  Chainlink node operator on Sepolia
-            "https://122c3532-129a-4b6e-a4c9-88b555567aab.mock.pstmn.io/", // mock api url
-            "7d80a6386ef543a3abb52817f6707e3b" // JobID for flight data API request
-        ));
+        // Below Comments for Sepolia Testing
+        // This is Sepolia testnet LINK token address
+        //setChainlinkToken(0x779877A7B0D9E8603169DdbD7836e478b4624789);
+        
+        // oracles.push(OracleInfo(
+        //     0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD, //  Chainlink node operator on Sepolia
+        //     "https://236a3f11-39f2-40f7-989b-d51bcdcca6f2.mock.pstmn.io/", // mock api url
+        //     "7d80a6386ef543a3abb52817f6707e3b" // JobID for flight data API request
+        // ));
 
         // 0.1 LINK
         fee = 0.1 * 10 ** 18;
@@ -72,7 +76,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     //  * @param _departureTime Unix timestamp of scheduled departure
     //  * @return requestId Chainlink request ID
     //  */
-    function requestFlightData(string memory _flightNumber, string memory _departureTime) private returns (bytes32 requestId) 
+    function requestFlightData(string memory _flightNumber, string memory _departureTime) public returns (bytes32 requestId) 
     {
         require(oracles.length > 0, "No oracles set");
 
@@ -162,8 +166,16 @@ contract OracleConnector is ChainlinkClient, Ownable {
         } 
 
         requestFlightData(_flightNumber, _departureTime);
+        return (false, 0);  // Added for testing purposes 
         FlightData storage new_data = flightDataStore[_flightNumber][_departureTime];
         return (new_data.isDelayed, new_data.delayHours);
+    }
+        
+    function checkFlightStatus(string memory _flightNumber, string memory _departureTime) public view
+    returns (bool dataReceived, bool isDelayed, uint256 delayHours)
+    {
+        FlightData storage data = flightDataStore[_flightNumber][_departureTime];
+        return (data.dataReceived, data.isDelayed, data.delayHours);
     }
     
     /**
