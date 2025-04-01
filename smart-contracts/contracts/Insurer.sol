@@ -21,6 +21,7 @@ contract Insurer {
     event FlightPolicyTemplateCreated(uint256 indexed templateId, string name);
     event FlightPolicyTemplateDeactivated(uint256 indexed templateId);
     event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, uint256 indexed templateId);
+    event FlightPolicyClaimed(address indexed buyer, uint256 indexed policyId);
 
     // ====== Insurer Functions ======
     // Create a new flight policy template
@@ -58,23 +59,19 @@ contract Insurer {
         return flightPolicy.getAllPolicies();
     }
 
-    function markFlightPolicyAsClaimed(address buyer, uint256 policyId) external onlyInsurer {
-        flightPolicy.markPolicyAsClaimed(buyer, policyId);
+    // View all policies for a specific template
+    function getUserPoliciesByTemplate(uint256 templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getUserPoliciesByTemplate(templateId);
     }
 
     function markFlightPolicyAsExpired(uint256 policyId) external onlyInsurer {
         flightPolicy.markPolicyAsExpired(policyId);
     }
 
-    function getUserPoliciesByTemplate(uint256 templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
-        return flightPolicy.getUserPoliciesByTemplate(templateId);
-    }
-
     function withdraw(uint256 amountInWei) external onlyInsurer {
         require(address(this).balance >= amountInWei, "Insufficient balance");
         payable(insurerAddress).transfer(amountInWei);
     }
-
 
     // ====== User Functions ======
     // Purchase a flight policy based on a template
@@ -104,6 +101,13 @@ contract Insurer {
     // Get all active flight policy templates (for user browsing)
     function getActiveFlightPolicyTemplates() external view returns (FlightPolicy.PolicyTemplate[] memory) {
         return flightPolicy.getActivePolicyTemplates();
+    }
+
+    // Claim a policy and payout based on flight delay
+    function claimFlightPayout(uint256 policyId) external {
+        flightPolicy.claimPayout(policyId, msg.sender);
+
+        emit FlightPolicyClaimed(msg.sender, policyId);
     }
 
     // ====== Utility Functions ======

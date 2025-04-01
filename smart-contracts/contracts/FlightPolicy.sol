@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract FlightPolicy {
+import "./OracleConnector.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract FlightPolicy is ReentrancyGuard {
     address public immutable insurerAddress;
+    OracleConnector public oracleConnector;
 
     constructor() {
         insurerAddress = msg.sender;
@@ -59,6 +64,11 @@ contract FlightPolicy {
     mapping(address => uint256[]) public userPolicyIds;
     uint256 public nextUserPolicyId;
 
+    // ====== Admin Functions ======
+    function setOracleConnector(address _oracleConnector) external onlyInsurer {
+        oracleConnector = OracleConnector(_oracleConnector);
+    }
+
     // ====== Insurer Functions ======
     // Create a new policy template
     function createPolicyTemplate(string memory name, string memory description, uint256 premium, uint256 payoutPerHour, uint256 delayThresholdHours, uint256 maxTotalPayout, uint256 coverageDurationDays) external onlyInsurer returns (uint256) {
@@ -112,28 +122,7 @@ contract FlightPolicy {
         return results;
     }
 
-    function markPolicyAsClaimed(address buyer, uint256 policyId) external onlyInsurer {
-        require(policyId < nextUserPolicyId, "Invalid policyId");
-        require(userPolicies[policyId].buyer == buyer, "Policy doesn't belong to buyer");
-        require(userPolicies[policyId].status == PolicyStatus.Active, "Policy is not active");
-
-        userPolicies[policyId].status = PolicyStatus.Claimed;
-    }
-    
-    function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
-        require(policyId < nextUserPolicyId, "Invalid policyId");
-        
-        UserPolicy storage policy = userPolicies[policyId];
-        require(policy.status == PolicyStatus.Active, "Policy is not active");
-
-        PolicyTemplate memory template = policyTemplates[policy.templateId];
-        uint256 expiryTime = policy.createdAt + (template.coverageDurationDays * 1 days);
-
-        require(block.timestamp > expiryTime, "Policy has not expired yet");
-
-        policy.status = PolicyStatus.Expired;
-    }
-
+    // View all policies for a specific template
     function getUserPoliciesByTemplate(uint256 templateId) external view returns (UserPolicy[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < nextUserPolicyId; i++) {
@@ -151,7 +140,20 @@ contract FlightPolicy {
         }
         return result;
     }
+    
+    function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
+        require(policyId < nextUserPolicyId, "Invalid policyId");
+        
+        UserPolicy storage policy = userPolicies[policyId];
+        require(policy.status == PolicyStatus.Active, "Policy is not active");
 
+        PolicyTemplate memory template = policyTemplates[policy.templateId];
+        uint256 expiryTime = policy.createdAt + (template.coverageDurationDays * 1 days);
+
+        require(block.timestamp > expiryTime, "Policy has not expired yet");
+
+        policy.status = PolicyStatus.Expired;
+    }
 
     // ====== User Functions ======
     // Purchase a policy based on a template
@@ -220,5 +222,33 @@ contract FlightPolicy {
         }
 
         return activeTemplates;
+    }
+
+    // Claim a policy and payout based on flight delay
+    function claimPayout(uint256 policyId, address buyer) external nonReentrant {
+        require(policyId < nextUserPolicyId, "Invalid policyId");
+
+        UserPolicy storage policy = userPolicies[policyId];
+        require(buyer == policy.buyer, "Not policy owner");
+        require(policy.status == PolicyStatus.Active, "Policy not active");
+
+        PolicyTemplate memory template = policyTemplates[policy.templateId];
+        string memory departureTimeStr = Strings.toString(policy.departureTime);
+
+        (bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
+        require(isDelayed, "Flight not delayed");
+
+        uint256 payout = delayHours * template.payoutPerHour;
+        if (payout > template.maxTotalPayout) {
+            payout = template.maxTotalPayout;
+        }
+
+        require(payout > 0, "No payout due");
+        require(address(this).balance >= payout, "Insufficient contract balance");
+
+        policy.status = PolicyStatus.Claimed;
+        policy.payoutToDate = payout;
+
+        payable(policy.buyer).transfer(payout);
     }
 }
