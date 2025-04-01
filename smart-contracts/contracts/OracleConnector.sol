@@ -200,5 +200,4 @@ contract OracleConnector is ChainlinkClient, Ownable {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
-
 }
