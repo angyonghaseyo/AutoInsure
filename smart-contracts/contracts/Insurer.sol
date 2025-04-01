@@ -73,7 +73,6 @@ contract Insurer {
         payable(insurerAddress).transfer(amountInWei);
     }
 
-
     // ====== User Functions ======
     // Purchase a flight policy based on a template
     function purchaseFlightPolicy(uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
