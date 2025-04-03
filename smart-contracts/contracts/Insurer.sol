@@ -19,6 +19,7 @@ contract Insurer {
 
     // ==================== Events ====================
     event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, string indexed templateId);
+    event FlightPolicyClaimed(address indexed buyer, uint256 indexed policyId);
 
     // ====== Insurer Functions ======
 
@@ -27,13 +28,10 @@ contract Insurer {
         return flightPolicy.getAllPolicies();
     }
 
-    function markFlightPolicyAsClaimed(address buyer, uint256 policyId) external onlyInsurer {
-        flightPolicy.markPolicyAsClaimed(buyer, policyId);
-    }
-
     function markFlightPolicyAsExpired(uint256 policyId) external onlyInsurer {
         flightPolicy.markPolicyAsExpired(policyId);
     }
+
 
     function getUserPoliciesByTemplate(string memory templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
         return flightPolicy.getUserPoliciesByTemplate(templateId);
@@ -43,7 +41,6 @@ contract Insurer {
         require(address(this).balance >= amountInWei, "Insufficient balance");
         payable(insurerAddress).transfer(amountInWei);
     }
-
 
     // ====== User Functions ======
     // Purchase a flight policy based on a template
@@ -68,6 +65,13 @@ contract Insurer {
     // Get a user's flight policy and its associated template
     function getFlightPolicyWithTemplate(address user, uint256 policyId) external view returns (FlightPolicy.UserPolicy memory, FlightPolicy.PolicyTemplate memory){
         return flightPolicy.getUserPolicyWithTemplate(user, policyId);
+    }
+
+    // Claim a policy and payout based on flight delay
+    function claimFlightPayout(uint256 policyId) external {
+        flightPolicy.claimPayout(policyId, msg.sender);
+
+        emit FlightPolicyClaimed(msg.sender, policyId);
     }
 
     // ====== Utility Functions ======

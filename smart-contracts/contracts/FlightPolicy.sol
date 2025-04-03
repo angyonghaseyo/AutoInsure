@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract FlightPolicy {
+import "./OracleConnector.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract FlightPolicy is ReentrancyGuard {
     address public immutable insurerAddress;
+    OracleConnector public oracleConnector;
 
     constructor() {
         insurerAddress = msg.sender;
@@ -56,6 +61,11 @@ contract FlightPolicy {
     mapping(address => uint256[]) public userPolicyIds;
     uint256 public nextUserPolicyId;
 
+    // ====== Admin Functions ======
+    function setOracleConnector(address _oracleConnector) external onlyInsurer {
+        oracleConnector = OracleConnector(_oracleConnector);
+    }
+
     // ====== Insurer Functions ======
 
     // View all purchased policies
@@ -108,7 +118,6 @@ contract FlightPolicy {
         return result;
     }
 
-
     // ====== User Functions ======
     // Purchase a policy based on a template
     function purchasePolicy(PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime, address buyer) external payable returns (uint256) {
@@ -150,5 +159,32 @@ contract FlightPolicy {
         require(userPolicies[policyId].buyer == user, "Not your policy");
         UserPolicy memory userPolicy = userPolicies[policyId];
         return (userPolicy, userPolicy.template);
+    }
+
+    // Claim a policy and payout based on flight delay
+    function claimPayout(uint256 policyId, address buyer) external nonReentrant {
+        require(policyId < nextUserPolicyId, "Invalid policyId");
+
+        UserPolicy storage policy = userPolicies[policyId];
+        require(buyer == policy.buyer, "Not policy owner");
+        require(policy.status == PolicyStatus.Active, "Policy not active");
+
+        string memory departureTimeStr = Strings.toString(policy.departureTime);
+
+        (bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
+        require(isDelayed, "Flight not delayed");
+
+        uint256 payout = delayHours * policy.template.payoutPerHour;
+        if (payout > policy.template.maxTotalPayout) {
+            payout = policy.template.maxTotalPayout;
+        }
+
+        require(payout > 0, "No payout due");
+        require(address(this).balance >= payout, "Insufficient contract balance");
+
+        policy.status = PolicyStatus.Claimed;
+        policy.payoutToDate = payout;
+
+        payable(policy.buyer).transfer(payout);
     }
 }

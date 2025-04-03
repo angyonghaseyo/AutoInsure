@@ -105,6 +105,7 @@ export function useFlightInsurance() {
       return [];
     }
   }
+
   async function getAllFlightPolicies(): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
     const rawPolicies = await insurerContract.getAllFlightPolicies();
@@ -127,6 +128,7 @@ export function useFlightInsurance() {
     const tx = await insurerContract.purchaseFlightPolicy(template, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, {
       value: ethers.parseEther(premium),
     });
+
     await tx.wait();
     return tx.hash;
   }
@@ -134,9 +136,7 @@ export function useFlightInsurance() {
   async function getUserFlightPolicies(userAddress: string): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
     try {
-      console.log("Fetching user flight policies for:", userAddress);
       const raw = await insurerContract.getUserFlightPolicies(userAddress);
-      console.log(raw);
       return raw.map(formatUserPolicy);
     } catch (error) {
       console.error("Error fetching user flight policies:", error);
@@ -164,6 +164,19 @@ export function useFlightInsurance() {
     return templates.data;
   }
 
+  async function claimFlightPayout(policyId: number): Promise<void> {
+    if (!insurerContract) throw new Error("Insurer contract not connected");
+
+    try {
+      const tx = await insurerContract.claimFlightPayout(policyId);
+      await tx.wait();
+      console.log(`Flight policy #${policyId} claimed successfully.`);
+    } catch (error) {
+      console.error(`Failed to claim flight policy #${policyId}:`, error);
+      throw error;
+    }
+  }
+
   // ====== Utility Functions ======
   async function isInsurer(userAddress: string): Promise<boolean> {
     if (!insurerContract) return false;
@@ -175,12 +188,13 @@ export function useFlightInsurance() {
     deactivateFlightPolicyTemplate,
     getAllFlightPolicyTemplates,
     getFlightPolicyTemplateById,
-    getUserPoliciesByTemplate,
     getAllFlightPolicies,
+    getUserPoliciesByTemplate,
     purchaseFlightPolicy,
     getUserFlightPolicies,
     getFlightPolicyWithTemplate,
     getActiveFlightPolicyTemplates,
+    claimFlightPayout,
     isInsurer,
   };
 }
