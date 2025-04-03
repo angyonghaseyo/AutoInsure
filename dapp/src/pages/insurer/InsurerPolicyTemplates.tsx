@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Button, Modal, Tag, Select, message } from "antd";
-import { DollarOutlined, ClockCircleOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Card, Row, Col, Typography, Button, Modal, Tag, Select, message, Statistic } from "antd";
+import { DollarOutlined, ClockCircleOutlined, PlusOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
 import { useFlightInsurance, FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/services/flightInsurance";
 import { useWeb3 } from "@/components/Web3Provider";
+import PolicyTemplateDrawer from "@/components/PolicyTemplateDrawer";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -23,7 +24,8 @@ const getStatusColor = (status: FlightPolicyTemplateStatus): string => {
 };
 
 const InsurerPolicyTemplates = () => {
-  const { getAllFlightPolicyTemplates, deactivateFlightPolicyTemplate } = useFlightInsurance();
+  const { getAllFlightPolicyTemplates, deactivateFlightPolicyTemplate, getAllFlightPolicies } = useFlightInsurance();
+  const { insurerContract } = useWeb3();
 
   const [templates, setTemplates] = useState<FlightPolicyTemplate[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<FlightPolicyTemplate[]>([]);
@@ -31,7 +33,9 @@ const InsurerPolicyTemplates = () => {
   const [showModal, setShowModal] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const { insurerContract } = useWeb3();
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [viewPolicyTemplate, setViewPolicyTemplate] = useState<FlightPolicyTemplate>();
+  const [policyCount, setPolicyCount] = useState(0);
 
   /**
    * Load policy templates from the blockchain.
@@ -48,6 +52,16 @@ const InsurerPolicyTemplates = () => {
 
   useEffect(() => {
     fetchTemplates();
+    const fetchPolicies = async () => {
+      try {
+        const policies = await getAllFlightPolicies();
+        setPolicyCount(policies.length);
+      } catch (error) {
+        console.error("Error fetching policies:", error);
+        message.error("Failed to fetch policies.");
+      }
+    };
+    fetchPolicies();
   }, [insurerContract]);
 
   /**
@@ -84,10 +98,33 @@ const InsurerPolicyTemplates = () => {
     <div className="max-w-6xl mx-auto p-6">
       {contextHolder}
 
-      {/* Header with Filter and Add Button */}
-      <div className="flex justify-between mb-5 items-center">
-        <Title level={2}>Flight Policy Templates</Title>
+      <Title level={2}>Flight Policy Templates</Title>
 
+      {/* Statistics Row */}
+      <Row gutter={16} style={{ marginBottom: "24px" }}>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Total Templates" value={templates.length} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Total Active" value={templates.filter((tpl) => tpl.status === FlightPolicyTemplateStatus.Active).length} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Total Deactivated " value={templates.filter((tpl) => tpl.status === FlightPolicyTemplateStatus.Deactivated).length} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Total Purchased Policies" value={policyCount} />
+          </Card>
+        </Col>
+      </Row>
+
+      <div className="flex justify-between mb-5 items-center">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
           <Select defaultValue="all" onChange={handleStatusFilter} style={{ width: 200 }}>
             <Option value="all">All Statuses</Option>
@@ -106,7 +143,6 @@ const InsurerPolicyTemplates = () => {
           <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
             <Card
               title={tpl.name}
-              bordered
               style={{ minHeight: 340, display: "flex", flexDirection: "column", justifyContent: "space-between" }}
               extra={<Tag color={getStatusColor(tpl.status)}>{FlightPolicyTemplateStatus[tpl.status]}</Tag>}
             >
@@ -129,7 +165,7 @@ const InsurerPolicyTemplates = () => {
                 </p>
               </div>
 
-              <div style={{ marginTop: "auto" }}>
+              <div style={{ marginTop: "auto", display: "flex", gap: "10px" }}>
                 {tpl.status === FlightPolicyTemplateStatus.Active ? (
                   <Button danger icon={<DeleteOutlined />} onClick={() => handleTemplateAction("delete", tpl)}>
                     Deactivate
@@ -139,6 +175,15 @@ const InsurerPolicyTemplates = () => {
                     <Button icon={<DeleteOutlined />}>Deactivate</Button>
                   </div>
                 )}
+                <Button
+                  icon={<EyeOutlined />}
+                  onClick={async () => {
+                    setDrawerVisible(true);
+                    setViewPolicyTemplate(tpl);
+                  }}
+                >
+                  View Purchased Policies
+                </Button>
               </div>
             </Card>
           </Col>
@@ -149,6 +194,8 @@ const InsurerPolicyTemplates = () => {
       <Modal open={showModal} onCancel={() => setShowModal(false)} footer={null} destroyOnClose>
         <CreatePolicyTemplate onClose={() => setShowModal(false)} onUpdate={fetchTemplates} />
       </Modal>
+
+      {viewPolicyTemplate && <PolicyTemplateDrawer setDrawerVisible={setDrawerVisible} policyTemplate={viewPolicyTemplate} visible={drawerVisible} />}
     </div>
   );
 };

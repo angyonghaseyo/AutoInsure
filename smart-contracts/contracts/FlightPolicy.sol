@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract FlightPolicy {
+import "./OracleConnector.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract FlightPolicy is ReentrancyGuard {
     address public immutable insurerAddress;
+    OracleConnector public oracleConnector;
 
     constructor() {
         insurerAddress = msg.sender;
@@ -59,6 +64,11 @@ contract FlightPolicy {
     mapping(address => uint256[]) public userPolicyIds;
     uint256 public nextUserPolicyId;
 
+    // ====== Admin Functions ======
+    function setOracleConnector(address _oracleConnector) external onlyInsurer {
+        oracleConnector = OracleConnector(_oracleConnector);
+    }
+
     // ====== Insurer Functions ======
     // Create a new policy template
     function createPolicyTemplate(string memory name, string memory description, uint256 premium, uint256 payoutPerHour, uint256 delayThresholdHours, uint256 maxTotalPayout, uint256 coverageDurationDays) external onlyInsurer returns (uint256) {
@@ -88,7 +98,7 @@ contract FlightPolicy {
     }
 
     // View all policy templates (including deactivated)
-    function getAllPolicyTemplates() external view returns (PolicyTemplate[] memory) {
+    function getAllPolicyTemplates() external view onlyInsurer returns (PolicyTemplate[] memory) {
         PolicyTemplate[] memory result = new PolicyTemplate[](nextPolicyTemplateId);
         for (uint256 i = 0; i < nextPolicyTemplateId; i++) {
             result[i] = policyTemplates[i];
@@ -97,17 +107,38 @@ contract FlightPolicy {
     }
 
     // View a single policy template by ID
-    function getPolicyTemplateById(uint256 templateId) external view returns (PolicyTemplate memory) {
+    function getPolicyTemplateById(uint256 templateId) external view onlyInsurer returns (PolicyTemplate memory) {
         require(templateId < nextPolicyTemplateId, "Template does not exist");
         return policyTemplates[templateId];
     }
 
-    function markPolicyAsClaimed(address buyer, uint256 policyId) external onlyInsurer {
-        require(policyId < nextUserPolicyId, "Invalid policyId");
-        require(userPolicies[policyId].buyer == buyer, "Policy doesn't belong to buyer");
-        require(userPolicies[policyId].status == PolicyStatus.Active, "Policy is not active");
+    // View all purchased policies
+    function getAllPolicies() external view onlyInsurer returns (UserPolicy[] memory) {
+        uint256 count = nextUserPolicyId;
+        UserPolicy[] memory results = new UserPolicy[](count);
+        for (uint256 i = 0; i < count; i++) {
+            results[i] = userPolicies[i];
+        }
+        return results;
+    }
 
-        userPolicies[policyId].status = PolicyStatus.Claimed;
+    // View all policies for a specific template
+    function getUserPoliciesByTemplate(uint256 templateId) external view returns (UserPolicy[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < nextUserPolicyId; i++) {
+            if (userPolicies[i].templateId == templateId) {
+                count++;
+            }
+        }
+        UserPolicy[] memory result = new UserPolicy[](count);
+        uint256 j = 0;
+        for (uint256 i = 0; i < nextUserPolicyId; i++) {
+            if (userPolicies[i].templateId == templateId) {
+                result[j] = userPolicies[i];
+                j++;
+            }
+        }
+        return result;
     }
     
     function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
@@ -124,10 +155,9 @@ contract FlightPolicy {
         policy.status = PolicyStatus.Expired;
     }
 
-
     // ====== User Functions ======
     // Purchase a policy based on a template
-    function purchasePolicy(address buyer, uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable returns (uint256) {
+    function purchasePolicy(uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime, address buyer) external payable returns (uint256) {
         require(templateId < nextPolicyTemplateId, "Invalid templateId");
 
         PolicyTemplate memory template = policyTemplates[templateId];
@@ -192,5 +222,33 @@ contract FlightPolicy {
         }
 
         return activeTemplates;
+    }
+
+    // Claim a policy and payout based on flight delay
+    function claimPayout(uint256 policyId, address buyer) external nonReentrant {
+        require(policyId < nextUserPolicyId, "Invalid policyId");
+
+        UserPolicy storage policy = userPolicies[policyId];
+        require(buyer == policy.buyer, "Not policy owner");
+        require(policy.status == PolicyStatus.Active, "Policy not active");
+
+        PolicyTemplate memory template = policyTemplates[policy.templateId];
+        string memory departureTimeStr = Strings.toString(policy.departureTime);
+
+        (bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
+        require(isDelayed, "Flight not delayed");
+
+        uint256 payout = delayHours * template.payoutPerHour;
+        if (payout > template.maxTotalPayout) {
+            payout = template.maxTotalPayout;
+        }
+
+        require(payout > 0, "No payout due");
+        require(address(this).balance >= payout, "Insufficient contract balance");
+
+        policy.status = PolicyStatus.Claimed;
+        policy.payoutToDate = payout;
+
+        payable(policy.buyer).transfer(payout);
     }
 }

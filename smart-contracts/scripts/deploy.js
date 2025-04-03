@@ -33,7 +33,6 @@ async function main() {
   // 4. Optional: Wait for Etherscan index (5 blocks)
   // console.log("⏳ Waiting for 5 block confirmations...");
   // await insurer.deploymentTransaction().wait(5);
-
   if (!["hardhat", "localhost"].includes(hre.network.name)) {
     console.log("⏳ Waiting for 5 block confirmations...");
     await insurer.deploymentTransaction().wait(5);

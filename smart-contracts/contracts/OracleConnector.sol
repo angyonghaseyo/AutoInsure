@@ -202,3 +202,4 @@ contract OracleConnector is ChainlinkClient, Ownable {
     }
 
 }
+
