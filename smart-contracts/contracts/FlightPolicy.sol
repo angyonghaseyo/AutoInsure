@@ -19,10 +19,11 @@ contract FlightPolicy {
     }
 
     struct PolicyTemplate {
-        uint256 templateId;             // Unique identifier for the template
+        string templateId;              // Unique identifier for the template
         string name;                    // Display name for the policy (e.g., "Economy Plan")
         string description;             // Description of the coverage, terms, or perks
-        uint256 createdAt;              // Block timestamp of creation
+        uint256 createdAt;              // Timestamp of creation
+        uint256 updatedAt;              // Timestamp of last update
         uint256 premium;                // Cost of the policy (in wei)
         uint256 payoutPerHour;          // Payout per hour of delay (in wei)
         uint256 delayThresholdHours;    // Minimum delay required (in hours)
@@ -39,7 +40,7 @@ contract FlightPolicy {
 
     struct UserPolicy {
         uint256 policyId;               // Unique ID of the buyer's policy
-        uint256 templateId;             // ID reference to PolicyTemplate used
+        PolicyTemplate template;        // Policy template details
         string flightNumber;            // Airline flight number (e.g., "SQ322")
         string departureAirportCode;    // IATA code (e.g., "SIN")
         string arrivalAirportCode;      // IATA code (e.g., "LHR")
@@ -50,57 +51,12 @@ contract FlightPolicy {
         PolicyStatus status;            // Active, Expired, or Claimed
     }
 
-    // Template storage
-    mapping(uint256 => PolicyTemplate) public policyTemplates;
-    uint256 public nextPolicyTemplateId;
-
     // Buyer policy storage
     mapping(uint256 => UserPolicy) public userPolicies;
     mapping(address => uint256[]) public userPolicyIds;
     uint256 public nextUserPolicyId;
 
     // ====== Insurer Functions ======
-    // Create a new policy template
-    function createPolicyTemplate(string memory name, string memory description, uint256 premium, uint256 payoutPerHour, uint256 delayThresholdHours, uint256 maxTotalPayout, uint256 coverageDurationDays) external onlyInsurer returns (uint256) {
-        uint256 templateId = nextPolicyTemplateId;
-
-        policyTemplates[templateId] = PolicyTemplate({
-            templateId: templateId,
-            name: name,
-            description: description,
-            createdAt: block.timestamp,
-            premium: premium * 1 ether,
-            payoutPerHour: payoutPerHour * 1 ether,
-            delayThresholdHours: delayThresholdHours,
-            maxTotalPayout: maxTotalPayout * 1 ether,
-            coverageDurationDays: coverageDurationDays,
-            status: PolicyTemplateStatus.Active
-        });
-
-        nextPolicyTemplateId++;
-        return templateId;
-    }
-
-    // Soft-delete (deactivate) an existing policy template
-    function deactivatePolicyTemplate(uint256 templateId) external onlyInsurer {
-        require(templateId < nextPolicyTemplateId, "Invalid templateId");
-        policyTemplates[templateId].status = PolicyTemplateStatus.Deactivated;
-    }
-
-    // View all policy templates (including deactivated)
-    function getAllPolicyTemplates() external view onlyInsurer returns (PolicyTemplate[] memory) {
-        PolicyTemplate[] memory result = new PolicyTemplate[](nextPolicyTemplateId);
-        for (uint256 i = 0; i < nextPolicyTemplateId; i++) {
-            result[i] = policyTemplates[i];
-        }
-        return result;
-    }
-
-    // View a single policy template by ID
-    function getPolicyTemplateById(uint256 templateId) external view onlyInsurer returns (PolicyTemplate memory) {
-        require(templateId < nextPolicyTemplateId, "Template does not exist");
-        return policyTemplates[templateId];
-    }
 
     // View all purchased policies
     function getAllPolicies() external view onlyInsurer returns (UserPolicy[] memory) {
@@ -126,25 +82,25 @@ contract FlightPolicy {
         UserPolicy storage policy = userPolicies[policyId];
         require(policy.status == PolicyStatus.Active, "Policy is not active");
 
-        PolicyTemplate memory template = policyTemplates[policy.templateId];
-        uint256 expiryTime = policy.createdAt + (template.coverageDurationDays * 1 days);
+        uint256 expiryTime = policy.createdAt + (policy.template.coverageDurationDays * 1 days);
 
         require(block.timestamp > expiryTime, "Policy has not expired yet");
 
         policy.status = PolicyStatus.Expired;
     }
 
-    function getUserPoliciesByTemplate(uint256 templateId) external view returns (UserPolicy[] memory) {
+    function getUserPoliciesByTemplate(string memory templateId) external view returns (UserPolicy[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < nextUserPolicyId; i++) {
-            if (userPolicies[i].templateId == templateId) {
+            
+            if ( keccak256(abi.encodePacked(userPolicies[i].template.templateId)) == keccak256(abi.encodePacked(templateId))) {
                 count++;
             }
         }
         UserPolicy[] memory result = new UserPolicy[](count);
         uint256 j = 0;
         for (uint256 i = 0; i < nextUserPolicyId; i++) {
-            if (userPolicies[i].templateId == templateId) {
+            if (keccak256(abi.encodePacked(userPolicies[i].template.templateId)) == keccak256(abi.encodePacked(templateId))) {
                 result[j] = userPolicies[i];
                 j++;
             }
@@ -155,10 +111,7 @@ contract FlightPolicy {
 
     // ====== User Functions ======
     // Purchase a policy based on a template
-    function purchasePolicy(uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime, address buyer) external payable returns (uint256) {
-        require(templateId < nextPolicyTemplateId, "Invalid templateId");
-
-        PolicyTemplate memory template = policyTemplates[templateId];
+    function purchasePolicy(PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime, address buyer) external payable returns (uint256) {
         require(template.status == PolicyTemplateStatus.Active, "Policy template is not active");
         require(departureTime > block.timestamp, "Departure time must be in the future");
         require(msg.value >= template.premium, "Insufficient premium sent");
@@ -166,7 +119,7 @@ contract FlightPolicy {
         uint256 policyId = nextUserPolicyId++;
         userPolicies[policyId] = UserPolicy({
             policyId: policyId,
-            templateId: templateId,
+            template: template,
             flightNumber: flightNumber,
             departureAirportCode: departureAirportCode,
             arrivalAirportCode: arrivalAirportCode,
@@ -196,29 +149,6 @@ contract FlightPolicy {
         require(policyId < nextUserPolicyId, "Invalid policyId");
         require(userPolicies[policyId].buyer == user, "Not your policy");
         UserPolicy memory userPolicy = userPolicies[policyId];
-        PolicyTemplate memory template = policyTemplates[userPolicy.templateId];
-        return (userPolicy, template);
-    }
-
-    // Get all active policy templates (for user browsing)
-    function getActivePolicyTemplates() external view returns (PolicyTemplate[] memory) {
-        uint256 count = 0;
-
-        for (uint256 i = 0; i < nextPolicyTemplateId; i++) {
-            if (policyTemplates[i].status == PolicyTemplateStatus.Active) {
-                count++;
-            }
-        }
-
-        PolicyTemplate[] memory activeTemplates = new PolicyTemplate[](count);
-        uint256 index = 0;
-        for (uint256 i = 0; i < nextPolicyTemplateId; i++) {
-            if (policyTemplates[i].status == PolicyTemplateStatus.Active) {
-                activeTemplates[index] = policyTemplates[i];
-                index++;
-            }
-        }
-
-        return activeTemplates;
+        return (userPolicy, userPolicy.template);
     }
 }

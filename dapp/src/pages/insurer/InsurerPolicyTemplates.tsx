@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Card, Row, Col, Typography, Button, Modal, Tag, Select, message, Statistic } from "antd";
 import { DollarOutlined, ClockCircleOutlined, PlusOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
-import { useFlightInsurance, FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/services/flightInsurance";
+import { useFlightInsurance } from "@/services/flightInsurance";
 import { useWeb3 } from "@/components/Web3Provider";
 import PolicyTemplateDrawer from "@/components/PolicyTemplateDrawer";
+import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
 
 const { Title } = Typography;
 const { Option } = Select;

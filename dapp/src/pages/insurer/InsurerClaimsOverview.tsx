@@ -1,23 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
-import {
-  Table,
-  Typography,
-  Input,
-  Tag,
-  Row,
-  Col,
-  Statistic,
-  Card,
-  Spin,
-  message,
-} from "antd";
+import { Table, Typography, Input, Tag, Row, Col, Statistic, Card, Spin, message } from "antd";
 import { useWeb3 } from "@/components/Web3Provider";
-import {
-  FlightUserPolicy,
-  FlightPolicyTemplate,
-  FlightPolicyStatus,
-  useFlightInsurance
-} from "@/services/flightInsurance";
+import { useFlightInsurance } from "@/services/flightInsurance";
+import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy } from "@/types/FlightPolicy";
 
 const { Title } = Typography;
 
@@ -26,7 +11,7 @@ const InsurerClaimsOverview: React.FC = () => {
   const { insurerContract } = useWeb3();
 
   const [policies, setPolicies] = useState<FlightUserPolicy[]>([]);
-  const [templateMap, setTemplateMap] = useState<Map<number, FlightPolicyTemplate>>(new Map());
+  const [templateMap, setTemplateMap] = useState<Map<string, FlightPolicyTemplate>>(new Map());
   const [buyerFilter, setBuyerFilter] = useState<string>("");
   const [flightFilter, setFlightFilter] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -35,12 +20,9 @@ const InsurerClaimsOverview: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [allPolicies, allTemplates] = await Promise.all([
-          getAllFlightPolicies(),
-          getAllFlightPolicyTemplates(),
-        ]);
+        const [allPolicies, allTemplates] = await Promise.all([getAllFlightPolicies(), getAllFlightPolicyTemplates()]);
 
-        const map = new Map<number, FlightPolicyTemplate>();
+        const map = new Map<string, FlightPolicyTemplate>();
         allTemplates.forEach((tpl) => map.set(tpl.templateId, tpl));
 
         setPolicies(allPolicies);
@@ -70,7 +52,7 @@ const InsurerClaimsOverview: React.FC = () => {
     let totalPayout = 0;
 
     for (const policy of filteredPolicies) {
-      const template = templateMap.get(policy.templateId);
+      const template = templateMap.get(policy.template.templateId);
       if (template) {
         totalPremium += parseFloat(template.premium || "0");
       }
@@ -105,7 +87,7 @@ const InsurerClaimsOverview: React.FC = () => {
       title: "Premium (ETH)",
       key: "premium",
       render: (_: any, record: FlightUserPolicy) => {
-        return templateMap.get(record.templateId)?.premium ?? "-";
+        return templateMap.get(record.template.templateId)?.premium ?? "-";
       },
     },
     {
@@ -139,18 +121,10 @@ const InsurerClaimsOverview: React.FC = () => {
 
       <Row gutter={16} style={{ marginBottom: "24px" }}>
         <Col span={6}>
-          <Input
-            placeholder="Filter by buyer address"
-            value={buyerFilter}
-            onChange={(e) => setBuyerFilter(e.target.value)}
-          />
+          <Input placeholder="Filter by buyer address" value={buyerFilter} onChange={(e) => setBuyerFilter(e.target.value)} />
         </Col>
         <Col span={6}>
-          <Input
-            placeholder="Filter by flight number"
-            value={flightFilter}
-            onChange={(e) => setFlightFilter(e.target.value)}
-          />
+          <Input placeholder="Filter by flight number" value={flightFilter} onChange={(e) => setFlightFilter(e.target.value)} />
         </Col>
       </Row>
 
@@ -177,16 +151,7 @@ const InsurerClaimsOverview: React.FC = () => {
         </Col>
       </Row>
 
-      {isLoading ? (
-        <Spin size="large" />
-      ) : (
-        <Table
-          dataSource={filteredPolicies}
-          columns={columns}
-          rowKey="policyId"
-          pagination={{ pageSize: 8 }}
-        />
-      )}
+      {isLoading ? <Spin size="large" /> : <Table dataSource={filteredPolicies} columns={columns} rowKey="policyId" pagination={{ pageSize: 8 }} />}
     </div>
   );
 };

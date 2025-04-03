@@ -18,40 +18,9 @@ contract Insurer {
     }
 
     // ==================== Events ====================
-    event FlightPolicyTemplateCreated(uint256 indexed templateId, string name);
-    event FlightPolicyTemplateDeactivated(uint256 indexed templateId);
-    event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, uint256 indexed templateId);
+    event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, string indexed templateId);
 
     // ====== Insurer Functions ======
-    // Create a new flight policy template
-    function createFlightPolicyTemplate(string memory name, string memory description, uint256 premium, uint256 payoutPerHour, uint256 delayThresholdHours, uint256 maxTotalPayout, uint256 coverageDurationDays) external onlyInsurer {
-        uint256 templateId = flightPolicy.createPolicyTemplate(
-            name,
-            description,
-            premium,
-            payoutPerHour,
-            delayThresholdHours,
-            maxTotalPayout,
-            coverageDurationDays
-        );
-        emit FlightPolicyTemplateCreated(templateId, name);
-    }
-
-    // Soft-delete (deactivate) an existing flight policy template
-    function deactivateFlightPolicyTemplate(uint256 templateId) external onlyInsurer {
-        flightPolicy.deactivatePolicyTemplate(templateId);
-        emit FlightPolicyTemplateDeactivated(templateId);
-    }
-
-    // View all flight policy templates (including deactivated)
-    function getAllFlightPolicyTemplates() external view onlyInsurer returns (FlightPolicy.PolicyTemplate[] memory) {
-        return flightPolicy.getAllPolicyTemplates();
-    }
-
-    // View a single flight policy template by ID
-    function getFlightPolicyTemplateById(uint256 templateId) external view onlyInsurer returns (FlightPolicy.PolicyTemplate memory) {
-        return flightPolicy.getPolicyTemplateById(templateId);
-    }
 
     // View all purchased flight policies
     function getAllFlightPolicies() external view onlyInsurer returns (FlightPolicy.UserPolicy[] memory) {
@@ -66,7 +35,7 @@ contract Insurer {
         flightPolicy.markPolicyAsExpired(policyId);
     }
 
-    function getUserPoliciesByTemplate(uint256 templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
+    function getUserPoliciesByTemplate(string memory templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
         return flightPolicy.getUserPoliciesByTemplate(templateId);
     }
 
@@ -78,9 +47,9 @@ contract Insurer {
 
     // ====== User Functions ======
     // Purchase a flight policy based on a template
-    function purchaseFlightPolicy(uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
+    function purchaseFlightPolicy(FlightPolicy.PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
         uint256 policyId = flightPolicy.purchasePolicy{value: msg.value}(
-            templateId,
+            template,
             flightNumber,
             departureAirportCode,
             arrivalAirportCode,
@@ -88,7 +57,7 @@ contract Insurer {
             msg.sender
         );
 
-        emit FlightPolicyPurchased(msg.sender, policyId, templateId);
+        emit FlightPolicyPurchased(msg.sender, policyId, template.templateId);
     }
 
     // Get all flight policies owned by a user
@@ -99,11 +68,6 @@ contract Insurer {
     // Get a user's flight policy and its associated template
     function getFlightPolicyWithTemplate(address user, uint256 policyId) external view returns (FlightPolicy.UserPolicy memory, FlightPolicy.PolicyTemplate memory){
         return flightPolicy.getUserPolicyWithTemplate(user, policyId);
-    }
-
-    // Get all active flight policy templates (for user browsing)
-    function getActiveFlightPolicyTemplates() external view returns (FlightPolicy.PolicyTemplate[] memory) {
-        return flightPolicy.getActivePolicyTemplates();
     }
 
     // ====== Utility Functions ======

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Drawer, Statistic, Row, Col, Table } from "antd";
-import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy, useFlightInsurance } from "@/services/flightInsurance";
+import { useFlightInsurance } from "@/services/flightInsurance";
+import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy } from "@/types/FlightPolicy";
 
 interface PolicyTemplateDrawerProps {
   policyTemplate: FlightPolicyTemplate;
