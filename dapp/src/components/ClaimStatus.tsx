@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Card, Alert, Button, Tag, Spin } from 'antd';
-import { CheckCircleOutlined, ExclamationCircleOutlined, ClockCircleOutlined, DollarOutlined } from '@ant-design/icons';
-import { Policy, PolicyStatus, formatDepartureTime } from '../services/flightInsurance';
+import React, { useState } from "react";
+import { Card, Alert, Button, Tag, Spin } from "antd";
+import { CheckCircleOutlined, ExclamationCircleOutlined, ClockCircleOutlined, DollarOutlined } from "@ant-design/icons";
+import { FlightPolicyStatus, FlightUserPolicy } from "@/types/FlightPolicy";
 
 interface ClaimStatusProps {
-  claim: Policy;
+  claim: FlightUserPolicy;
 }
 
 const ClaimStatus: React.FC<ClaimStatusProps> = ({ claim }) => {
@@ -21,9 +21,9 @@ const ClaimStatus: React.FC<ClaimStatusProps> = ({ claim }) => {
       // Simulating claim processing
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      setSuccessMessage(`Successfully claimed ${claim.payoutAmount} ETH for flight ${claim.flightNumber}!`);
+      setSuccessMessage(`Successfully claimed ${claim.template.maxTotalPayout} ETH for flight ${claim.flightNumber}!`);
     } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to process claim');
+      setErrorMessage(error.message || "Failed to process claim");
     } finally {
       setIsProcessing(false);
     }
@@ -32,22 +32,20 @@ const ClaimStatus: React.FC<ClaimStatusProps> = ({ claim }) => {
   return (
     <Card title={`Flight ${claim.flightNumber}`} bordered>
       <p>
-        <strong>Departure:</strong> {formatDepartureTime(claim.departureTime)}
+        <strong>Departure:</strong> {claim.departureTime}
       </p>
       <p>
-        <strong>Premium Paid:</strong> <DollarOutlined /> {claim.premium}
+        <strong>Premium Paid:</strong> <DollarOutlined /> {claim.template.premium}
       </p>
       <p>
-        <strong>Payout Amount:</strong> <DollarOutlined /> {claim.payoutAmount}
+        <strong>Payout Amount:</strong> <DollarOutlined /> {claim.template.maxTotalPayout}
       </p>
       <p>
-        <strong>Status:</strong>{' '}
-        <Tag color={claim.status === PolicyStatus.Claimed ? 'blue' : claim.status === PolicyStatus.Active ? 'gold' : 'red'}>
-          {claim.status}
-        </Tag>
+        <strong>Status:</strong>{" "}
+        <Tag color={claim.status === FlightPolicyStatus.Claimed ? "blue" : claim.status === FlightPolicyStatus.Active ? "gold" : "red"}>{claim.status}</Tag>
       </p>
 
-      {claim.status === PolicyStatus.Active ? (
+      {claim.status === FlightPolicyStatus.Active ? (
         <Alert
           message="Eligible for Claim"
           description="Your flight was delayed beyond the threshold. You can submit a claim now."
@@ -55,14 +53,8 @@ const ClaimStatus: React.FC<ClaimStatusProps> = ({ claim }) => {
           showIcon
           icon={<ClockCircleOutlined />}
         />
-      ) : claim.status === PolicyStatus.Claimed ? (
-        <Alert
-          message="Claim Processed"
-          description="Your claim has already been processed and paid out."
-          type="success"
-          showIcon
-          icon={<CheckCircleOutlined />}
-        />
+      ) : claim.status === FlightPolicyStatus.Claimed ? (
+        <Alert message="Claim Processed" description="Your claim has already been processed and paid out." type="success" showIcon icon={<CheckCircleOutlined />} />
       ) : (
         <Alert
           message="Not Eligible for Claim"
@@ -73,25 +65,14 @@ const ClaimStatus: React.FC<ClaimStatusProps> = ({ claim }) => {
         />
       )}
 
-      {claim.status === PolicyStatus.Active && (
-        <Button
-          type="primary"
-          block
-          onClick={handleClaim}
-          loading={isProcessing}
-          disabled={isProcessing}
-          style={{ marginTop: '15px' }}
-        >
-          {isProcessing ? <Spin /> : 'Claim Payout'}
+      {claim.status === FlightPolicyStatus.Active && (
+        <Button type="primary" block onClick={handleClaim} loading={isProcessing} disabled={isProcessing} style={{ marginTop: "15px" }}>
+          {isProcessing ? <Spin /> : "Claim Payout"}
         </Button>
       )}
 
-      {successMessage && (
-        <Alert message={successMessage} type="success" showIcon style={{ marginTop: '15px' }} />
-      )}
-      {errorMessage && (
-        <Alert message={errorMessage} type="error" showIcon style={{ marginTop: '15px' }} />
-      )}
+      {successMessage && <Alert message={successMessage} type="success" showIcon style={{ marginTop: "15px" }} />}
+      {errorMessage && <Alert message={errorMessage} type="error" showIcon style={{ marginTop: "15px" }} />}
     </Card>
   );
 };

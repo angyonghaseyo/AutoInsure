@@ -4,7 +4,34 @@ const { ethers } = require("hardhat");
 describe("Insurer Contract - Full Flow", function () {
   let flightPolicy, insurerContract;
   let insurer, user;
-  let templateId, activeTemplateId, policyId;
+  let policyId;
+  let deactivatedTemplate = {
+    templateId: "795e9e7a-3919-4527-8116-2c91158a0ae7",
+    name: "Inactive Plan",
+    description: "Inactive",
+    createdAt: Math.floor(Date.now() / 1000),
+    updatedAt: Math.floor(Date.now() / 1000),
+    premium: 1,
+    payoutPerHour: 1,
+    delayThresholdHours: 1,
+    maxTotalPayout: 3,
+    coverageDurationDays: 1,
+    status: 1, // 0: Active, 1: Inactive
+  };
+
+  let activeTemplate = {
+    templateId: "8ae4b1cc-0a5d-4040-b5df-8c5dc0998043",
+    name: "Active Plan",
+    description: "Active",
+    createdAt: Math.floor(Date.now() / 1000),
+    updatedAt: Math.floor(Date.now() / 1000),
+    premium: 1,
+    payoutPerHour: 2,
+    delayThresholdHours: 2,
+    maxTotalPayout: 4,
+    coverageDurationDays: 3,
+    status: 0, // 0: Active, 1: Inactive
+  };
 
   before(async () => {
     [insurer, user] = await ethers.getSigners();
@@ -24,71 +51,33 @@ describe("Insurer Contract - Full Flow", function () {
     expect(await insurerContract.flightPolicy()).to.equal(await flightPolicy.getAddress());
   });
 
-  // 2. Create a policy template
-  it("should create a policy template", async () => {
-    const tx = await insurerContract.createFlightPolicyTemplate("Deactivatable Plan", "Basic delay cover", 1, 2, 1, 5, 2);
-    await tx.wait();
-
-    const templates = await insurerContract.getAllFlightPolicyTemplates();
-    expect(templates.length).to.equal(1);
-    expect(templates[0].name).to.equal("Deactivatable Plan");
-
-    templateId = templates[0].templateId;
-  });
-
-  // 3. Deactivate a policy template
-  it("should deactivate a policy template", async () => {
-    await insurerContract.deactivateFlightPolicyTemplate(templateId);
-    const template = await insurerContract.getFlightPolicyTemplateById(templateId);
-    expect(template.status).to.equal(1); // Deactivated
-  });
-
-  // 4. View all policy templates
-  it("should return all policy templates", async () => {
-    const templates = await insurerContract.getAllFlightPolicyTemplates();
-    expect(templates.length).to.be.greaterThan(0);
-  });
-
-  // 5. View a policy template by ID
-  it("should return the correct template by ID", async () => {
-    const template = await insurerContract.getFlightPolicyTemplateById(templateId);
-    expect(template.templateId).to.equal(templateId);
-    expect(template.name).to.equal("Deactivatable Plan");
-  });
-
-  // 6. Attempt to purchase a deactivated policy
+  // 2. Attempt to purchase a deactivated policy
   it("should revert purchase for deactivated policy", async () => {
     await expect(
-      insurerContract.connect(user).purchaseFlightPolicy(templateId, "SQ001", "SIN", "NRT", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") })
+      insurerContract.connect(user).purchaseFlightPolicy(deactivatedTemplate, "SQ001", "SIN", "NRT", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") })
     ).to.be.revertedWith("Policy template is not active");
   });
 
-  // 7. Purchase policy using a new active template
+  // 3. Purchase policy using a new active template
   it("should allow user to purchase a policy", async () => {
-    // Create an active template
-    await insurerContract.createFlightPolicyTemplate("Active Plan", "Covers delay", 1, 2, 2, 4, 3);
-
-    const templates = await insurerContract.getAllFlightPolicyTemplates();
-    activeTemplateId = templates[1].templateId;
-
     const tx = await insurerContract
       .connect(user)
-      .purchaseFlightPolicy(activeTemplateId, "SQ222", "SIN", "ICN", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") });
+      .purchaseFlightPolicy(activeTemplate, "SQ222", "SIN", "ICN", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") });
     await tx.wait();
   });
 
-  // 8. Get user policies by template
+  // 4. Get user policies by template
   it("should return only policies for a given template", async function () {
-    const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(1);
+    const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(activeTemplate.templateId);
     expect(policiesTemplate1.length).to.equal(1);
     const flightNumbersTemplate1 = policiesTemplate1.map((policy) => policy.flightNumber);
     expect(flightNumbersTemplate1).to.include("SQ222");
 
-    const policiesTemplate2 = await flightPolicy.getUserPoliciesByTemplate(2);
+    const policiesTemplate2 = await flightPolicy.getUserPoliciesByTemplate(deactivatedTemplate.templateId);
     expect(policiesTemplate2.length).to.equal(0);
   });
 
-  // 9. Get user policies
+  // 5. Get user policies
   it("should return user’s purchased policies", async () => {
     const userPolicies = await insurerContract.getUserFlightPolicies(user.address);
     expect(userPolicies.length).to.equal(1);
@@ -97,21 +86,14 @@ describe("Insurer Contract - Full Flow", function () {
     policyId = userPolicies[0].policyId;
   });
 
-  // 10. Get policy with template
+  // 6. Get policy with template
   it("should return user policy with template", async () => {
     const [policy, template] = await insurerContract.getFlightPolicyWithTemplate(user.address, policyId);
     expect(policy.flightNumber).to.equal("SQ222");
-    expect(template.templateId).to.equal(activeTemplateId);
+    expect(template.templateId).to.equal(activeTemplate.templateId);
   });
 
-  // 11. Get active templates
-  it("should return only active templates", async () => {
-    const activeTemplates = await insurerContract.getActiveFlightPolicyTemplates();
-    expect(activeTemplates.length).to.equal(1);
-    expect(activeTemplates[0].name).to.equal("Active Plan");
-  });
-
-  // 12. isInsurer check
+  // 7. isInsurer check
   it("should identify insurer correctly", async () => {
     expect(await insurerContract.isInsurer(insurer.address)).to.equal(true);
     expect(await insurerContract.isInsurer(user.address)).to.equal(false);
