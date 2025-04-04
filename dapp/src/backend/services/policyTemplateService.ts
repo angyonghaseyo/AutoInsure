@@ -1,4 +1,4 @@
-import { PolicyTemplateUpdate, PolicyTemplateCreate, FlightPolicyTemplate } from "../../types/FlightPolicy";
+import { FlightPolicyTemplateUpdate, FlightPolicyTemplateCreate, FlightPolicyTemplate } from "../../types/FlightPolicy";
 import { findDocuments, findDocumentById, insertDocument, updateDocument } from "../utils/db-helpers";
 
 // Collection name
@@ -21,13 +21,13 @@ export async function getPolicyTemplateById(templateId: string): Promise<FlightP
 /**
  * Create a new policy template
  */
-export async function createPolicyTemplate(policy: PolicyTemplateCreate): Promise<FlightPolicyTemplate> {
+export async function createPolicyTemplate(policy: FlightPolicyTemplateCreate): Promise<FlightPolicyTemplate> {
   return insertDocument<FlightPolicyTemplate>(COLLECTION, policy as FlightPolicyTemplate);
 }
 
 /**
  * Update a policy template by template ID
  */
-export async function updatePolicyTemplate(templateId: string, update: PolicyTemplateUpdate): Promise<FlightPolicyTemplate | null> {
+export async function updatePolicyTemplate(templateId: string, update: FlightPolicyTemplateUpdate): Promise<FlightPolicyTemplate | null> {
   return updateDocument<FlightPolicyTemplate>(COLLECTION, templateId, update, "templateId");
 }

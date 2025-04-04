@@ -14,14 +14,13 @@ export interface FlightPolicyTemplate {
   name: string;
   description: string;
   createdAt: number;
+  updatedAt: number;
   premium: string;
   payoutPerHour: string;
   delayThresholdHours: number;
   maxTotalPayout: string;
   coverageDurationDays: number;
   status: FlightPolicyTemplateStatus;
-
-  updatedAt: number;
 }
 
 export interface FlightUserPolicy {
@@ -40,9 +39,9 @@ export interface FlightUserPolicy {
 /**
  * Partial policy interface for updates
  */
-export type PolicyTemplateUpdate = Partial<FlightPolicyTemplate>;
+export type FlightPolicyTemplateUpdate = Partial<FlightPolicyTemplate>;
 
 /**
  * Policy create interface with required fields
  */
-export type PolicyTemplateCreate = Omit<FlightPolicyTemplate, "createdAt" | "updatedAt" | "templateId" | "status">;
+export type FlightPolicyTemplateCreate = Omit<FlightPolicyTemplate, "createdAt" | "updatedAt" | "templateId" | "status">;

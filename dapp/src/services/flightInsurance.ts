@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { useWeb3 } from "../components/Web3Provider";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, PolicyTemplateCreate, PolicyTemplateUpdate } from "@/types/FlightPolicy";
+import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, FlightPolicyTemplateCreate, FlightPolicyTemplateUpdate } from "@/types/FlightPolicy";
 
 export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
   return {
@@ -8,13 +8,13 @@ export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
     name: raw.name,
     description: raw.description,
     createdAt: Number(raw.createdAt),
+    updatedAt: Number(raw.updatedAt),
     premium: ethers.formatEther(raw.premium),
     payoutPerHour: ethers.formatEther(raw.payoutPerHour),
     delayThresholdHours: Number(raw.delayThresholdHours),
     maxTotalPayout: ethers.formatEther(raw.maxTotalPayout),
     coverageDurationDays: Number(raw.coverageDurationDays),
     status: Number(raw.status),
-    updatedAt: Number(raw.updatedAt),
   };
 }
 
@@ -46,7 +46,7 @@ export function useFlightInsurance() {
     maxTotalPayout: number,
     coverageDurationDays: number
   ): Promise<FlightPolicyTemplate> {
-    const template: PolicyTemplateCreate = {
+    const template: FlightPolicyTemplateCreate = {
       name: name,
       description: description,
       premium: premium.toString(),
@@ -76,7 +76,7 @@ export function useFlightInsurance() {
     maxTotalPayout: number,
     coverageDurationDays: number
   ): Promise<FlightPolicyTemplate> {
-    const template: PolicyTemplateUpdate = {
+    const template: FlightPolicyTemplateUpdate = {
       name: name,
       description: description,
       premium: premium.toString(),
@@ -125,17 +125,6 @@ export function useFlightInsurance() {
     }
   }
 
-  async function getUserPoliciesByTemplate(templatedId: string): Promise<FlightUserPolicy[]> {
-    if (!insurerContract) return [];
-    try {
-      const raw = await insurerContract.getUserPoliciesByTemplate(templatedId);
-      return raw.map(formatUserPolicy);
-    } catch (error) {
-      console.error(`Error fetching user flight policies for templateId ${templatedId}:`, error);
-      return [];
-    }
-  }
-
   async function getAllFlightPolicies(): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
     const rawPolicies = await insurerContract.getAllFlightPolicies();
@@ -152,8 +141,6 @@ export function useFlightInsurance() {
     premium: string
   ): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
-    console.log("Purchasing flight policy:", { templateId: template.templateId, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, premium });
-    console.log(account);
 
     const tx = await insurerContract.purchaseFlightPolicy(template, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, {
       value: ethers.parseEther(premium),
@@ -174,24 +161,15 @@ export function useFlightInsurance() {
     }
   }
 
-  async function getFlightPolicyWithTemplate(userAddress: string, policyId: number): Promise<{ userPolicy: FlightUserPolicy; template: FlightPolicyTemplate } | null> {
-    if (!insurerContract) return null;
+  async function getUserPoliciesByTemplate(templatedId: string): Promise<FlightUserPolicy[]> {
+    if (!insurerContract) return [];
     try {
-      const [rawPolicy, rawTemplate] = await insurerContract.getFlightPolicyWithTemplate(userAddress, policyId);
-      return {
-        userPolicy: formatUserPolicy(rawPolicy),
-        template: formatPolicyTemplate(rawTemplate),
-      };
+      const raw = await insurerContract.getUserPoliciesByTemplate(templatedId);
+      return raw.map(formatUserPolicy);
     } catch (error) {
-      console.error("Error fetching flight policy with template:", error);
-      return null;
+      console.error(`Error fetching user flight policies for templateId ${templatedId}:`, error);
+      return [];
     }
-  }
-
-  async function getActiveFlightPolicyTemplates(): Promise<FlightPolicyTemplate[]> {
-    const res = await fetch(`/api/policyTemplates?status=${FlightPolicyTemplateStatus.Active}`);
-    const templates = await res.json();
-    return templates.data;
   }
 
   async function claimFlightPayout(policyId: number): Promise<void> {
@@ -207,6 +185,12 @@ export function useFlightInsurance() {
     }
   }
 
+  async function getActiveFlightPolicyTemplates(): Promise<FlightPolicyTemplate[]> {
+    const res = await fetch(`/api/policyTemplates?status=${FlightPolicyTemplateStatus.Active}`);
+    const templates = await res.json();
+    return templates.data;
+  }
+
   // ====== Utility Functions ======
   async function isInsurer(userAddress: string): Promise<boolean> {
     if (!insurerContract) return false;
@@ -220,12 +204,11 @@ export function useFlightInsurance() {
     getAllFlightPolicyTemplates,
     getFlightPolicyTemplateById,
     getAllFlightPolicies,
-    getUserPoliciesByTemplate,
     purchaseFlightPolicy,
     getUserFlightPolicies,
-    getFlightPolicyWithTemplate,
-    getActiveFlightPolicyTemplates,
+    getUserPoliciesByTemplate,
     claimFlightPayout,
+    getActiveFlightPolicyTemplates,
     isInsurer,
   };
 }
