@@ -156,19 +156,17 @@ contract OracleConnector is ChainlinkClient, Ownable {
     //  * @return delayMinutes The number of minutes the flight is delayed
     //  */
     function getFlightStatus(string memory _flightNumber, string memory _departureTime) public
-    returns (bool isDelayed, uint256 delayHours)
+    returns (bool dataReceived, bool isDelayed, uint256 delayHours)
     {
         FlightData storage data = flightDataStore[_flightNumber][_departureTime];
         
         // If we already have the data, return it
         if (data.dataReceived) {
-            return (data.isDelayed, data.delayHours);
+            return (data.dataReceived, data.isDelayed, data.delayHours);
         } 
 
         requestFlightData(_flightNumber, _departureTime);
-        return (false, 0);  // Added for testing purposes 
-        FlightData storage new_data = flightDataStore[_flightNumber][_departureTime];
-        return (new_data.isDelayed, new_data.delayHours);
+        return (data.dataReceived, data.isDelayed, data.delayHours);
     }
         
     function checkFlightStatus(string memory _flightNumber, string memory _departureTime) public view
