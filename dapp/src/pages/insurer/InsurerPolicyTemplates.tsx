@@ -6,6 +6,7 @@ import { useFlightInsurance } from "@/services/flightInsurance";
 import { useWeb3 } from "@/components/Web3Provider";
 import PolicyTemplateDrawer from "@/components/PolicyTemplateDrawer";
 import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
+import EditPolicyTemplate from "@/components/EditPolicyTemplate";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -31,7 +32,9 @@ const InsurerPolicyTemplates = () => {
   const [templates, setTemplates] = useState<FlightPolicyTemplate[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<FlightPolicyTemplate[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [showModal, setShowModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPolicyTemplate, setEditPolicyTemplate] = useState<FlightPolicyTemplate>();
   const [messageApi, contextHolder] = message.useMessage();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -81,7 +84,7 @@ const InsurerPolicyTemplates = () => {
   /**
    * Handle add or delete actions.
    */
-  const handleTemplateAction = async (action: "add" | "delete", template?: FlightPolicyTemplate) => {
+  const handleTemplateAction = async (action: "add" | "delete" | "edit", template?: FlightPolicyTemplate) => {
     if (action === "delete" && template) {
       try {
         await deactivateFlightPolicyTemplate(template.templateId);
@@ -91,7 +94,10 @@ const InsurerPolicyTemplates = () => {
         messageApi.error("Failed to deactivate template.");
       }
     } else if (action === "add") {
-      setShowModal(true);
+      setShowCreateModal(true);
+    } else if (action === "edit" && template) {
+      setShowEditModal(true);
+      setEditPolicyTemplate(template);
     }
   };
 
@@ -144,7 +150,11 @@ const InsurerPolicyTemplates = () => {
           <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
             <Card
               title={tpl.name}
-              style={{ minHeight: 340, display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
               extra={<Tag color={getStatusColor(tpl.status)}>{FlightPolicyTemplateStatus[tpl.status]}</Tag>}
             >
               <div>
@@ -166,24 +176,35 @@ const InsurerPolicyTemplates = () => {
                 </p>
               </div>
 
-              <div style={{ marginTop: "auto", display: "flex", gap: "10px" }}>
-                {tpl.status === FlightPolicyTemplateStatus.Active ? (
-                  <Button danger icon={<DeleteOutlined />} onClick={() => handleTemplateAction("delete", tpl)}>
-                    Deactivate
-                  </Button>
-                ) : (
-                  <div style={{ visibility: "hidden" }}>
-                    <Button icon={<DeleteOutlined />}>Deactivate</Button>
-                  </div>
-                )}
+              <div
+                style={{
+                  marginTop: "auto",
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                }}
+              >
                 <Button
                   icon={<EyeOutlined />}
                   onClick={async () => {
                     setDrawerVisible(true);
                     setViewPolicyTemplate(tpl);
                   }}
+                  style={{ flex: 1 }}
                 >
                   View Purchased Policies
+                </Button>
+                <Button onClick={() => handleTemplateAction("edit", tpl)} disabled={tpl.status === FlightPolicyTemplateStatus.Deactivated} style={{ flex: 1 }}>
+                  Edit Template
+                </Button>
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleTemplateAction("delete", tpl)}
+                  disabled={tpl.status === FlightPolicyTemplateStatus.Deactivated}
+                  style={{ flex: 1 }}
+                >
+                  Deactivate
                 </Button>
               </div>
             </Card>
@@ -192,8 +213,13 @@ const InsurerPolicyTemplates = () => {
       </Row>
 
       {/* Create Policy Template Modal */}
-      <Modal open={showModal} onCancel={() => setShowModal(false)} footer={null} destroyOnClose>
-        <CreatePolicyTemplate onClose={() => setShowModal(false)} onUpdate={fetchTemplates} />
+      <Modal open={showCreateModal} onCancel={() => setShowCreateModal(false)} footer={null} destroyOnClose>
+        <CreatePolicyTemplate onClose={() => setShowCreateModal(false)} onUpdate={fetchTemplates} />
+      </Modal>
+
+      {/* Edit Policy Template Modal */}
+      <Modal open={showEditModal} onCancel={() => setShowEditModal(false)} footer={null} destroyOnClose>
+        {editPolicyTemplate && <EditPolicyTemplate onClose={() => setShowEditModal(false)} onUpdate={fetchTemplates} policyTemplate={editPolicyTemplate} />}
       </Modal>
 
       {viewPolicyTemplate && <PolicyTemplateDrawer setDrawerVisible={setDrawerVisible} policyTemplate={viewPolicyTemplate} visible={drawerVisible} />}
