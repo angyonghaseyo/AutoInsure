@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { useWeb3 } from "../components/Web3Provider";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, PolicyTemplateCreate } from "@/types/FlightPolicy";
+import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, PolicyTemplateCreate, PolicyTemplateUpdate } from "@/types/FlightPolicy";
 
 export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
   return {
@@ -57,6 +57,36 @@ export function useFlightInsurance() {
     };
     const res = await fetch("/api/policyTemplates", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(template),
+    });
+    const templates = await res.json();
+    return templates.data;
+  }
+
+  async function editFlightPolicyTemplate(
+    templateId: string,
+    name: string,
+    description: string,
+    premium: number,
+    payoutPerHour: number,
+    delayThresholdHours: number,
+    maxTotalPayout: number,
+    coverageDurationDays: number
+  ): Promise<FlightPolicyTemplate> {
+    const template: PolicyTemplateUpdate = {
+      name: name,
+      description: description,
+      premium: premium.toString(),
+      payoutPerHour: payoutPerHour.toString(),
+      delayThresholdHours: delayThresholdHours,
+      maxTotalPayout: maxTotalPayout.toString(),
+      coverageDurationDays: coverageDurationDays,
+    };
+    const res = await fetch(`/api/policyTemplates/${templateId}`, {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
@@ -185,6 +215,7 @@ export function useFlightInsurance() {
 
   return {
     createFlightPolicyTemplate,
+    editFlightPolicyTemplate,
     deactivateFlightPolicyTemplate,
     getAllFlightPolicyTemplates,
     getFlightPolicyTemplateById,
