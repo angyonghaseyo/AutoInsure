@@ -67,7 +67,6 @@ contract FlightPolicy is ReentrancyGuard {
     }
 
     // ====== Insurer Functions ======
-
     // View all purchased policies
     function getAllPolicies() external view onlyInsurer returns (UserPolicy[] memory) {
         uint256 count = nextUserPolicyId;
@@ -78,14 +77,7 @@ contract FlightPolicy is ReentrancyGuard {
         return results;
     }
 
-    function markPolicyAsClaimed(address buyer, uint256 policyId) external onlyInsurer {
-        require(policyId < nextUserPolicyId, "Invalid policyId");
-        require(userPolicies[policyId].buyer == buyer, "Policy doesn't belong to buyer");
-        require(userPolicies[policyId].status == PolicyStatus.Active, "Policy is not active");
-
-        userPolicies[policyId].status = PolicyStatus.Claimed;
-    }
-    
+    // TODO: Cron job to mark policies as expired
     function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
         require(policyId < nextUserPolicyId, "Invalid policyId");
         
@@ -97,25 +89,6 @@ contract FlightPolicy is ReentrancyGuard {
         require(block.timestamp > expiryTime, "Policy has not expired yet");
 
         policy.status = PolicyStatus.Expired;
-    }
-
-    function getUserPoliciesByTemplate(string memory templateId) external view returns (UserPolicy[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 0; i < nextUserPolicyId; i++) {
-            
-            if ( keccak256(abi.encodePacked(userPolicies[i].template.templateId)) == keccak256(abi.encodePacked(templateId))) {
-                count++;
-            }
-        }
-        UserPolicy[] memory result = new UserPolicy[](count);
-        uint256 j = 0;
-        for (uint256 i = 0; i < nextUserPolicyId; i++) {
-            if (keccak256(abi.encodePacked(userPolicies[i].template.templateId)) == keccak256(abi.encodePacked(templateId))) {
-                result[j] = userPolicies[i];
-                j++;
-            }
-        }
-        return result;
     }
 
     // ====== User Functions ======
@@ -153,15 +126,27 @@ contract FlightPolicy is ReentrancyGuard {
         return results;
     }
 
-    // Get a user's policy and its associated template
-    function getUserPolicyWithTemplate(address user, uint256 policyId) external view returns (UserPolicy memory, PolicyTemplate memory) {
-        require(policyId < nextUserPolicyId, "Invalid policyId");
-        require(userPolicies[policyId].buyer == user, "Not your policy");
-        UserPolicy memory userPolicy = userPolicies[policyId];
-        return (userPolicy, userPolicy.template);
+    // Get all policies by template ID
+    function getUserPoliciesByTemplate(string memory templateId) external view returns (UserPolicy[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < nextUserPolicyId; i++) {
+            if (keccak256(abi.encodePacked(userPolicies[i].template.templateId)) == keccak256(abi.encodePacked(templateId))) {
+                count++;
+            }
+        }
+
+        UserPolicy[] memory result = new UserPolicy[](count);
+        uint256 j = 0;
+        for (uint256 i = 0; i < nextUserPolicyId; i++) {
+            if (keccak256(abi.encodePacked(userPolicies[i].template.templateId)) == keccak256(abi.encodePacked(templateId))) {
+                result[j] = userPolicies[i];
+                j++;
+            }
+        }
+        return result;
     }
 
-    // Claim a policy and payout based on flight delay
+    // Claim a policy and give payout based on flight delay
     function claimPayout(uint256 policyId, address buyer) external nonReentrant {
         require(policyId < nextUserPolicyId, "Invalid policyId");
 
