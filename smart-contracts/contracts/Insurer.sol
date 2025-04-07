@@ -20,6 +20,8 @@ contract Insurer {
     // ==================== Events ====================
     event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, string indexed templateId);
     event FlightPolicyClaimed(address indexed buyer, uint256 indexed policyId);
+    event FundsDeposited(address indexed insurer, uint256 amount);
+    event FundsWithdrawn(address indexed insurer, uint256 amount);
 
     // ====== Insurer Functions ======
     // View all purchased flight policies
@@ -32,10 +34,20 @@ contract Insurer {
         flightPolicy.markPolicyAsExpired(policyId);
     }
 
-    // TODO: Withdraw funds from the contract to the insurer's address
     function withdraw(uint256 amountInWei) external onlyInsurer {
         require(address(this).balance >= amountInWei, "Insufficient balance");
         payable(insurerAddress).transfer(amountInWei);
+        emit FundsWithdrawn(insurerAddress, amountInWei);
+    }
+
+    // Deposit funds into the contract (only by the insurer)
+    function deposit() external payable onlyInsurer {
+        require(msg.value > 0, "Insurer: Must deposit a positive amount");
+        emit FundsDeposited(insurerAddress, msg.value);
+    }
+
+    function getContractBalance() external view onlyInsurer returns (uint256) {
+        return address(this).balance;
     }
 
     // ====== User Functions ======

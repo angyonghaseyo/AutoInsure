@@ -51,6 +51,61 @@ describe("Insurer Contract - Full Flow", function () {
     expect(await insurerContract.flightPolicy()).to.equal(await flightPolicy.getAddress());
   });
 
+  describe("Deposit", function () {
+    it("should allow the insurer to deposit funds and update contract balance", async function () {
+      const depositAmount = ethers.parseEther("1.0");
+
+      await expect(insurerContract.deposit({ value: depositAmount }))
+        .to.emit(insurerContract, "FundsDeposited")
+        .withArgs(insurer, depositAmount);
+
+      const contractBalance = await insurerContract.getContractBalance();
+      expect(contractBalance).to.equal(depositAmount);
+    });
+
+    it("should revert when deposit amount is zero", async function () {
+      await expect(insurerContract.deposit({ value: 0 })).to.be.revertedWith("Insurer: Must deposit a positive amount");
+    });
+
+    it("should not allow non-insurer to deposit", async function () {
+      const depositAmount = ethers.parseEther("1.0");
+      await expect(insurerContract.connect(user).deposit({ value: depositAmount })).to.be.revertedWith("Insurer: Only the insurer can call this");
+    });
+  });
+
+  describe("Withdraw", function () {
+    beforeEach(async function () {
+      const depositAmount = ethers.parseEther("2.0");
+      await insurerContract.deposit({ value: depositAmount });
+    });
+
+    it("should allow the insurer to withdraw funds and update contract balance", async function () {
+      const withdrawAmount = ethers.parseEther("1.0");
+
+      await expect(insurerContract.withdraw(withdrawAmount)).to.emit(insurerContract, "FundsWithdrawn").withArgs(insurer, withdrawAmount);
+
+      const contractBalance = await insurerContract.getContractBalance();
+      expect(contractBalance).to.equal(ethers.parseEther("2.0"));
+    });
+
+    it("should revert when withdrawing more than the contract balance", async function () {
+      const withdrawAmount = ethers.parseEther("100.0");
+      await expect(insurerContract.withdraw(withdrawAmount)).to.be.revertedWith("Insufficient balance");
+    });
+
+    it("should not allow non-insurer to withdraw", async function () {
+      const withdrawAmount = ethers.parseEther("1.0");
+      await expect(insurerContract.connect(user).withdraw(withdrawAmount)).to.be.revertedWith("Insurer: Only the insurer can call this");
+    });
+  });
+
+  describe("Get Contract Balance", function () {
+    it("should return the correct contract balance after deposits", async function () {
+      const contractBalance = await insurerContract.getContractBalance();
+      expect(contractBalance).to.equal(ethers.parseEther("6.0"));
+    });
+  });
+
   // 2. Attempt to purchase a deactivated policy
   it("should revert purchase for deactivated policy", async () => {
     await expect(
