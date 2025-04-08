@@ -1,43 +1,40 @@
-require("dotenv").config();
-const { ethers } = require("ethers");
-const fetch = require("node-fetch");
-const get = require("lodash.get");
+require('dotenv').config();
+const { ethers } = require('ethers');
+const fetch = require('node-fetch');
 
-const oracleAbi = [
-  "event OracleRequest(bytes32 indexed requestId, address requester, string url, string path, bytes4 callbackFunction)",
-  "function fulfillDataFromOffChain(bytes32 requestId, string calldata data)",
+const abi = [
+  "event OracleRequest(bytes32 indexed requestId, address indexed oracleAddress, string url, string path);",
+  "function fulfillDataFromOffChain(bytes32 requestId, uint256 data) external",
 ];
 
 const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const oracle = new ethers.Contract(process.env.ORACLE_CONTRACT_ADDRESS, oracleAbi, wallet);
+const contract = new ethers.Contract(0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e, abi, wallet);
 
-console.log("Listening for flight data requests");
+console.log('Listening')
 
-oracle.on("MockFlightRequest", async (requestId, requester, url, path, callbackFn) => {
-  console.log(`\nFlight data request received`);
-  console.log(`URL: ${url}`);
-  console.log(`JSON path: ${path}`);
-  console.log(`Callback: ${callbackFn}`);
-  console.log(`Request ID: ${requestId}`);
-
+async function handleOracleRequest(requestId, oracleAddress, url, path) {
+  console.log(`Handling OracleRequest for URL: ${url} with path ${path}`);
   try {
     const res = await fetch(url);
     const json = await res.json();
+    console.log('-----')
+    console.log(json)
+    console.log(json[path])
+    const data = json[path];
+    console.log('-----')
+    console.log(data)
 
-    const extracted = get(json, path); // path like "data.delayMinutes"
-    if (!extracted) {
-      console.warn("Could not extract data from path:", path);
-      return;
-    }
-
-    console.log(`Extracted data: ${extracted}`);
-
-    const tx = await oracle.fulfillData(requestId, extracted.toString());
+    const tx = await contract.fulfillDataFromOffChain(requestId, data);
     await tx.wait();
-
-    console.log("Fulfilled request on-chain!\n");
+    console.log("Data fulfilled on chain");
   } catch (err) {
-    console.error("Failed to fulfill request:", err);
+    console.error("Error fulfilling:", err);
   }
-});
+}
+
+// Set up real event listener
+contract.on("OracleRequest", handleOracleRequest);
+
+// Export for testing
+module.exports = handleOracleRequest;

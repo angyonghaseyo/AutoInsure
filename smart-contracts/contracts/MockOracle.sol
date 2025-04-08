@@ -28,7 +28,7 @@ contract MockOracle {
 
     event OracleResponse(
         bytes32 indexed requestId,
-        string data
+        uint256 data
     );
 
     constructor(address _linkToken) {
@@ -64,7 +64,7 @@ contract MockOracle {
     }
 
     /// Fulfilled using off-chain listener calling back with real data
-    function fulfillDataFromOffChain(bytes32 requestId, string calldata data) external {
+    function fulfillDataFromOffChain(bytes32 requestId, uint256 data) external {
         Request storage req = requests[requestId];
         require(!req.fulfilled, "Request already fulfilled");
         // set request to fulfilled
