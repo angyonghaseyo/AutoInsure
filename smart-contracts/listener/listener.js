@@ -1,29 +1,34 @@
-require('dotenv').config();
-const { ethers } = require('ethers');
-const fetch = require('node-fetch');
+require("dotenv").config();
+const fetch = require("node-fetch");
+const { JsonRpcProvider, Wallet, Contract } = require("ethers");
 
 const abi = [
-  "event OracleRequest(bytes32 indexed requestId, address indexed oracleAddress, string url, string path);",
+  "event OracleRequest(bytes32 indexed requestId, address indexed oracleAddress, string url, string path)",
   "function fulfillDataFromOffChain(bytes32 requestId, uint256 data) external",
 ];
 
-const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e, abi, wallet);
+// Set up provider and signer
+const provider = new JsonRpcProvider(process.env.RPC_URL);
+const wallet = new Wallet(process.env.PRIVATE_KEY, provider);
 
-console.log('Listening')
+// Use string address for contract
+const contractAddress = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e";
+const contract = new Contract(contractAddress, abi, wallet);
+
+console.log("Listening for OracleRequest events...");
 
 async function handleOracleRequest(requestId, oracleAddress, url, path) {
   console.log(`Handling OracleRequest for URL: ${url} with path ${path}`);
   try {
     const res = await fetch(url);
     const json = await res.json();
-    console.log('-----')
-    console.log(json)
-    console.log(json[path])
+
+    console.log("-----");
+    console.log(json);
+    console.log(json[path]);
+    console.log("-----");
+
     const data = json[path];
-    console.log('-----')
-    console.log(data)
 
     const tx = await contract.fulfillDataFromOffChain(requestId, data);
     await tx.wait();
@@ -33,7 +38,7 @@ async function handleOracleRequest(requestId, oracleAddress, url, path) {
   }
 }
 
-// Set up real event listener
+// Register the event listener
 contract.on("OracleRequest", handleOracleRequest);
 
 // Export for testing
