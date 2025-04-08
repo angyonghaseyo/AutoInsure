@@ -21,20 +21,35 @@ async function main() {
   const insurerAddress = await insurer.getAddress();
   console.log(`🛡️ Insurer (Main Entry) deployed at: ${insurerAddress}`);
 
+  // Deploy Oracle Connector and Relevant Components
+
+  const OracleConnector = await hre.ethers.getContractFactory("OracleConnector")
+  const MockOracle = await hre.ethers.getContractFactory("MockOracle")
+
+  const oracleConnector = await OracleConnector.deploy()
+  await oracleConnector.waitForDeployment()
+  const oracleConnectorAddress = oracleConnector.getAddress()
+  const mockOracle = await MockOracle.deploy()
+  await mockOracle.waitForDeployment()
+  const mockOracleAddress = mockOracle.getAddress()
+
+
   // 3. Deployment Summary
   console.log("\n-------------------------------------");
   console.log("📜 Deployment Summary:");
   console.log("-------------------------------------");
-  console.log(`📌 Network: ${hre.network.name}`);
-  console.log(`📦 FlightPolicy: ${flightPolicyAddress}`);
-  console.log(`🛡️ Insurer: ${insurerAddress}`);
+  console.log(`Network: ${hre.network.name}`);
+  console.log(`FlightPolicy: ${flightPolicyAddress}`);
+  console.log(`Insurer: ${insurerAddress}`);
+  console.log(`OracleConnector: ${oracleConnectorAddress}`)
+  console.log(`MockOracle: ${mockOracleAddress}`)
   console.log("-------------------------------------\n");
 
   // 4. Optional: Wait for Etherscan index (5 blocks)
-  // console.log("⏳ Waiting for 5 block confirmations...");
+  // console.log(Waiting for 5 block confirmations...");
   // await insurer.deploymentTransaction().wait(5);
   if (!["hardhat", "localhost"].includes(hre.network.name)) {
-    console.log("⏳ Waiting for 5 block confirmations...");
+    console.log("Waiting for 5 block confirmations...");
     await insurer.deploymentTransaction().wait(5);
   }
 
@@ -52,9 +67,9 @@ async function main() {
         constructorArguments: [flightPolicyAddress],
       });
 
-      console.log("✅ Contracts verified on Etherscan!");
+      console.log("Contracts verified on Etherscan!");
     } catch (error) {
-      console.error("❌ Verification error:", error);
+      console.error("Verification error:", error);
     }
   }
 
@@ -79,7 +94,7 @@ async function main() {
 
   fs.writeFileSync(contractAddressesPath, JSON.stringify(existingData, null, 2));
 
-  console.log(`✅ Updated contract addresses in ${contractAddressesPath}`);
+  console.log(`Updated contract addresses in ${contractAddressesPath}`);
 
   // 7. Export ABIs to dapp for use with ethers.js
   const abisOutputPath = path.join(__dirname, "../../dapp/src/utils/abis");
@@ -93,12 +108,12 @@ async function main() {
   fs.writeFileSync(path.join(abisOutputPath, "FlightPolicy.json"), JSON.stringify(flightPolicyArtifact, null, 2));
   fs.writeFileSync(path.join(abisOutputPath, "Insurer.json"), JSON.stringify(insurerArtifact, null, 2));
 
-  console.log(`✅ ABIs saved to: ${abisOutputPath}`);
+  console.log(`ABIs saved to: ${abisOutputPath}`);
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ Deployment failed:", error);
+    console.error("Deployment failed:", error);
     process.exit(1);
   });
