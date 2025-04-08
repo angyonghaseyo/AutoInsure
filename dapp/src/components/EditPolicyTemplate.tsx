@@ -59,7 +59,7 @@ const EditPolicyTemplate = ({ policyTemplate, onClose, onUpdate }: CreatePolicyT
       {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
       {success && <Alert message={success} type="success" showIcon style={{ marginBottom: 16 }} />}
 
-      <Form layout="vertical" form={form} onFinish={handleSubmit}>
+      <Form layout="vertical" form={form} onFinish={handleSubmit} initialValues={policyTemplate}>
         <Form.Item name="name" label="Template Name" rules={[{ required: true, message: "Please enter a name for the policy" }]}>
           <Input placeholder="e.g. Economy Flight Cover" />
         </Form.Item>
