@@ -23,17 +23,22 @@ async function main() {
 
   // 3. Deploy Oracle Connector and Relevant Components
 
+  const MockLinkToken = await hre.ethers.getContractFactory("MockLinkToken")
+  const mockLinkToken = await MockLinkToken.deploy()
+  await mockLinkToken.waitForDeployment();
+  const mockLinkTokenAddress = await mockLinkToken.getAddress()
+
   const OracleConnector = await hre.ethers.getContractFactory("OracleConnector")
   const MockOracle = await hre.ethers.getContractFactory("MockOracle")
 
-  const oracleConnector = await OracleConnector.deploy()
+  const oracleConnector = await OracleConnector.deploy(mockLinkTokenAddress)
   await oracleConnector.waitForDeployment()
-  const oracleConnectorAddress = oracleConnector.getAddress()
+  const oracleConnectorAddress =await oracleConnector.getAddress()
   console.log(`OracleConnector deployed at: ${oracleConnectorAddress}`)
 
-  const mockOracle = await MockOracle.deploy()
+  const mockOracle = await MockOracle.deploy(mockLinkTokenAddress)
   await mockOracle.waitForDeployment()
-  const mockOracleAddress = mockOracle.getAddress()
+  const mockOracleAddress = await mockOracle.getAddress()
   console.log(`MockOracle deployed at: ${mockOracleAddress}`)
 
 
