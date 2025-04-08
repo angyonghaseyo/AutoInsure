@@ -4,8 +4,8 @@ const fetch = require("node-fetch");
 const get = require("lodash.get");
 
 const oracleAbi = [
-  "event MockFlightRequest(bytes32 indexed requestId, address requester, string url, string path, bytes4 callbackFunction)",
-  "function fulfillData(bytes32 requestId, string calldata data) external",
+  "event OracleRequest(bytes32 indexed requestId, address requester, string url, string path, bytes4 callbackFunction)",
+  "function fulfillDataFromOffChain(bytes32 requestId, string calldata data)",
 ];
 
 const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);

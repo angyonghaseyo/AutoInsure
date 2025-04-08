@@ -22,7 +22,8 @@ contract MockOracle {
     event OracleRequest(
         bytes32 indexed requestId,
         address indexed oracleAddress,
-        string url
+        string url,
+        string path
     );
 
     event OracleResponse(
@@ -40,8 +41,9 @@ contract MockOracle {
         bytes4 _callbackFunctionId,
         uint256 fee,
         bytes32 jobId,
-        string memory url
-    ) external returns (bytes32 requestID) {
+        string memory url,
+        string memory path // eg data.delayMinutes
+    ) public returns (bytes32 requestID) {
         // Generate a new request ID
         bytes32 requestId = keccak256(abi.encodePacked(msg.sender, block.timestamp, url));
 
@@ -55,35 +57,17 @@ contract MockOracle {
         });
 
         // Emit Function for Off ChainListener
-        emit OracleRequest(requestId, address(this), url);
+        emit OracleRequest(requestId, address(this), url, path);
 
         // Return Request ID for Oracle Connector
         return requestId;
     }
 
-    // // Oracle External Connector function to request API
-    // function requestDataOffChain(
-    //     string memory url,
-    //     address _callbackAddress,
-    //     bytes4 callbackFunctionId
-    // ) public returns (bytes32) {
-    //     bytes32 requestId = keccak256(abi.encodePacked(msg.sender, block.timestamp, url));
-
-    //     requests[requestId] = Request({
-    //         requester: msg.sender,
-    //         callbackFunctionId: callbackFunctionId,
-    //         fulfilled: false
-    //     });
-
-    //     emit OracleRequest(requestId, msg.sender, url, path);
-    //     return requestId;
-    // }
-
     /// Fulfilled using off-chain listener calling back with real data
     function fulfillDataFromOffChain(bytes32 requestId, string calldata data) external {
         Request storage req = requests[requestId];
         require(!req.fulfilled, "Request already fulfilled");
-
+        // set request to fulfilled
         req.fulfilled = true;
 
         // Call back the requester with the data
