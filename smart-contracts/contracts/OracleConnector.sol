@@ -16,6 +16,7 @@ interface IMockOracle {
     ) external returns (bytes32);
 }
 
+
 contract OracleConnector is ChainlinkClient, Ownable {
     using Chainlink for Chainlink.Request;
     

@@ -12,7 +12,7 @@ const provider = new JsonRpcProvider(process.env.RPC_URL);
 const wallet = new Wallet(process.env.PRIVATE_KEY, provider);
 
 // Use string address for contract
-const contractAddress = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e";
+const contractAddress = process.env.ORACLE_CONTRACT_ADDRESS
 const contract = new Contract(contractAddress, abi, wallet);
 
 console.log("Listening for OracleRequest events...");
