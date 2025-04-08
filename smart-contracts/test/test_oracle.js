@@ -14,20 +14,20 @@ describe("OracleConnector", function () {
     [owner, addr1] = await ethers.getSigners();
 
     // Deploy MockLinkToken
-    const MockLinkToken = await ethers.getContractFactory("mockLinkToken");
+    const MockLinkToken = await ethers.getContractFactory("MockLinkToken");
     mockLinkToken = await MockLinkToken.deploy();
     // Wait for deployment
     await mockLinkToken.waitForDeployment();
 
     // Deploy MockChainlinkOracle
-    const MockChainlinkOracle = await ethers.getContractFactory("mockChainlinkOracle");
+    const MockChainlinkOracle = await ethers.getContractFactory("MockOracle");
     mockOracle = await MockChainlinkOracle.deploy(await mockLinkToken.getAddress());
     // Wait for deployment
     await mockOracle.waitForDeployment();
 
     // Deploy OracleConnectorTest
-    const OracleConnectorTest = await ethers.getContractFactory("OracleConnectorTest");
-    oracleConnector = await OracleConnectorTest.deploy(await mockLinkToken.getAddress());
+    const OracleConnector = await ethers.getContractFactory("OracleConnector");
+    oracleConnector = await OracleConnector.deploy(await mockLinkToken.getAddress());
     // Wait for deployment
     await oracleConnector.waitForDeployment();
 
@@ -87,7 +87,7 @@ describe("OracleConnector", function () {
 
   it("should aggregate multiple oracle responses", async function () {
     // Add a second oracle
-    const MockChainlinkOracle = await ethers.getContractFactory("MockChainlinkOracle");
+    const MockChainlinkOracle = await ethers.getContractFactory("MockOracle");
     const secondOracle = await MockChainlinkOracle.deploy(await mockLinkToken.getAddress());
     await secondOracle.waitForDeployment();
     
