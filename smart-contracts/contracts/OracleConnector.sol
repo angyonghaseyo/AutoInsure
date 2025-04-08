@@ -50,7 +50,6 @@ contract OracleConnector is ChainlinkClient, Ownable {
     constructor(address _linkToken) Ownable() {
         // Set Chainlink token address (for the relevant network)
         setChainlinkToken(_linkToken);
-
         
         // Below Comments for Sepolia Testing
         // This is Sepolia testnet LINK token address
@@ -81,11 +80,12 @@ contract OracleConnector is ChainlinkClient, Ownable {
         require(oracles.length > 0, "No oracles set");
 
         for (uint256 i = 0; i < oracles.length; i++) {
-            Chainlink.Request memory request = buildChainlinkRequest(
-                oracles[i].jobId,
-                address(this),
-                this.fulfillFlightData.selector
-            );
+            // Mocking Chainlink Oracle so dont need to actually build a request
+            // Chainlink.Request memory request = buildChainlinkRequest(
+            //     oracles[i].jobId,
+            //     address(this),
+            //     this.fulfillFlightData.selector
+            // );
             
             // Set the URL to fetch flight data
             // Note: This URL called from each indiv oracle api 
@@ -95,13 +95,19 @@ contract OracleConnector is ChainlinkClient, Ownable {
                 "?departure=",
                 _departureTime
             ));
-            request.add("get", fullUrl);
+
+            // request.add("get", fullUrl);
             
-            // Set the path to find the flight delay data 
-            request.add("path", "data.delayMinutes");
+            // // Set the path to find the flight delay data 
+            // request.add("path", "data.delayMinutes");
             
-            // Send the request to oracle address
-            requestId = sendChainlinkRequestTo(oracles[i].oracle, request, fee);
+            // // Send the request to oracle address
+            // requestId = (oracles[i].oracle, request, fee);
+
+            // Call Mock Oracle Function instead to simulate chainlink sending a request
+            requestId = oracles[i].oracle.mockChainlinkRequest(
+                
+            )
             
             // Store request mapping
             requestToFlightNumber[requestId] = _flightNumber;
