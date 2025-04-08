@@ -3,7 +3,8 @@ import { Card, Row, Col, Typography, Tag, Alert, Modal, Select, message, Spin } 
 import { WalletOutlined } from "@ant-design/icons";
 
 import { useWeb3 } from "@/components/Web3Provider";
-import { useFlightInsurance, FlightUserPolicy, FlightPolicyStatus } from "@/services/flightInsurance";
+import { useFlightInsurance } from "@/services/flightInsurance";
+import { FlightPolicyStatus, FlightUserPolicy } from "@/types/FlightPolicy";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -38,7 +39,6 @@ const MyFlightPolicies = () => {
     if (!account) return;
     try {
       setLoading(true);
-      console.log("Fetching user policies for:", account);
       const result = await getUserFlightPolicies(account);
       setPolicies(result);
       setFiltered(result);

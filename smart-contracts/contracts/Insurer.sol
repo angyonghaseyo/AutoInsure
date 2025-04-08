@@ -18,52 +18,18 @@ contract Insurer {
     }
 
     // ==================== Events ====================
-    event FlightPolicyTemplateCreated(uint256 indexed templateId, string name);
-    event FlightPolicyTemplateDeactivated(uint256 indexed templateId);
-    event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, uint256 indexed templateId);
+    event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, string indexed templateId);
     event FlightPolicyClaimed(address indexed buyer, uint256 indexed policyId);
+    event FundsDeposited(address indexed insurer, uint256 amount);
+    event FundsWithdrawn(address indexed insurer, uint256 amount);
 
     // ====== Insurer Functions ======
-    // Create a new flight policy template
-    function createFlightPolicyTemplate(string memory name, string memory description, uint256 premium, uint256 payoutPerHour, uint256 delayThresholdHours, uint256 maxTotalPayout, uint256 coverageDurationDays) external onlyInsurer {
-        uint256 templateId = flightPolicy.createPolicyTemplate(
-            name,
-            description,
-            premium,
-            payoutPerHour,
-            delayThresholdHours,
-            maxTotalPayout,
-            coverageDurationDays
-        );
-        emit FlightPolicyTemplateCreated(templateId, name);
-    }
-
-    // Soft-delete (deactivate) an existing flight policy template
-    function deactivateFlightPolicyTemplate(uint256 templateId) external onlyInsurer {
-        flightPolicy.deactivatePolicyTemplate(templateId);
-        emit FlightPolicyTemplateDeactivated(templateId);
-    }
-
-    // View all flight policy templates (including deactivated)
-    function getAllFlightPolicyTemplates() external view onlyInsurer returns (FlightPolicy.PolicyTemplate[] memory) {
-        return flightPolicy.getAllPolicyTemplates();
-    }
-
-    // View a single flight policy template by ID
-    function getFlightPolicyTemplateById(uint256 templateId) external view onlyInsurer returns (FlightPolicy.PolicyTemplate memory) {
-        return flightPolicy.getPolicyTemplateById(templateId);
-    }
-
     // View all purchased flight policies
     function getAllFlightPolicies() external view onlyInsurer returns (FlightPolicy.UserPolicy[] memory) {
         return flightPolicy.getAllPolicies();
     }
 
-    // View all policies for a specific template
-    function getUserPoliciesByTemplate(uint256 templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
-        return flightPolicy.getUserPoliciesByTemplate(templateId);
-    }
-
+    // TODO: Cron job to mark flight policies as expired
     function markFlightPolicyAsExpired(uint256 policyId) external onlyInsurer {
         flightPolicy.markPolicyAsExpired(policyId);
     }
@@ -71,13 +37,24 @@ contract Insurer {
     function withdraw(uint256 amountInWei) external onlyInsurer {
         require(address(this).balance >= amountInWei, "Insufficient balance");
         payable(insurerAddress).transfer(amountInWei);
+        emit FundsWithdrawn(insurerAddress, amountInWei);
+    }
+
+    // Deposit funds into the contract (only by the insurer)
+    function deposit() external payable onlyInsurer {
+        require(msg.value > 0, "Insurer: Must deposit a positive amount");
+        emit FundsDeposited(insurerAddress, msg.value);
+    }
+
+    function getContractBalance() external view onlyInsurer returns (uint256) {
+        return address(this).balance;
     }
 
     // ====== User Functions ======
     // Purchase a flight policy based on a template
-    function purchaseFlightPolicy(uint256 templateId, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
+    function purchaseFlightPolicy(FlightPolicy.PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
         uint256 policyId = flightPolicy.purchasePolicy{value: msg.value}(
-            templateId,
+            template,
             flightNumber,
             departureAirportCode,
             arrivalAirportCode,
@@ -85,7 +62,7 @@ contract Insurer {
             msg.sender
         );
 
-        emit FlightPolicyPurchased(msg.sender, policyId, templateId);
+        emit FlightPolicyPurchased(msg.sender, policyId, template.templateId);
     }
 
     // Get all flight policies owned by a user
@@ -93,17 +70,12 @@ contract Insurer {
         return flightPolicy.getUserPolicies(user);
     }
 
-    // Get a user's flight policy and its associated template
-    function getFlightPolicyWithTemplate(address user, uint256 policyId) external view returns (FlightPolicy.UserPolicy memory, FlightPolicy.PolicyTemplate memory){
-        return flightPolicy.getUserPolicyWithTemplate(user, policyId);
+    // Get all flight policies by template ID
+    function getUserPoliciesByTemplate(string memory templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getUserPoliciesByTemplate(templateId);
     }
 
-    // Get all active flight policy templates (for user browsing)
-    function getActiveFlightPolicyTemplates() external view returns (FlightPolicy.PolicyTemplate[] memory) {
-        return flightPolicy.getActivePolicyTemplates();
-    }
-
-    // Claim a policy and payout based on flight delay
+    // Claim a flight policy and give payout based on flight delay
     function claimFlightPayout(uint256 policyId) external {
         flightPolicy.claimPayout(policyId, msg.sender);
 

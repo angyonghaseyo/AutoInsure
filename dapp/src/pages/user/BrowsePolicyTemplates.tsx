@@ -1,20 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Button,
-  Modal,
-  Spin,
-  Alert,
-} from "antd";
+import { Card, Row, Col, Typography, Button, Modal, Spin, Alert } from "antd";
 import { DollarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import PurchasePolicy from "@/components/PurchasePolicy";
-import {
-  useFlightInsurance,
-  FlightPolicyTemplate,
-} from "@/services/flightInsurance";
+import { useFlightInsurance } from "@/services/flightInsurance";
+import { FlightPolicyTemplate } from "@/types/FlightPolicy";
 
 const { Title, Paragraph } = Typography;
 
@@ -58,9 +47,7 @@ const BrowseFlightPolicyTemplates = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <Title level={2}>Flight Policy Templates</Title>
-      <Paragraph>
-        Select a flight insurance policy that fits your travel needs. All templates shown below are active and available for purchase.
-      </Paragraph>
+      <Paragraph>Select a flight insurance policy that fits your travel needs. All templates shown below are active and available for purchase.</Paragraph>
 
       {/* Loading or error display */}
       {loading ? (
@@ -70,12 +57,7 @@ const BrowseFlightPolicyTemplates = () => {
       ) : error ? (
         <Alert message="Error" description={error} type="error" showIcon />
       ) : templates.length === 0 ? (
-        <Alert
-          message="No Policies Available"
-          description="Currently there are no active flight policy templates available for purchase."
-          type="info"
-          showIcon
-        />
+        <Alert message="No Policies Available" description="Currently there are no active flight policy templates available for purchase." type="info" showIcon />
       ) : (
         <Row gutter={[24, 24]}>
           {templates.map((tpl) => (
@@ -91,11 +73,21 @@ const BrowseFlightPolicyTemplates = () => {
               >
                 <div>
                   <p>{tpl.description}</p>
-                  <p><strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH</p>
-                  <p><strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH</p>
-                  <p><strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH</p>
-                  <p><strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs</p>
-                  <p><strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days</p>
+                  <p>
+                    <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
+                  </p>
+                  <p>
+                    <strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH
+                  </p>
+                  <p>
+                    <strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH
+                  </p>
+                  <p>
+                    <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs
+                  </p>
+                  <p>
+                    <strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days
+                  </p>
                 </div>
                 <div style={{ marginTop: "auto" }}>
                   <Button type="primary" block onClick={() => handleSelectTemplate(tpl)}>
@@ -109,18 +101,8 @@ const BrowseFlightPolicyTemplates = () => {
       )}
 
       {/* Purchase Modal */}
-      <Modal
-        title="Purchase Policy"
-        open={!!selectedTemplate}
-        onCancel={handleCloseModal}
-        footer={null}
-        destroyOnClose
-      >
-        {selectedTemplate ? (
-          <PurchasePolicy selectedTemplate={selectedTemplate} onClose={handleCloseModal} />
-        ) : (
-          <Spin tip="Loading..." />
-        )}
+      <Modal title="Purchase Policy" open={!!selectedTemplate} onCancel={handleCloseModal} footer={null} destroyOnClose>
+        {selectedTemplate ? <PurchasePolicy selectedTemplate={selectedTemplate} onClose={handleCloseModal} /> : <Spin tip="Loading..." />}
       </Modal>
     </div>
   );
