@@ -19,7 +19,7 @@ describe("OracleConnector", function () {
     await mockLinkToken.waitForDeployment();
 
     // Deploy MockChainlinkOracle
-    const MockChainlinkOracle = await ethers.getContractFactory("MockChainlinkOracle");
+    const MockChainlinkOracle = await ethers.getContractFactory("MockOracle");
     mockOracle = await MockChainlinkOracle.deploy(await mockLinkToken.getAddress());
     // Wait for deployment
     await mockOracle.waitForDeployment();
