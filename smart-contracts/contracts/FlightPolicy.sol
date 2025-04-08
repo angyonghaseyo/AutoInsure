@@ -235,7 +235,7 @@ contract FlightPolicy is ReentrancyGuard {
         PolicyTemplate memory template = policyTemplates[policy.templateId];
         string memory departureTimeStr = Strings.toString(policy.departureTime);
 
-        (bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
+        (bool datRecieved, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
         require(isDelayed, "Flight not delayed");
 
         uint256 payout = delayHours * template.payoutPerHour;
