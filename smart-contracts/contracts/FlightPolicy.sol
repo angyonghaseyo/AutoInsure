@@ -9,8 +9,9 @@ contract FlightPolicy is ReentrancyGuard {
     address public immutable insurerAddress;
     OracleConnector public oracleConnector;
 
-    constructor() {
+    constructor(address _oracleConnector) {
         insurerAddress = msg.sender;
+        oracleConnector = OracleConnector(_oracleConnector);
     }
 
     modifier onlyInsurer() {
@@ -60,11 +61,6 @@ contract FlightPolicy is ReentrancyGuard {
     mapping(uint256 => UserPolicy) public userPolicies;
     mapping(address => uint256[]) public userPolicyIds;
     uint256 public nextUserPolicyId;
-
-    // ====== Admin Functions ======
-    function setOracleConnector(address _oracleConnector) external onlyInsurer {
-        oracleConnector = OracleConnector(_oracleConnector);
-    }
 
     // ====== Insurer Functions ======
     // View all purchased policies
