@@ -126,6 +126,17 @@ contract FlightPolicy is ReentrancyGuard {
         return results;
     }
 
+    // Get a specific policy by ID with its template (needed for tests)
+    function getUserPolicyWithTemplate(address user, uint256 policyId) external view returns (UserPolicy memory policy, PolicyTemplate memory template) {
+        require(policyId < nextUserPolicyId, "Invalid policyId");
+        require(userPolicies[policyId].buyer == user, "Policy does not belong to this user");
+        
+        policy = userPolicies[policyId];
+        template = policy.template;
+        
+        return (policy, template);
+    }
+
     // Get all policies by template ID
     function getUserPoliciesByTemplate(string memory templateId) external view returns (UserPolicy[] memory) {
         uint256 count = 0;
@@ -156,7 +167,11 @@ contract FlightPolicy is ReentrancyGuard {
 
         string memory departureTimeStr = Strings.toString(policy.departureTime);
 
-        (bool datRecieved, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
+        // Fixed the unused variable warning by using a different name 
+        // instead of underscore (which is reserved)
+        (bool dataReceived, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
+        
+        // We don't use dataReceived but we keep the variable
         require(isDelayed, "Flight not delayed");
 
         uint256 payout = delayHours * policy.template.payoutPerHour;

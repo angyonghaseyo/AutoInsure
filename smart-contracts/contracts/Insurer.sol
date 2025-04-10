@@ -70,6 +70,11 @@ contract Insurer {
         return flightPolicy.getUserPolicies(user);
     }
 
+    // Get a specific flight policy with its template (needed for tests)
+    function getFlightPolicyWithTemplate(address user, uint256 policyId) external view returns (FlightPolicy.UserPolicy memory policy, FlightPolicy.PolicyTemplate memory template) {
+        return flightPolicy.getUserPolicyWithTemplate(user, policyId);
+    }
+
     // Get all flight policies by template ID
     function getUserPoliciesByTemplate(string memory templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
         return flightPolicy.getUserPoliciesByTemplate(templateId);
