@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getPolicyTemplateById, updatePolicyTemplate } from "../../../backend/services/policyTemplateService";
+import { getPolicyTemplateById, updatePolicyTemplate } from "../../../backend/services/flightPolicyTemplateService";
 
 type ResponseData = {
   success: boolean;
