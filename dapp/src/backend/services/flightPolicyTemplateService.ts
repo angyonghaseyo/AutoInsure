@@ -1,8 +1,8 @@
-import { FlightPolicyTemplateUpdate, FlightPolicyTemplateCreate, FlightPolicyTemplate } from "../../types/FlightPolicy";
+import { FlightPolicyTemplateUpdate, FlightPolicyTemplateCreate, FlightPolicyTemplate, FlightPolicyTemplateStatus } from "../../types/FlightPolicy";
 import { findDocuments, findDocumentById, insertDocument, updateDocument } from "../utils/db-helpers";
 
 // Collection name
-const COLLECTION = "policyTemplates";
+const COLLECTION = "flightPolicyTemplates";
 
 /**
  * Get all policy templates with optional filtering
@@ -22,7 +22,7 @@ export async function getPolicyTemplateById(templateId: string): Promise<FlightP
  * Create a new policy template
  */
 export async function createPolicyTemplate(policy: FlightPolicyTemplateCreate): Promise<FlightPolicyTemplate> {
-  return insertDocument<FlightPolicyTemplate>(COLLECTION, policy as FlightPolicyTemplate);
+  return insertDocument<FlightPolicyTemplate>(COLLECTION, policy as FlightPolicyTemplate, FlightPolicyTemplateStatus.Active);
 }
 
 /**
