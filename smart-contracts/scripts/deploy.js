@@ -42,7 +42,7 @@ async function main() {
 
   // 6. Deploy Insurer (main entry)
   const Insurer = await hre.ethers.getContractFactory("Insurer");
-  const insurer = await Insurer.deploy(flightPolicyAddress);
+  const insurer = await Insurer.deploy(flightPolicyAddress, baggagePolicyAddress);
   await insurer.waitForDeployment();
   const insurerAddress = await insurer.getAddress();
   console.log(`Insurer deployed at: ${insurerAddress}`);
