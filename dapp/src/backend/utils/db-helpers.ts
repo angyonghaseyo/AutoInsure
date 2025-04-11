@@ -1,6 +1,6 @@
 import { Document, Filter, Sort, FindOptions, WithId, ReturnDocument } from "mongodb";
 import { connectToDatabase } from "../lib/mongodb";
-import { FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
+import { FlightPolicyTemplateStatus } from "../../types/FlightPolicy";
 
 /**
  * Find documents in a collection with filters, sorting and pagination
@@ -33,7 +33,7 @@ export async function findDocumentById<T extends Document>(collection: string, t
 /**
  * Insert a document into a collection
  */
-export async function insertDocument<T extends Document>(collection: string, document: T): Promise<WithId<T>> {
+export async function insertDocument<T extends Document>(collection: string, document: T, status: number = FlightPolicyTemplateStatus.Active): Promise<WithId<T>> {
   const db = await connectToDatabase();
 
   // Add timestamps
@@ -42,7 +42,7 @@ export async function insertDocument<T extends Document>(collection: string, doc
     templateId: crypto.randomUUID(),
     createdAt: new Date().getTime(),
     updatedAt: new Date().getTime(),
-    status: FlightPolicyTemplateStatus.Active,
+    status: status,
   };
 
   const result = await db.collection<T>(collection).insertOne(documentWithTimestamps as any);

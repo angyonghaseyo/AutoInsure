@@ -5,7 +5,7 @@ import "./OracleConnector.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract FlightPolicy is ReentrancyGuard {
+contract BaggagePolicy is ReentrancyGuard {
     address public immutable insurerAddress;
     OracleConnector public oracleConnector;
 
@@ -15,7 +15,7 @@ contract FlightPolicy is ReentrancyGuard {
     }
 
     modifier onlyInsurer() {
-        require(tx.origin == insurerAddress, "FlightPolicy: Only the insurer can call this function");
+        require(tx.origin == insurerAddress, "BaggagePolicy: Only the insurer can call this function");
         _;
     }
 
@@ -25,17 +25,17 @@ contract FlightPolicy is ReentrancyGuard {
     }
 
     struct PolicyTemplate {
-        string templateId;              // Unique identifier for the template
-        string name;                    // Display name for the policy (e.g., "Economy Plan")
-        string description;             // Description of the coverage, terms, or perks
-        uint256 createdAt;              // Timestamp of creation
-        uint256 updatedAt;              // Timestamp of last update
-        uint256 premium;                // Cost of the policy (in wei)
-        uint256 payoutPerHour;          // Payout per hour of delay (in wei)
-        uint256 delayThresholdHours;    // Minimum delay required (in hours)
-        uint256 maxTotalPayout;         // Maximum payout for this policy (in wei)
-        uint256 coverageDurationDays;   // How long the policy is valid after purchase
-        PolicyTemplateStatus status;    // Whether the template is active or deactivated
+        string templateId;               // Unique identifier for the template
+        string name;                      // Display name for the policy (e.g., "Lost Baggage Plan")
+        string description;               // Description of the coverage, terms, or perks
+        uint256 createdAt;                // Timestamp of creation
+        uint256 updatedAt;                // Timestamp of last update
+        uint256 premium;                  // Cost of the policy (in wei)
+        uint256 payoutIfDelayed;          // Payout amount for delayed baggage (in wei)
+        uint256 payoutIfLost;             // Payout amount for lost baggage (in wei)
+        uint256 maxTotalPayout;           // Maximum payout for this policy (in wei)
+        uint256 coverageDurationDays;     // How long the policy is valid after purchase
+        PolicyTemplateStatus status;      // Whether the template is active or deactivated  
     }
 
     enum PolicyStatus {
@@ -45,16 +45,13 @@ contract FlightPolicy is ReentrancyGuard {
     }
 
     struct UserPolicy {
-        uint256 policyId;               // Unique ID of the buyer's policy
-        PolicyTemplate template;        // Policy template details
-        string flightNumber;            // Airline flight number (e.g., "SQ322")
-        string departureAirportCode;    // IATA code (e.g., "SIN")
-        string arrivalAirportCode;      // IATA code (e.g., "LHR")
-        uint256 departureTime;          // Scheduled departure timestamp (UTC)
-        uint256 createdAt;              // Policy purchase timestamp
-        uint256 payoutToDate;           // Total paid out so far (in wei)
-        address buyer;                  // Address of the user
-        PolicyStatus status;            // Active, Expired, or Claimed
+        uint256 policyId;                 // Unique ID of the buyer's policy
+        PolicyTemplate template;          // Policy template details
+        string itemDescription;           // Description of the insured baggage item(s)
+        uint256 createdAt;                // Policy purchase timestamp
+        uint256 payoutToDate;             // Total paid out so far (in wei)
+        address buyer;                    // Address of the user
+        PolicyStatus status;              // Active, Expired, or Claimed
     }
 
     // Buyer policy storage
@@ -89,19 +86,15 @@ contract FlightPolicy is ReentrancyGuard {
 
     // ====== User Functions ======
     // Purchase a policy based on a template
-    function purchasePolicy(PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime, address buyer) external payable returns (uint256) {
+    function purchasePolicy(PolicyTemplate memory template, string memory itemDescription, address buyer) external payable returns (uint256) {
         require(template.status == PolicyTemplateStatus.Active, "Policy template is not active");
-        require(departureTime > block.timestamp, "Departure time must be in the future");
         require(msg.value >= template.premium, "Insufficient premium sent");
 
         uint256 policyId = nextUserPolicyId++;
         userPolicies[policyId] = UserPolicy({
             policyId: policyId,
             template: template,
-            flightNumber: flightNumber,
-            departureAirportCode: departureAirportCode,
-            arrivalAirportCode: arrivalAirportCode,
-            departureTime: departureTime,
+            itemDescription: itemDescription,
             createdAt: block.timestamp,
             payoutToDate: 0,
             buyer: buyer,
@@ -140,33 +133,5 @@ contract FlightPolicy is ReentrancyGuard {
             }
         }
         return result;
-    }
-
-    // Claim a policy and give payout based on flight delay
-    function claimPayout(uint256 policyId, address buyer) external nonReentrant {
-        require(policyId < nextUserPolicyId, "Invalid policyId");
-
-        UserPolicy storage policy = userPolicies[policyId];
-        require(buyer == policy.buyer, "Not policy owner");
-        require(policy.status == PolicyStatus.Active, "Policy not active");
-
-        string memory departureTimeStr = Strings.toString(policy.departureTime);
-
-        (bool dataReceived, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
-        
-        require(isDelayed, "Flight not delayed");
-
-        uint256 payout = delayHours * policy.template.payoutPerHour;
-        if (payout > policy.template.maxTotalPayout) {
-            payout = policy.template.maxTotalPayout;
-        }
-
-        require(payout > 0, "No payout due");
-        require(address(this).balance >= payout, "Insufficient contract balance");
-
-        policy.status = PolicyStatus.Claimed;
-        policy.payoutToDate = payout;
-
-        payable(policy.buyer).transfer(payout);
     }
 }
