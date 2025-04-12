@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
 import { useFlightInsurance } from "@/services/flightInsurance";
 import { FlightPolicyTemplate } from "@/types/FlightPolicy";
+import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
+import { useBaggageInsurance } from "@/services/baggageInsurance";
 
 /**
  * Props for CreatePolicyTemplate component.
@@ -9,18 +11,20 @@ import { FlightPolicyTemplate } from "@/types/FlightPolicy";
  * onUpdate: callback to refresh the template list after creation
  */
 interface CreatePolicyTemplateProps {
-  policyTemplate: FlightPolicyTemplate;
+  policyTemplate: FlightPolicyTemplate | BaggagePolicyTemplate;
+  type: "flight" | "baggage";
   onClose: () => void;
   onUpdate: () => void;
 }
 
-const EditPolicyTemplate = ({ policyTemplate, onClose, onUpdate }: CreatePolicyTemplateProps) => {
+const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreatePolicyTemplateProps) => {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const { editFlightPolicyTemplate } = useFlightInsurance();
+  const { editBaggagePolicyTemplate } = useBaggageInsurance();
 
   /**
    * Submits the policy template form and creates a new policy template on-chain.
@@ -31,16 +35,31 @@ const EditPolicyTemplate = ({ policyTemplate, onClose, onUpdate }: CreatePolicyT
     setSuccess(null);
 
     try {
-      await editFlightPolicyTemplate(
-        policyTemplate.templateId,
-        values.name,
-        values.description,
-        values.premium,
-        values.payoutPerHour,
-        values.delayThresholdHours,
-        values.maxTotalPayout,
-        values.coverageDurationDays
-      );
+      if (type === "baggage") {
+        await editBaggagePolicyTemplate(
+          policyTemplate.templateId,
+          values.name,
+          values.description,
+          values.premium,
+          values.payoutIfDelayed,
+          values.payoutIfLost,
+          values.maxTotalPayout,
+          values.coverageDurationDays
+        );
+      }
+
+      if (type === "flight") {
+        await editFlightPolicyTemplate(
+          policyTemplate.templateId,
+          values.name,
+          values.description,
+          values.premium,
+          values.payoutPerHour,
+          values.delayThresholdHours,
+          values.maxTotalPayout,
+          values.coverageDurationDays
+        );
+      }
 
       setSuccess("Template successfully edited!");
       onClose();
@@ -72,16 +91,32 @@ const EditPolicyTemplate = ({ policyTemplate, onClose, onUpdate }: CreatePolicyT
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
-          <InputNumber min={0} addonAfter="ETH/hr" style={{ width: "100%" }} />
-        </Form.Item>
+        {type === "flight" && (
+          <>
+            <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
+              <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
+            </Form.Item>
+
+            <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
+              <InputNumber min={0} addonAfter="ETH/hr" style={{ width: "100%" }} />
+            </Form.Item>
+          </>
+        )}
+
+        {type === "baggage" && (
+          <>
+            <Form.Item name="payoutIfDelayed" label="Payout If Delayed" rules={[{ required: true }]}>
+              <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
+            </Form.Item>
+
+            <Form.Item name="payoutIfLost" label="Payout If Lost" rules={[{ required: true }]}>
+              <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
+            </Form.Item>
+          </>
+        )}
 
         <Form.Item name="maxTotalPayout" label="Maximum Total Payout" rules={[{ required: true }]}>
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
-        </Form.Item>
-
-        <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
-          <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item name="coverageDurationDays" label="Coverage Duration" rules={[{ required: true }]}>
