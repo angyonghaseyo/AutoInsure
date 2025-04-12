@@ -1,54 +1,71 @@
 import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Button, Modal, Tag, Select, message, Statistic } from "antd";
-import { DollarOutlined, ClockCircleOutlined, PlusOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import { Card, Row, Col, Typography, Button, Modal, Select, message, Statistic, Dropdown } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
 import { useFlightInsurance } from "@/services/flightInsurance";
 import { useWeb3 } from "@/components/Web3Provider";
 import PolicyTemplateDrawer from "@/components/PolicyTemplateDrawer";
 import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
 import EditPolicyTemplate from "@/components/EditPolicyTemplate";
+import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
+import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { PolicyTemplateCard } from "@/components/PolicyTemplateCard";
 
 const { Title } = Typography;
 const { Option } = Select;
 
-/**
- * Maps a policy template status to tag color.
- */
-const getStatusColor = (status: FlightPolicyTemplateStatus): string => {
-  switch (status) {
-    case FlightPolicyTemplateStatus.Active:
-      return "green";
-    case FlightPolicyTemplateStatus.Deactivated:
-      return "red";
-    default:
-      return "gray";
-  }
-};
-
 const InsurerPolicyTemplates = () => {
   const { getAllFlightPolicyTemplates, deactivateFlightPolicyTemplate, getAllFlightPolicies } = useFlightInsurance();
+  const { getAllBaggagePolicyTemplates, deactivateBaggagePolicyTemplate, getAllBaggagePolicies } = useBaggageInsurance();
   const { insurerContract } = useWeb3();
 
-  const [templates, setTemplates] = useState<FlightPolicyTemplate[]>([]);
-  const [filteredTemplates, setFilteredTemplates] = useState<FlightPolicyTemplate[]>([]);
+  const [flightTemplates, setFlightTemplates] = useState<FlightPolicyTemplate[]>([]);
+  const [baggageTemplates, setBaggageTemplates] = useState<BaggagePolicyTemplate[]>([]);
+  const [filteredFlightTemplates, setFilteredFlightTemplates] = useState<FlightPolicyTemplate[]>([]);
+  const [filteredBaggageTemplates, setFilteredBaggageTemplates] = useState<BaggagePolicyTemplate[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editPolicyTemplate, setEditPolicyTemplate] = useState<FlightPolicyTemplate>();
+  const [type, setType] = useState<"flight" | "baggage">("flight");
+  const [editPolicyTemplate, setEditPolicyTemplate] = useState<FlightPolicyTemplate | BaggagePolicyTemplate>();
   const [messageApi, contextHolder] = message.useMessage();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [viewPolicyTemplate, setViewPolicyTemplate] = useState<FlightPolicyTemplate>();
+  const [viewPolicyTemplate, setViewPolicyTemplate] = useState<FlightPolicyTemplate | BaggagePolicyTemplate>();
   const [policyCount, setPolicyCount] = useState(0);
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const addTemplateMenuItems = [
+    {
+      key: "flight",
+      label: (
+        <Button block type="text" onClick={() => handleTemplateAction("add", "flight")}>
+          Flight Policy Template
+        </Button>
+      ),
+    },
+    {
+      key: "baggage",
+      label: (
+        <Button block type="text" onClick={() => handleTemplateAction("add", "baggage")}>
+          Baggage Policy Template
+        </Button>
+      ),
+    },
+  ];
 
   /**
    * Load policy templates from the blockchain.
    */
   const fetchTemplates = async () => {
     try {
-      const result = await getAllFlightPolicyTemplates();
-      setTemplates(result);
-      setFilteredTemplates(result);
+      const flightTemplates = await getAllFlightPolicyTemplates();
+      setFlightTemplates(flightTemplates);
+      setFilteredFlightTemplates(flightTemplates);
+      const baggageTenplates = await getAllBaggagePolicyTemplates();
+      setBaggageTemplates(baggageTenplates);
+      setFilteredBaggageTemplates(baggageTenplates);
     } catch (err) {
       console.error("Error loading templates:", err);
     }
@@ -58,8 +75,9 @@ const InsurerPolicyTemplates = () => {
     fetchTemplates();
     const fetchPolicies = async () => {
       try {
-        const policies = await getAllFlightPolicies();
-        setPolicyCount(policies.length);
+        const flightPolicies = await getAllFlightPolicies();
+        const baggagePolicies = await getAllBaggagePolicies();
+        setPolicyCount(flightPolicies.length + baggagePolicies.length);
       } catch (error) {
         console.error("Error fetching policies:", error);
         message.error("Failed to fetch policies.");
@@ -74,30 +92,48 @@ const InsurerPolicyTemplates = () => {
   const handleStatusFilter = (value: string) => {
     setSelectedStatus(value);
     if (value === "all") {
-      setFilteredTemplates(templates);
+      setFilteredFlightTemplates(flightTemplates);
+      setFilteredBaggageTemplates(baggageTemplates);
+    } else if (value === "flight") {
+      setFilteredFlightTemplates(flightTemplates);
+      setFilteredBaggageTemplates([]);
+    } else if (value === "baggage") {
+      setFilteredBaggageTemplates(baggageTemplates);
+      setFilteredFlightTemplates([]);
     } else {
       const numeric = parseInt(value);
-      setFilteredTemplates(templates.filter((tpl) => tpl.status === numeric));
+      setFilteredFlightTemplates(flightTemplates.filter((tpl) => tpl.status === numeric));
+      setFilteredBaggageTemplates(baggageTemplates.filter((tpl) => tpl.status === numeric));
     }
   };
 
   /**
    * Handle add or delete actions.
    */
-  const handleTemplateAction = async (action: "add" | "delete" | "edit", template?: FlightPolicyTemplate) => {
-    if (action === "delete" && template) {
-      try {
-        await deactivateFlightPolicyTemplate(template.templateId);
-        messageApi.success(`Template #${template.templateId} deactivated.`);
+  const handleTemplateAction = async (action: "add" | "delete" | "edit", type: "flight" | "baggage", template?: FlightPolicyTemplate | BaggagePolicyTemplate) => {
+    const isFlight = type === "flight";
+    const isLuggage = type === "baggage";
+
+    const showError = (msg: string) => messageApi.error(`Failed to ${action} ${type} template.`);
+    const showSuccess = () => messageApi.success(`${type === "flight" ? "Flight" : "Luggage"} Template deactivated.`);
+
+    try {
+      if (action === "delete") {
+        if (isFlight && template) await deactivateFlightPolicyTemplate(template.templateId);
+        if (isLuggage && template) await deactivateBaggagePolicyTemplate(template.templateId);
+        showSuccess();
         fetchTemplates();
-      } catch (error) {
-        messageApi.error("Failed to deactivate template.");
+      } else if (action === "add") {
+        setShowCreateModal(true);
+        setType(type);
+      } else if (action === "edit") {
+        setEditPolicyTemplate(template);
+        setShowEditModal(true);
+        setType(type);
       }
-    } else if (action === "add") {
-      setShowCreateModal(true);
-    } else if (action === "edit" && template) {
-      setShowEditModal(true);
-      setEditPolicyTemplate(template);
+    } catch (err) {
+      showError(action);
+      console.error(err);
     }
   };
 
@@ -105,23 +141,35 @@ const InsurerPolicyTemplates = () => {
     <div className="max-w-6xl mx-auto p-6">
       {contextHolder}
 
-      <Title level={2}>Flight Policy Templates</Title>
+      <Title level={2}>Policy Templates</Title>
 
-      {/* Statistics Row */}
+      {/* Statistics*/}
       <Row gutter={16} style={{ marginBottom: "24px" }}>
         <Col span={6}>
           <Card>
-            <Statistic title="Total Templates" value={templates.length} />
+            <Statistic title="Total Templates" value={flightTemplates.length + baggageTemplates.length} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Total Active" value={templates.filter((tpl) => tpl.status === FlightPolicyTemplateStatus.Active).length} />
+            <Statistic
+              title="Total Active"
+              value={
+                flightTemplates.filter((tpl) => tpl.status === FlightPolicyTemplateStatus.Active).length +
+                baggageTemplates.filter((tpl) => tpl.status === BaggagePolicyTemplateStatus.Active).length
+              }
+            />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Total Deactivated " value={templates.filter((tpl) => tpl.status === FlightPolicyTemplateStatus.Deactivated).length} />
+            <Statistic
+              title="Total Deactivated "
+              value={
+                flightTemplates.filter((tpl) => tpl.status === FlightPolicyTemplateStatus.Deactivated).length +
+                baggageTemplates.filter((tpl) => tpl.status === BaggagePolicyTemplateStatus.Deactivated).length
+              }
+            />
           </Card>
         </Col>
         <Col span={6}>
@@ -134,95 +182,69 @@ const InsurerPolicyTemplates = () => {
       <div className="flex justify-between mb-5 items-center">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
           <Select defaultValue="all" onChange={handleStatusFilter} style={{ width: 200 }}>
-            <Option value="all">All Statuses</Option>
+            <Option value="all">All</Option>
+            <Option value="flight">Flight</Option>
+            <Option value="baggage">Baggage</Option>
             <Option value={FlightPolicyTemplateStatus.Active.toString()}>Active</Option>
             <Option value={FlightPolicyTemplateStatus.Deactivated.toString()}>Deactivated</Option>
           </Select>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleTemplateAction("add")}>
-            Add Template
-          </Button>
+          <Dropdown menu={{ items: addTemplateMenuItems }} trigger={["click"]} open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <Button type="primary" icon={<PlusOutlined />}>
+              Add Template
+            </Button>
+          </Dropdown>
         </div>
       </div>
 
-      {/* Template Grid */}
+      {/* Flight Templates */}
+      {filteredFlightTemplates.length > 0 && <Title level={3}>Flight Templates</Title>}
       <Row gutter={[24, 24]}>
-        {filteredTemplates.map((tpl) => (
+        {filteredFlightTemplates.map((tpl) => (
           <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
-            <Card
-              title={tpl.name}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
+            <PolicyTemplateCard
+              template={tpl}
+              type="flight"
+              onEdit={() => handleTemplateAction("edit", "flight", tpl)}
+              onDelete={() => handleTemplateAction("delete", "flight", tpl)}
+              onView={() => {
+                setDrawerVisible(true);
+                setViewPolicyTemplate(tpl);
               }}
-              extra={<Tag color={getStatusColor(tpl.status)}>{FlightPolicyTemplateStatus[tpl.status]}</Tag>}
-            >
-              <div>
-                <p>{tpl.description}</p>
-                <p>
-                  <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
-                </p>
-                <p>
-                  <strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH
-                </p>
-                <p>
-                  <strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH
-                </p>
-                <p>
-                  <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs
-                </p>
-                <p>
-                  <strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days
-                </p>
-              </div>
+            />
+          </Col>
+        ))}
+      </Row>
 
-              <div
-                style={{
-                  marginTop: "auto",
-                  display: "flex",
-                  gap: "10px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <Button
-                  icon={<EyeOutlined />}
-                  onClick={async () => {
-                    setDrawerVisible(true);
-                    setViewPolicyTemplate(tpl);
-                  }}
-                  style={{ flex: 1 }}
-                >
-                  View Purchased Policies
-                </Button>
-                <Button onClick={() => handleTemplateAction("edit", tpl)} disabled={tpl.status === FlightPolicyTemplateStatus.Deactivated} style={{ flex: 1 }}>
-                  Edit Template
-                </Button>
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleTemplateAction("delete", tpl)}
-                  disabled={tpl.status === FlightPolicyTemplateStatus.Deactivated}
-                  style={{ flex: 1 }}
-                >
-                  Deactivate
-                </Button>
-              </div>
-            </Card>
+      {/* Baggage Templates */}
+      {filteredBaggageTemplates.length > 0 && <Title level={3}>Baggage Templates</Title>}
+      <Row gutter={[24, 24]}>
+        {filteredBaggageTemplates.map((tpl) => (
+          <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
+            <PolicyTemplateCard
+              template={tpl}
+              type="baggage"
+              onEdit={() => handleTemplateAction("edit", "baggage", tpl)}
+              onDelete={() => handleTemplateAction("delete", "baggage", tpl)}
+              onView={() => {
+                setDrawerVisible(true);
+                setViewPolicyTemplate(tpl);
+              }}
+            />
           </Col>
         ))}
       </Row>
 
       {/* Create Policy Template Modal */}
       <Modal open={showCreateModal} onCancel={() => setShowCreateModal(false)} footer={null} destroyOnClose>
-        <CreatePolicyTemplate onClose={() => setShowCreateModal(false)} onUpdate={fetchTemplates} />
+        <CreatePolicyTemplate onClose={() => setShowCreateModal(false)} onUpdate={fetchTemplates} type={type} />
       </Modal>
 
       {/* Edit Policy Template Modal */}
       <Modal open={showEditModal} onCancel={() => setShowEditModal(false)} footer={null} destroyOnClose>
-        {editPolicyTemplate && <EditPolicyTemplate onClose={() => setShowEditModal(false)} onUpdate={fetchTemplates} policyTemplate={editPolicyTemplate} />}
+        {editPolicyTemplate && <EditPolicyTemplate onClose={() => setShowEditModal(false)} onUpdate={fetchTemplates} policyTemplate={editPolicyTemplate} type={type} />}
       </Modal>
 
-      {viewPolicyTemplate && <PolicyTemplateDrawer setDrawerVisible={setDrawerVisible} policyTemplate={viewPolicyTemplate} visible={drawerVisible} />}
+      {viewPolicyTemplate && <PolicyTemplateDrawer setDrawerVisible={setDrawerVisible} policyTemplate={viewPolicyTemplate} visible={drawerVisible} type={type} />}
     </div>
   );
 };
