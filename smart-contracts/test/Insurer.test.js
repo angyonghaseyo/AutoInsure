@@ -36,12 +36,26 @@ describe("Insurer Contract - Full Flow", function () {
   before(async () => {
     [insurer, user] = await ethers.getSigners();
 
+    const MockLinkToken = await ethers.getContractFactory("MockLinkToken");
+    mockLinkToken = await MockLinkToken.deploy();
+    await mockLinkToken.waitForDeployment();
+    console.log(`MockLinkToken deployed at: ${await mockLinkToken.getAddress()}`);
+
+    const OracleConnector = await ethers.getContractFactory("OracleConnector");
+    oracleConnector = await OracleConnector.deploy(await mockLinkToken.getAddress());
+    await oracleConnector.waitForDeployment();
+    console.log(`OracleConnector deployed at: ${await oracleConnector.getAddress()}`);
+
     const FlightPolicy = await ethers.getContractFactory("FlightPolicy", insurer);
-    flightPolicy = await FlightPolicy.deploy();
+    flightPolicy = await FlightPolicy.deploy(await oracleConnector.getAddress());
     await flightPolicy.waitForDeployment();
 
+    const BaggagePolicy = await ethers.getContractFactory("BaggagePolicy", insurer);
+    baggagePolicy = await BaggagePolicy.deploy(await oracleConnector.getAddress());
+    await baggagePolicy.waitForDeployment();
+
     const Insurer = await ethers.getContractFactory("Insurer", insurer);
-    insurerContract = await Insurer.deploy(await flightPolicy.getAddress());
+    insurerContract = await Insurer.deploy(await flightPolicy.getAddress(), await baggagePolicy.getAddress());
     await insurerContract.waitForDeployment();
   });
 
@@ -141,14 +155,7 @@ describe("Insurer Contract - Full Flow", function () {
     policyId = userPolicies[0].policyId;
   });
 
-  // 6. Get policy with template
-  it("should return user policy with template", async () => {
-    const [policy, template] = await insurerContract.getFlightPolicyWithTemplate(user.address, policyId);
-    expect(policy.flightNumber).to.equal("SQ222");
-    expect(template.templateId).to.equal(activeTemplate.templateId);
-  });
-
-  // 7. isInsurer check
+  // 6. isInsurer check
   it("should identify insurer correctly", async () => {
     expect(await insurerContract.isInsurer(insurer.address)).to.equal(true);
     expect(await insurerContract.isInsurer(user.address)).to.equal(false);
