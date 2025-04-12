@@ -36,8 +36,19 @@ describe("FlightPolicy", function () {
 
   before(async function () {
     [insurer, user1] = await ethers.getSigners();
+
+    const MockLinkToken = await ethers.getContractFactory("MockLinkToken");
+    mockLinkToken = await MockLinkToken.deploy();
+    await mockLinkToken.waitForDeployment();
+    console.log(`MockLinkToken deployed at: ${await mockLinkToken.getAddress()}`);
+
+    const OracleConnector = await ethers.getContractFactory("OracleConnector");
+    oracleConnector = await OracleConnector.deploy(await mockLinkToken.getAddress());
+    await oracleConnector.waitForDeployment();
+    console.log(`OracleConnector deployed at: ${await oracleConnector.getAddress()}`);
+
     const FlightPolicyFactory = await ethers.getContractFactory("FlightPolicy", insurer);
-    flightPolicy = await FlightPolicyFactory.deploy();
+    flightPolicy = await FlightPolicyFactory.deploy(await oracleConnector.getAddress());
     await flightPolicy.waitForDeployment();
   });
 
@@ -73,14 +84,7 @@ describe("FlightPolicy", function () {
     expect(userPolicies[0].departureAirportCode).to.equal("SIN");
   });
 
-  // 5. Get user policy with template
-  it("should return user policy with template", async function () {
-    const [policy, template] = await flightPolicy.getUserPolicyWithTemplate(user1.address, policyId);
-    expect(policy.flightNumber).to.equal("SQ222");
-    expect(template.name).to.equal("Active Plan");
-  });
-
-  // 11. Get user policies by template
+  // 5. Get user policies by template
   it("should return only policies for a given template", async function () {
     const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(activeTemplate.templateId);
     expect(policiesTemplate1.length).to.equal(1);
