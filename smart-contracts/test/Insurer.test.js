@@ -2,9 +2,12 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("Insurer Contract - Full Flow", function () {
-  let flightPolicy, insurerContract;
+  let flightPolicy, baggagePolicy, insurerContract;
+  let oracleConnector, mockLinkToken;
   let insurer, user;
   let policyId;
+  let currentBlockTimestamp;
+  
   let deactivatedTemplate = {
     templateId: "795e9e7a-3919-4527-8116-2c91158a0ae7",
     name: "Inactive Plan",
@@ -57,12 +60,77 @@ describe("Insurer Contract - Full Flow", function () {
     const Insurer = await ethers.getContractFactory("Insurer", insurer);
     insurerContract = await Insurer.deploy(await flightPolicy.getAddress(), await baggagePolicy.getAddress());
     await insurerContract.waitForDeployment();
+    
+    // Get the current block timestamp
+    const latestBlock = await ethers.provider.getBlock("latest");
+    currentBlockTimestamp = latestBlock.timestamp;
   });
 
   // 1. Check insurer address
   it("should deploy with correct insurer address", async () => {
     expect(await insurerContract.insurerAddress()).to.equal(insurer.address);
     expect(await insurerContract.flightPolicy()).to.equal(await flightPolicy.getAddress());
+  });
+
+  // 2. Attempt to purchase a deactivated policy
+  it("should revert purchase for deactivated policy", async () => {
+    // Use the blockchain timestamp + future offset
+    const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
+    
+    await expect(
+      insurerContract.connect(user).purchaseFlightPolicy(
+        deactivatedTemplate, 
+        "SQ001", 
+        "SIN", 
+        "NRT", 
+        futureDepartureTime, 
+        { value: ethers.parseEther("1") }
+      )
+    ).to.be.revertedWith("Policy template is not active");
+  });
+
+  // 3. Purchase policy using a new active template
+  it("should allow user to purchase a policy", async () => {
+    // Use the blockchain timestamp + future offset
+    const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
+    
+    const tx = await insurerContract
+      .connect(user)
+      .purchaseFlightPolicy(
+        activeTemplate, 
+        "SQ222", 
+        "SIN", 
+        "ICN", 
+        futureDepartureTime, 
+        { value: ethers.parseEther("1") }
+      );
+    await tx.wait();
+  });
+
+  // 4. Get user policies by template
+  it("should return only policies for a given template", async function () {
+    const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(activeTemplate.templateId);
+    expect(policiesTemplate1.length).to.equal(1);
+    const flightNumbersTemplate1 = policiesTemplate1.map((policy) => policy.flightNumber);
+    expect(flightNumbersTemplate1).to.include("SQ222");
+
+    const policiesTemplate2 = await flightPolicy.getUserPoliciesByTemplate(deactivatedTemplate.templateId);
+    expect(policiesTemplate2.length).to.equal(0);
+  });
+
+  // 5. Get user policies
+  it("should return user's purchased policies", async () => {
+    const userPolicies = await insurerContract.getUserFlightPolicies(user.address);
+    expect(userPolicies.length).to.equal(1);
+    expect(userPolicies[0].flightNumber).to.equal("SQ222");
+
+    policyId = userPolicies[0].policyId;
+  });
+
+  // 6. isInsurer check
+  it("should identify insurer correctly", async () => {
+    expect(await insurerContract.isInsurer(insurer.address)).to.equal(true);
+    expect(await insurerContract.isInsurer(user.address)).to.equal(false);
   });
 
   describe("Deposit", function () {
@@ -118,46 +186,5 @@ describe("Insurer Contract - Full Flow", function () {
       const contractBalance = await insurerContract.getContractBalance();
       expect(contractBalance).to.equal(ethers.parseEther("6.0"));
     });
-  });
-
-  // 2. Attempt to purchase a deactivated policy
-  it("should revert purchase for deactivated policy", async () => {
-    await expect(
-      insurerContract.connect(user).purchaseFlightPolicy(deactivatedTemplate, "SQ001", "SIN", "NRT", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") })
-    ).to.be.revertedWith("Policy template is not active");
-  });
-
-  // 3. Purchase policy using a new active template
-  it("should allow user to purchase a policy", async () => {
-    const tx = await insurerContract
-      .connect(user)
-      .purchaseFlightPolicy(activeTemplate, "SQ222", "SIN", "ICN", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") });
-    await tx.wait();
-  });
-
-  // 4. Get user policies by template
-  it("should return only policies for a given template", async function () {
-    const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(activeTemplate.templateId);
-    expect(policiesTemplate1.length).to.equal(1);
-    const flightNumbersTemplate1 = policiesTemplate1.map((policy) => policy.flightNumber);
-    expect(flightNumbersTemplate1).to.include("SQ222");
-
-    const policiesTemplate2 = await flightPolicy.getUserPoliciesByTemplate(deactivatedTemplate.templateId);
-    expect(policiesTemplate2.length).to.equal(0);
-  });
-
-  // 5. Get user policies
-  it("should return user’s purchased policies", async () => {
-    const userPolicies = await insurerContract.getUserFlightPolicies(user.address);
-    expect(userPolicies.length).to.equal(1);
-    expect(userPolicies[0].flightNumber).to.equal("SQ222");
-
-    policyId = userPolicies[0].policyId;
-  });
-
-  // 6. isInsurer check
-  it("should identify insurer correctly", async () => {
-    expect(await insurerContract.isInsurer(insurer.address)).to.equal(true);
-    expect(await insurerContract.isInsurer(user.address)).to.equal(false);
   });
 });

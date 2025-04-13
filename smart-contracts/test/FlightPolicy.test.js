@@ -5,7 +5,12 @@ describe("FlightPolicy", function () {
   let flightPolicy;
   let insurer;
   let user1;
+  let oracleConnector;
+  let mockLinkToken;
   let policyId = 0;
+  let currentBlockTimestamp;
+  
+  // Templates for testing
   let deactivatedTemplate = {
     templateId: "795e9e7a-3919-4527-8116-2c91158a0ae7",
     name: "Inactive Plan",
@@ -50,6 +55,10 @@ describe("FlightPolicy", function () {
     const FlightPolicyFactory = await ethers.getContractFactory("FlightPolicy", insurer);
     flightPolicy = await FlightPolicyFactory.deploy(await oracleConnector.getAddress());
     await flightPolicy.waitForDeployment();
+    
+    // Get the current block timestamp
+    const latestBlock = await ethers.provider.getBlock("latest");
+    currentBlockTimestamp = latestBlock.timestamp;
   });
 
   // 1. Check insurer address
@@ -59,16 +68,38 @@ describe("FlightPolicy", function () {
 
   // 2. Attempt to purchase a deactivated policy
   it("should not allow purchase of deactivated policy", async function () {
+    // Use the blockchain timestamp + future offset
+    const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
+    
     await expect(
-      flightPolicy.connect(user1).purchasePolicy(deactivatedTemplate, "SQ101", "SIN", "NRT", Math.floor(Date.now() / 1000) + 3600, user1.address, { value: ethers.parseEther("1") })
+      flightPolicy.connect(user1).purchasePolicy(
+        deactivatedTemplate, 
+        "SQ101", 
+        "SIN", 
+        "NRT", 
+        futureDepartureTime, 
+        user1.address, 
+        { value: ethers.parseEther("1") }
+      )
     ).to.be.revertedWith("Policy template is not active");
   });
 
   // 3. Purchase policy (create new template in same test)
   it("should allow user to purchase a new policy", async function () {
+    // Use the blockchain timestamp + future offset
+    const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
+    
     const tx = await flightPolicy
       .connect(user1)
-      .purchasePolicy(activeTemplate, "SQ222", "SIN", "LAX", Math.floor(Date.now() / 1000) + 3600, user1.address, { value: ethers.parseEther("1") });
+      .purchasePolicy(
+        activeTemplate, 
+        "SQ222", 
+        "SIN", 
+        "LAX", 
+        futureDepartureTime, 
+        user1.address, 
+        { value: ethers.parseEther("1") }
+      );
     await tx.wait();
 
     const policies = await flightPolicy.getUserPolicies(user1.address);
