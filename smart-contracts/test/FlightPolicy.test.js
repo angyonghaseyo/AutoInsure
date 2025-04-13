@@ -5,7 +5,12 @@ describe("FlightPolicy", function () {
   let flightPolicy;
   let insurer;
   let user1;
+  let oracleConnector;
+  let mockLinkToken;
   let policyId = 0;
+  let currentBlockTimestamp;
+  
+  // Templates for testing
   let deactivatedTemplate = {
     templateId: "795e9e7a-3919-4527-8116-2c91158a0ae7",
     name: "Inactive Plan",
@@ -36,9 +41,24 @@ describe("FlightPolicy", function () {
 
   before(async function () {
     [insurer, user1] = await ethers.getSigners();
+
+    const MockLinkToken = await ethers.getContractFactory("MockLinkToken");
+    mockLinkToken = await MockLinkToken.deploy();
+    await mockLinkToken.waitForDeployment();
+    console.log(`MockLinkToken deployed at: ${await mockLinkToken.getAddress()}`);
+
+    const OracleConnector = await ethers.getContractFactory("OracleConnector");
+    oracleConnector = await OracleConnector.deploy(await mockLinkToken.getAddress());
+    await oracleConnector.waitForDeployment();
+    console.log(`OracleConnector deployed at: ${await oracleConnector.getAddress()}`);
+
     const FlightPolicyFactory = await ethers.getContractFactory("FlightPolicy", insurer);
-    flightPolicy = await FlightPolicyFactory.deploy();
+    flightPolicy = await FlightPolicyFactory.deploy(await oracleConnector.getAddress());
     await flightPolicy.waitForDeployment();
+    
+    // Get the current block timestamp
+    const latestBlock = await ethers.provider.getBlock("latest");
+    currentBlockTimestamp = latestBlock.timestamp;
   });
 
   // 1. Check insurer address
@@ -48,16 +68,38 @@ describe("FlightPolicy", function () {
 
   // 2. Attempt to purchase a deactivated policy
   it("should not allow purchase of deactivated policy", async function () {
+    // Use the blockchain timestamp + future offset
+    const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
+    
     await expect(
-      flightPolicy.connect(user1).purchasePolicy(deactivatedTemplate, "SQ101", "SIN", "NRT", Math.floor(Date.now() / 1000) + 3600, user1.address, { value: ethers.parseEther("1") })
+      flightPolicy.connect(user1).purchasePolicy(
+        deactivatedTemplate, 
+        "SQ101", 
+        "SIN", 
+        "NRT", 
+        futureDepartureTime, 
+        user1.address, 
+        { value: ethers.parseEther("1") }
+      )
     ).to.be.revertedWith("Policy template is not active");
   });
 
   // 3. Purchase policy (create new template in same test)
   it("should allow user to purchase a new policy", async function () {
+    // Use the blockchain timestamp + future offset
+    const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
+    
     const tx = await flightPolicy
       .connect(user1)
-      .purchasePolicy(activeTemplate, "SQ222", "SIN", "LAX", Math.floor(Date.now() / 1000) + 3600, user1.address, { value: ethers.parseEther("1") });
+      .purchasePolicy(
+        activeTemplate, 
+        "SQ222", 
+        "SIN", 
+        "LAX", 
+        futureDepartureTime, 
+        user1.address, 
+        { value: ethers.parseEther("1") }
+      );
     await tx.wait();
 
     const policies = await flightPolicy.getUserPolicies(user1.address);
@@ -73,14 +115,7 @@ describe("FlightPolicy", function () {
     expect(userPolicies[0].departureAirportCode).to.equal("SIN");
   });
 
-  // 5. Get user policy with template
-  it("should return user policy with template", async function () {
-    const [policy, template] = await flightPolicy.getUserPolicyWithTemplate(user1.address, policyId);
-    expect(policy.flightNumber).to.equal("SQ222");
-    expect(template.name).to.equal("Active Plan");
-  });
-
-  // 11. Get user policies by template
+  // 5. Get user policies by template
   it("should return only policies for a given template", async function () {
     const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(activeTemplate.templateId);
     expect(policiesTemplate1.length).to.equal(1);

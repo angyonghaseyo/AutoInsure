@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createPolicyTemplate, getPolicyTemplates } from "../../../backend/services/policyTemplateService";
+import { createBaggagePolicyTemplate, getBaggagePolicyTemplates } from "../../../backend/services/baggagePolicyTemplateService";
 
 type ResponseData = {
   success: boolean;
@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         const filter: Record<string, any> = {};
         if (status) filter.status = Number(status);
 
-        const policies = await getPolicyTemplates(filter, Number(limit), Number(skip));
+        const policies = await getBaggagePolicyTemplates(filter, Number(limit), Number(skip));
         return res.status(200).json({
           success: true,
           data: policies,
@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
           });
         }
 
-        const newPolicy = await createPolicyTemplate(req.body);
+        const newPolicy = await createBaggagePolicyTemplate(req.body);
 
         return res.status(201).json({
           success: true,

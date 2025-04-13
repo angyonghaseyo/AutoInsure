@@ -4,6 +4,7 @@ import { useWeb3, Role } from "./Web3Provider";
 import { ethers } from "ethers";
 import { DownOutlined, LogoutOutlined, LinkOutlined, WalletOutlined, PlusOutlined, MinusOutlined } from "@ant-design/icons";
 import DepositWithdraw from "./DepositWithdraw";
+import { useRouter } from "next/router";
 
 const WalletConnect: React.FC = () => {
   const { account, chainId, isConnecting, connectWallet, disconnectWallet, network, provider, insurerContract, role } = useWeb3();
@@ -11,6 +12,7 @@ const WalletConnect: React.FC = () => {
   const [contractBalance, setContractBalance] = useState("0");
   const [showDepositWithdrawModal, setShowDepositWithdrawModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const router = useRouter();
 
   const [modalType, setModalType] = useState<"deposit" | "withdraw">("deposit");
 
@@ -35,7 +37,9 @@ const WalletConnect: React.FC = () => {
   useEffect(() => {
     if (account && provider && insurerContract) {
       fetchWalletBalance();
-      fetchContractBalance();
+      if (role === Role.Insurer) {
+        fetchContractBalance();
+      }
     }
   }, [account, insurerContract, provider]);
 
@@ -54,7 +58,15 @@ const WalletConnect: React.FC = () => {
     {
       key: "disconnect",
       label: (
-        <Button block type="text" icon={<LogoutOutlined />} onClick={disconnectWallet}>
+        <Button
+          block
+          type="text"
+          icon={<LogoutOutlined />}
+          onClick={() => {
+            disconnectWallet();
+            router.push("/");
+          }}
+        >
           Disconnect Wallet
         </Button>
       ),
