@@ -126,7 +126,15 @@ const WalletConnect: React.FC = () => {
     {
       key: "disconnect",
       label: (
-        <Button block type="text" icon={<LogoutOutlined />} onClick={disconnectWallet}>
+        <Button
+          block
+          type="text"
+          icon={<LogoutOutlined />}
+          onClick={() => {
+            disconnectWallet();
+            router.push("/");
+          }}
+        >
           Disconnect Wallet
         </Button>
       ),
