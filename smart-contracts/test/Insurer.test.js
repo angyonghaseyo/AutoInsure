@@ -7,17 +7,17 @@ describe("Insurer Contract - Full Flow", function () {
   let insurer, user;
   let policyId;
   let currentBlockTimestamp;
-  
+  let initialDeposit = ethers.parseEther("10");
   let deactivatedTemplate = {
     templateId: "795e9e7a-3919-4527-8116-2c91158a0ae7",
     name: "Inactive Plan",
     description: "Inactive",
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
-    premium: 1,
-    payoutPerHour: 1,
+    premium: ethers.parseEther("1"),
+    payoutPerHour: ethers.parseEther("1"),
     delayThresholdHours: 1,
-    maxTotalPayout: 3,
+    maxTotalPayout: ethers.parseEther("3"),
     coverageDurationDays: 1,
     status: 1, // 0: Active, 1: Inactive
   };
@@ -28,10 +28,24 @@ describe("Insurer Contract - Full Flow", function () {
     description: "Active",
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
-    premium: 1,
-    payoutPerHour: 2,
+    premium: ethers.parseEther("1"),
+    payoutPerHour: ethers.parseEther("2"),
     delayThresholdHours: 2,
-    maxTotalPayout: 4,
+    maxTotalPayout: ethers.parseEther("4"),
+    coverageDurationDays: 3,
+    status: 0, // 0: Active, 1: Inactive
+  };
+
+  let expensiveTemplate = {
+    templateId: "8ae4b1cc-0a5d-4040-b5df-8c5dc0998043",
+    name: "Active Plan",
+    description: "Active",
+    createdAt: Math.floor(Date.now() / 1000),
+    updatedAt: Math.floor(Date.now() / 1000),
+    premium: ethers.parseEther("1"),
+    payoutPerHour: ethers.parseEther("2"),
+    delayThresholdHours: 2,
+    maxTotalPayout: ethers.parseEther("1000"),
     coverageDurationDays: 3,
     status: 0, // 0: Active, 1: Inactive
   };
@@ -60,10 +74,12 @@ describe("Insurer Contract - Full Flow", function () {
     const Insurer = await ethers.getContractFactory("Insurer", insurer);
     insurerContract = await Insurer.deploy(await flightPolicy.getAddress(), await baggagePolicy.getAddress());
     await insurerContract.waitForDeployment();
-    
+
     // Get the current block timestamp
     const latestBlock = await ethers.provider.getBlock("latest");
     currentBlockTimestamp = latestBlock.timestamp;
+
+    insurerContract.deposit({ value: initialDeposit });
   });
 
   // 1. Check insurer address
@@ -76,34 +92,25 @@ describe("Insurer Contract - Full Flow", function () {
   it("should revert purchase for deactivated policy", async () => {
     // Use the blockchain timestamp + future offset
     const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
-    
+
     await expect(
-      insurerContract.connect(user).purchaseFlightPolicy(
-        deactivatedTemplate, 
-        "SQ001", 
-        "SIN", 
-        "NRT", 
-        futureDepartureTime, 
-        { value: ethers.parseEther("1") }
-      )
+      insurerContract.connect(user).purchaseFlightPolicy(deactivatedTemplate, "SQ001", "SIN", "NRT", futureDepartureTime, { value: ethers.parseEther("1") })
     ).to.be.revertedWith("Policy template is not active");
+  });
+
+  // 3. Attempt to purchase a policy that exceeds total possible payout
+  it("should revert purchase for policy that exceed total possible payout", async () => {
+    await expect(
+      insurerContract.connect(user).purchaseFlightPolicy(expensiveTemplate, "SQ222", "SIN", "ICN", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") })
+    ).to.be.revertedWith("Insufficient contract balance to cover potential payouts");
   });
 
   // 3. Purchase policy using a new active template
   it("should allow user to purchase a policy", async () => {
     // Use the blockchain timestamp + future offset
     const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
-    
-    const tx = await insurerContract
-      .connect(user)
-      .purchaseFlightPolicy(
-        activeTemplate, 
-        "SQ222", 
-        "SIN", 
-        "ICN", 
-        futureDepartureTime, 
-        { value: ethers.parseEther("1") }
-      );
+
+    const tx = await insurerContract.connect(user).purchaseFlightPolicy(activeTemplate, "SQ222", "SIN", "ICN", futureDepartureTime, { value: ethers.parseEther("1") });
     await tx.wait();
   });
 
@@ -133,6 +140,14 @@ describe("Insurer Contract - Full Flow", function () {
     expect(await insurerContract.isInsurer(user.address)).to.equal(false);
   });
 
+  // 8. Attempt to claim an expired policy
+  it("should revert claim for expired policy", async () => {
+    await ethers.provider.send("evm_increaseTime", [86400 * 4]); // Fast forward time by 4 days
+    await ethers.provider.send("evm_mine");
+
+    await expect(insurerContract.connect(user).claimFlightPayout(policyId)).to.be.revertedWith("Policy not active");
+  });
+
   describe("Deposit", function () {
     it("should allow the insurer to deposit funds and update contract balance", async function () {
       const depositAmount = ethers.parseEther("1.0");
@@ -142,7 +157,7 @@ describe("Insurer Contract - Full Flow", function () {
         .withArgs(insurer, depositAmount);
 
       const contractBalance = await insurerContract.getContractBalance();
-      expect(contractBalance).to.equal(depositAmount);
+      expect(contractBalance).to.equal(depositAmount + initialDeposit);
     });
 
     it("should revert when deposit amount is zero", async function () {
@@ -167,7 +182,7 @@ describe("Insurer Contract - Full Flow", function () {
       await expect(insurerContract.withdraw(withdrawAmount)).to.emit(insurerContract, "FundsWithdrawn").withArgs(insurer, withdrawAmount);
 
       const contractBalance = await insurerContract.getContractBalance();
-      expect(contractBalance).to.equal(ethers.parseEther("2.0"));
+      expect(contractBalance).to.equal(ethers.parseEther("2.0") + initialDeposit);
     });
 
     it("should revert when withdrawing more than the contract balance", async function () {
@@ -184,7 +199,7 @@ describe("Insurer Contract - Full Flow", function () {
   describe("Get Contract Balance", function () {
     it("should return the correct contract balance after deposits", async function () {
       const contractBalance = await insurerContract.getContractBalance();
-      expect(contractBalance).to.equal(ethers.parseEther("6.0"));
+      expect(contractBalance).to.equal(ethers.parseEther("6.0") + initialDeposit);
     });
   });
 });
