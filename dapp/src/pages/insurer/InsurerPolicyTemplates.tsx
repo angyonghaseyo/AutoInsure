@@ -9,7 +9,7 @@ import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/Flight
 import EditPolicyTemplate from "@/components/EditPolicyTemplate";
 import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
 import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { PolicyTemplateCard } from "@/components/PolicyTemplateCard";
+import { InsurerPolicyTemplateCard } from "@/components/InsurerPolicyTemplateCard";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -201,7 +201,7 @@ const InsurerPolicyTemplates = () => {
       <Row gutter={[24, 24]}>
         {filteredFlightTemplates.map((tpl) => (
           <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
-            <PolicyTemplateCard
+            <InsurerPolicyTemplateCard
               template={tpl}
               type="flight"
               onEdit={() => handleTemplateAction("edit", "flight", tpl)}
@@ -220,7 +220,7 @@ const InsurerPolicyTemplates = () => {
       <Row gutter={[24, 24]}>
         {filteredBaggageTemplates.map((tpl) => (
           <Col xs={24} sm={12} md={8} lg={6} key={tpl.templateId}>
-            <PolicyTemplateCard
+            <InsurerPolicyTemplateCard
               template={tpl}
               type="baggage"
               onEdit={() => handleTemplateAction("edit", "baggage", tpl)}

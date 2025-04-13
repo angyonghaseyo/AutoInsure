@@ -13,8 +13,8 @@ const Navbar = () => {
   // Menu items for regular users
   const userMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
-    { key: "/user/BrowsePolicyTemplates", label: <Link href="/user/BrowsePolicyTemplates">Browse Flight Policies</Link> },
-    { key: "/user/MyPolicies", label: <Link href="/user/MyPolicies">My Flight Policies</Link> },
+    { key: "/user/BrowsePolicyTemplates", label: <Link href="/user/BrowsePolicyTemplates">Browse Policies</Link> },
+    { key: "/user/MyPolicies", label: <Link href="/user/MyPolicies">My Policies</Link> },
     { key: "/claims", label: <Link href="/claims">Claims & Payouts</Link> },
   ];
 
@@ -24,9 +24,11 @@ const Navbar = () => {
     { key: "/insurer/InsurerPolicyTemplates", label: <Link href="/insurer/InsurerPolicyTemplates">Policy Templates</Link> },
     { key: "/insurer/InsurerClaimsOverview", label: <Link href="/insurer/InsurerClaimsOverview">Claims & Payouts</Link> },
   ];
-    
+
   return (
-    <Header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "white", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}>
+    <Header
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "white", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}
+    >
       {/* Logo and brand */}
       <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
         <svg
