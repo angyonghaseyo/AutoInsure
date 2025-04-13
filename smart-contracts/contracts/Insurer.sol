@@ -151,10 +151,10 @@ contract Insurer {
     // Check if flight policies are allowed for purchase based on the contract balance
     function isFlightPolicyAllowedForPurchase(FlightPolicy.PolicyTemplate[] memory templates) external view returns (bool[] memory) {
         bool[] memory allowed = new bool[](templates.length);
-        uint256 totalPossiblePayout = getMaxPossiblePayout();
+        uint256 currentTotalPossiblePayout = getMaxPossiblePayout();
         for (uint256 i = 0; i < templates.length; i++) {
-            totalPossiblePayout += templates[i].maxTotalPayout;
-            if (totalPossiblePayout > address(this).balance) {
+            uint256 totalPossiblePayout = currentTotalPossiblePayout + templates[i].maxTotalPayout;
+            if (totalPossiblePayout * 1 ether > address(this).balance) {
                 allowed[i] = false;
             } else {
                 allowed[i] = true;
@@ -166,10 +166,10 @@ contract Insurer {
     // Check if baggage policies are allowed for purchase based on the contract balance
     function isBaggagePolicyAllowedForPurchase(BaggagePolicy.PolicyTemplate[] memory templates) external view returns (bool[] memory) {
         bool[] memory allowed = new bool[](templates.length);
-        uint256 totalPossiblePayout = getMaxPossiblePayout();
+        uint256 currentTotalPossiblePayout = getMaxPossiblePayout();
         for (uint256 i = 0; i < templates.length; i++) {
-            totalPossiblePayout += templates[i].maxTotalPayout;
-            if (totalPossiblePayout > address(this).balance) {
+            uint256 totalPossiblePayout = currentTotalPossiblePayout + templates[i].maxTotalPayout;
+            if (totalPossiblePayout * 1 ether > address(this).balance) {
                 allowed[i] = false;
             } else {
                 allowed[i] = true;

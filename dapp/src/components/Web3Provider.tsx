@@ -69,10 +69,22 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   const [role, setRole] = useState<Role | null>(null);
 
   // Compute network name and support status
-  const network = useMemo(() => ({
-    name: chainId ? SUPPORTED_NETWORKS[chainId] || `Unknown (${chainId})` : "",
-    isSupported: !!chainId && SUPPORTED_NETWORKS.hasOwnProperty(String(chainId)),
-  }), [chainId]);
+  const network = useMemo(
+    () => ({
+      name: chainId ? SUPPORTED_NETWORKS[chainId] || `Unknown (${chainId})` : "",
+      isSupported: !!chainId && SUPPORTED_NETWORKS.hasOwnProperty(String(chainId)),
+    }),
+    [chainId]
+  );
+
+  const setProviderSignerChainId = async () => {
+    const web3Provider = new ethers.BrowserProvider(window.ethereum);
+    const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
+    const networkChainId = parseInt(chainIdHex, 16);
+    setProvider(web3Provider as unknown as EthersWeb3Provider);
+    setSigner(await web3Provider.getSigner());
+    setChainId(networkChainId);
+  };
 
   // Connect wallet via MetaMask
   const connectWallet = useCallback(async () => {
@@ -81,19 +93,13 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
       return;
     }
 
-    localStorage.removeItem("wallet-disconnected"); 
+    localStorage.removeItem("wallet-disconnected");
 
     setIsConnecting(true);
     try {
-      const web3Provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
-      const networkChainId = parseInt(chainIdHex, 16);
-
-      setProvider(web3Provider as unknown as EthersWeb3Provider);
-      setSigner(await web3Provider.getSigner());
       setAccount(accounts[0]);
-      setChainId(networkChainId);
+      setProviderSignerChainId();
     } catch (error) {
       console.error("Error connecting wallet:", error);
     } finally {
@@ -115,14 +121,8 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
 
         // If there is a connected account, proceed to connect
         if (accounts.length > 0) {
-          const web3Provider = new ethers.BrowserProvider(window.ethereum);
-          const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
-          const networkChainId = parseInt(chainIdHex, 16);
-
-          setProvider(web3Provider as unknown as EthersWeb3Provider);
-          setSigner(await web3Provider.getSigner());
           setAccount(accounts[0]);
-          setChainId(networkChainId);
+          setProviderSignerChainId();
         }
       } catch (err) {
         console.error("🔁 Auto-connect failed:", err);
@@ -185,6 +185,10 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   useEffect(() => {
     fetchUserRole();
   }, [fetchUserRole]);
+
+  useEffect(() => {
+    setProviderSignerChainId();
+  }, [account]);
 
   // Handle account changes (MetaMask)
   useEffect(() => {
