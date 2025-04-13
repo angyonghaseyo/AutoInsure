@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import "./FlightPolicy.sol";
 import "./BaggagePolicy.sol";
 
-import "hardhat/console.sol";
-
 contract Insurer {
     address public immutable insurerAddress;
     FlightPolicy public flightPolicy;
@@ -72,10 +70,6 @@ contract Insurer {
     // ====== User Functions ======
     // Purchase a flight policy based on a template
     function purchaseFlightPolicy(FlightPolicy.PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
-        console.log("Template Info");
-        console.log(template.premium);
-        console.log(template.maxTotalPayout);
-        console.log(template.payoutPerHour);
         uint256 totalPossiblePayout = getMaxPossiblePayout();
         totalPossiblePayout += template.maxTotalPayout;
         require(totalPossiblePayout <= address(this).balance, "Insufficient contract balance to cover potential payouts");
