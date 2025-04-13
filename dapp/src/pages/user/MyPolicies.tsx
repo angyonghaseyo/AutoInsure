@@ -1,36 +1,31 @@
 import { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Tag, Alert, Modal, Select, message, Spin } from "antd";
+import { Card, Row, Col, Typography, Alert, Modal, Select, message, Spin } from "antd";
 import { WalletOutlined } from "@ant-design/icons";
 
 import { useWeb3 } from "@/components/Web3Provider";
 import { useFlightInsurance } from "@/services/flightInsurance";
 import { FlightPolicyStatus, FlightUserPolicy } from "@/types/FlightPolicy";
+import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { BaggageUserPolicy } from "@/types/BaggagePolicy";
+import { getStatusTag } from "@/utils/utils";
+import { ViewPolicyModal } from "@/components/ViewPolicyModal";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
 
-const getStatusTag = (status: FlightPolicyStatus) => {
-  switch (status) {
-    case FlightPolicyStatus.Active:
-      return <Tag color="green">Active</Tag>;
-    case FlightPolicyStatus.Claimed:
-      return <Tag color="blue">Claimed</Tag>;
-    case FlightPolicyStatus.Expired:
-      return <Tag color="orange">Expired</Tag>;
-    default:
-      return <Tag color="gray">Unknown</Tag>;
-  }
-};
-
 const MyFlightPolicies = () => {
   const { insurerContract, account } = useWeb3();
   const { getUserFlightPolicies } = useFlightInsurance();
+  const { getUserBaggagePolicies } = useBaggageInsurance();
 
-  const [policies, setPolicies] = useState<FlightUserPolicy[]>([]);
-  const [filtered, setFiltered] = useState<FlightUserPolicy[]>([]);
+  const [flightPolicies, setFlightPolicies] = useState<FlightUserPolicy[]>([]);
+  const [baggagePolicies, setBaggagePolicies] = useState<BaggageUserPolicy[]>([]);
+  const [flightFiltered, setFlightFiltered] = useState<FlightUserPolicy[]>([]);
+  const [baggageFiltered, setBaggageFiltered] = useState<BaggageUserPolicy[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-  const [selectedPolicy, setSelectedPolicy] = useState<FlightUserPolicy | null>(null);
+  const [selectedPolicy, setSelectedPolicy] = useState<FlightUserPolicy | BaggageUserPolicy>();
+  const [type, setType] = useState<"flight" | "baggage">("flight");
 
   /**
    * Fetch policies for connected user
@@ -39,9 +34,13 @@ const MyFlightPolicies = () => {
     if (!account) return;
     try {
       setLoading(true);
-      const result = await getUserFlightPolicies(account);
-      setPolicies(result);
-      setFiltered(result);
+      const flightPolicies = await getUserFlightPolicies(account);
+      setFlightPolicies(flightPolicies);
+      setFlightFiltered(flightPolicies);
+
+      const baggagePolicies = await getUserBaggagePolicies(account);
+      setBaggagePolicies(baggagePolicies);
+      setBaggageFiltered(baggagePolicies);
     } catch (error) {
       console.error("Error fetching policies:", error);
       message.error("Failed to load policies");
@@ -62,10 +61,18 @@ const MyFlightPolicies = () => {
   const handleStatusChange = (value: string) => {
     setSelectedStatus(value);
     if (value === "all") {
-      setFiltered(policies);
+      setFlightFiltered(flightPolicies);
+      setBaggageFiltered(baggagePolicies);
+    } else if (value === "flight") {
+      setFlightFiltered(flightPolicies);
+      setBaggageFiltered([]);
+    } else if (value === "baggage") {
+      setFlightFiltered([]);
+      setBaggageFiltered(baggagePolicies);
     } else {
       const statusNum = parseInt(value);
-      setFiltered(policies.filter((p) => p.status === statusNum));
+      setFlightFiltered(flightPolicies.filter((p) => p.status === statusNum));
+      setBaggageFiltered(baggagePolicies.filter((p) => p.status === statusNum));
     }
   };
 
@@ -86,7 +93,7 @@ const MyFlightPolicies = () => {
         <div className="text-center mt-10">
           <Spin size="large" />
         </div>
-      ) : policies.length === 0 ? (
+      ) : flightPolicies.length + baggagePolicies.length === 0 ? (
         <Alert message="No Policies Found" description="You have not purchased any flight policies yet." type="info" showIcon style={{ marginBottom: "20px" }} />
       ) : (
         <>
@@ -94,19 +101,26 @@ const MyFlightPolicies = () => {
             <Paragraph>Below are the flight insurance policies you've purchased.</Paragraph>
             <Select defaultValue="all" style={{ width: 200 }} onChange={handleStatusChange}>
               <Option value="all">All Statuses</Option>
+              <Option value="flight">Flights</Option>
+              <Option value="baggage">Baggage</Option>
               <Option value={FlightPolicyStatus.Active.toString()}>Active</Option>
               <Option value={FlightPolicyStatus.Claimed.toString()}>Claimed</Option>
               <Option value={FlightPolicyStatus.Expired.toString()}>Expired</Option>
             </Select>
           </div>
 
+          {/* Flight Policies */}
+          {flightFiltered.length > 0 && <Title level={3}>Flight Policies</Title>}
           <Row gutter={[24, 24]}>
-            {filtered.map((policy) => (
+            {flightFiltered.map((policy) => (
               <Col xs={24} sm={12} md={8} lg={6} key={policy.policyId}>
                 <Card
-                  title={`Flight ${policy.flightNumber}`}
+                  title={`${policy.template.name}`}
                   hoverable
-                  onClick={() => setSelectedPolicy(policy)}
+                  onClick={() => {
+                    setSelectedPolicy(policy);
+                    setType("flight");
+                  }}
                   style={{
                     minHeight: "100%",
                     cursor: "pointer",
@@ -117,6 +131,9 @@ const MyFlightPolicies = () => {
                 >
                   <div>
                     <p>
+                      <strong>Flight:</strong> {policy.flightNumber}
+                    </p>
+                    <p>
                       <strong>Departure:</strong> {new Date(policy.departureTime * 1000).toLocaleString()}
                     </p>
                     <p>
@@ -126,7 +143,40 @@ const MyFlightPolicies = () => {
                       <strong>To:</strong> {policy.arrivalAirportCode}
                     </p>
                     <p>
-                      <strong>Premium:</strong> {policy.payoutToDate} ETH
+                      <strong>Premium:</strong> {policy.template.premium} ETH
+                    </p>
+                    <p>
+                      <strong>Status:</strong> {getStatusTag(policy.status)}
+                    </p>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+
+          {/* Baggage Policies */}
+          {baggageFiltered.length > 0 && <Title level={3}>Baggage Policies</Title>}
+          <Row gutter={[24, 24]}>
+            {baggageFiltered.map((policy) => (
+              <Col xs={24} sm={12} md={8} lg={6} key={policy.policyId}>
+                <Card
+                  title={`${policy.template.name}`}
+                  hoverable
+                  onClick={() => {
+                    setSelectedPolicy(policy);
+                    setType("baggage");
+                  }}
+                  style={{
+                    minHeight: "100%",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div>
+                    <p>
+                      <strong>Item Description:</strong> {policy.itemDescription}
                     </p>
                     <p>
                       <strong>Status:</strong> {getStatusTag(policy.status)}
@@ -139,36 +189,8 @@ const MyFlightPolicies = () => {
         </>
       )}
 
-      {/* Optional Modal to show more details (can link to ViewPolicy component) */}
-      <Modal title="Flight Policy Details" open={!!selectedPolicy} onCancel={() => setSelectedPolicy(null)} footer={null} destroyOnClose>
-        {selectedPolicy ? (
-          <div>
-            <p>
-              <strong>Flight:</strong> {selectedPolicy.flightNumber}
-            </p>
-            <p>
-              <strong>From:</strong> {selectedPolicy.departureAirportCode}
-            </p>
-            <p>
-              <strong>To:</strong> {selectedPolicy.arrivalAirportCode}
-            </p>
-            <p>
-              <strong>Departure Time:</strong> {new Date(selectedPolicy.departureTime * 1000).toLocaleString()}
-            </p>
-            <p>
-              <strong>Purchased On:</strong> {new Date(selectedPolicy.createdAt * 1000).toLocaleString()}
-            </p>
-            <p>
-              <strong>Premium Paid:</strong> {selectedPolicy.payoutToDate} ETH
-            </p>
-            <p>
-              <strong>Status:</strong> {getStatusTag(selectedPolicy.status)}
-            </p>
-          </div>
-        ) : (
-          <Spin />
-        )}
-      </Modal>
+      {/* View Policy Modal */}
+      <ViewPolicyModal type={type} policy={selectedPolicy} onCancel={() => setSelectedPolicy(undefined)} />
     </div>
   );
 };

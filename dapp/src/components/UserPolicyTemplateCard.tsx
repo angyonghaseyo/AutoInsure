@@ -6,30 +6,10 @@ import { Button, Card, Tag } from "antd";
 type TemplateCardProps = {
   template: FlightPolicyTemplate | BaggagePolicyTemplate;
   type: "flight" | "baggage";
-  onView: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onPurchase: () => void;
 };
 
-export const PolicyTemplateCard = ({ template, type, onView, onDelete, onEdit }: TemplateCardProps) => {
-  /**
-   * Maps a policy template status to tag color.
-   */
-  const getStatusColor = (status: FlightPolicyTemplateStatus | BaggagePolicyTemplateStatus): string => {
-    switch (status) {
-      case FlightPolicyTemplateStatus.Active | BaggagePolicyTemplateStatus.Active:
-        return "green";
-      case FlightPolicyTemplateStatus.Deactivated | BaggagePolicyTemplateStatus.Deactivated:
-        return "red";
-      default:
-        return "gray";
-    }
-  };
-
-  const isDisabled = (status: FlightPolicyTemplateStatus | BaggagePolicyTemplateStatus): boolean => {
-    return status === FlightPolicyTemplateStatus.Deactivated || status === BaggagePolicyTemplateStatus.Deactivated;
-  };
-
+export const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProps) => {
   const showTemplate = (template: FlightPolicyTemplate | BaggagePolicyTemplate) => {
     if (type === "flight") {
       const tpl = template as FlightPolicyTemplate;
@@ -82,29 +62,16 @@ export const PolicyTemplateCard = ({ template, type, onView, onDelete, onEdit }:
     <Card
       title={template.name}
       style={{
+        minHeight: 340,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
       }}
-      extra={<Tag color={getStatusColor(template.status)}>{FlightPolicyTemplateStatus[template.status]}</Tag>}
     >
       {showTemplate(template)}
-      <div
-        style={{
-          marginTop: "auto",
-          display: "flex",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <Button icon={<EyeOutlined />} onClick={() => onView()} style={{ flex: 1 }}>
-          View Purchased Policies
-        </Button>
-        <Button onClick={() => onEdit()} disabled={isDisabled(template.status)} style={{ flex: 1 }}>
-          Edit Template
-        </Button>
-        <Button danger icon={<DeleteOutlined />} onClick={() => onDelete()} disabled={isDisabled(template.status)} style={{ flex: 1 }}>
-          Deactivate
+      <div style={{ marginTop: "auto" }}>
+        <Button type="primary" block onClick={() => onPurchase()}>
+          Purchase Policy
         </Button>
       </div>
     </Card>

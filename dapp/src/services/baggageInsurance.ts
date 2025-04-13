@@ -21,7 +21,19 @@ export function formatPolicyTemplate(raw: any): BaggagePolicyTemplate {
 export function formatUserPolicy(raw: any): BaggageUserPolicy {
   return {
     policyId: Number(raw.policyId),
-    template: raw.template,
+    template: {
+      templateId: raw.template.templateId,
+      name: raw.template.name,
+      description: raw.template.description,
+      createdAt: Number(raw.template.createdAt),
+      updatedAt: Number(raw.template.updatedAt),
+      premium: String(raw.template.premium),
+      payoutIfDelayed: String(raw.template.payoutIfDelayed),
+      payoutIfLost: String(raw.template.payoutIfLost),
+      maxTotalPayout: String(raw.template.maxTotalPayout),
+      coverageDurationDays: Number(raw.template.coverageDurationDays),
+      status: Number(raw.template.status),
+    },
     itemDescription: raw.itemDescription,
     createdAt: Number(raw.createdAt),
     payoutToDate: ethers.formatEther(raw.payoutToDate),
@@ -132,7 +144,7 @@ export function useBaggageInsurance() {
   async function purchaseBaggagePolicy(template: BaggagePolicyTemplate, itemDescription: string, premium: string): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
 
-    const tx = await insurerContract.purchaseFBaggagePolicy(template, itemDescription, {
+    const tx = await insurerContract.purchaseBaggagePolicy(template, itemDescription, {
       value: ethers.parseEther(premium),
     });
 
@@ -175,6 +187,12 @@ export function useBaggageInsurance() {
     }
   }
 
+  async function isBaggagePolicyTemplateAllowedForPurchase(templates: BaggagePolicyTemplate[]): Promise<boolean[]> {
+    if (!insurerContract) return [];
+    const isAllowed = await insurerContract.isBaggagePolicyAllowedForPurchase(templates);
+    return isAllowed;
+  }
+
   async function getActiveBaggagePolicyTemplates(): Promise<BaggagePolicyTemplate[]> {
     const res = await fetch(`/api/baggageTemplates?status=${BaggagePolicyTemplateStatus.Active}`);
     const templates = await res.json();
@@ -192,6 +210,7 @@ export function useBaggageInsurance() {
     getUserBaggagePolicies,
     getUserBaggagePoliciesByTemplate,
     claimBaggagePayout,
+    isBaggagePolicyTemplateAllowedForPurchase,
     getActiveBaggagePolicyTemplates,
   };
 }

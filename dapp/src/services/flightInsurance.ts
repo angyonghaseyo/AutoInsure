@@ -21,7 +21,19 @@ export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
 export function formatUserPolicy(raw: any): FlightUserPolicy {
   return {
     policyId: Number(raw.policyId),
-    template: raw.template,
+    template: {
+      templateId: raw.template.templateId,
+      name: raw.template.name,
+      description: raw.template.description,
+      createdAt: Number(raw.template.createdAt),
+      updatedAt: Number(raw.template.updatedAt),
+      premium: String(raw.template.premium),
+      payoutPerHour: String(raw.template.payoutPerHour),
+      delayThresholdHours: Number(raw.template.delayThresholdHours),
+      maxTotalPayout: String(raw.template.maxTotalPayout),
+      coverageDurationDays: Number(raw.template.coverageDurationDays),
+      status: Number(raw.template.status),
+    },
     flightNumber: raw.flightNumber,
     departureAirportCode: raw.departureAirportCode,
     arrivalAirportCode: raw.arrivalAirportCode,
@@ -185,6 +197,12 @@ export function useFlightInsurance() {
     }
   }
 
+  async function isFlightPolicyTemplateAllowedForPurchase(templates: FlightPolicyTemplate[]): Promise<boolean[]> {
+    if (!insurerContract) return [];
+    const isAllowed = await insurerContract.isFlightPolicyAllowedForPurchase(templates);
+    return isAllowed;
+  }
+
   async function getActiveFlightPolicyTemplates(): Promise<FlightPolicyTemplate[]> {
     const res = await fetch(`/api/flightTemplates?status=${FlightPolicyTemplateStatus.Active}`);
     const templates = await res.json();
@@ -208,6 +226,7 @@ export function useFlightInsurance() {
     getUserFlightPolicies,
     getUserFlightPoliciesByTemplate,
     claimFlightPayout,
+    isFlightPolicyTemplateAllowedForPurchase,
     getActiveFlightPolicyTemplates,
     isInsurer,
   };
