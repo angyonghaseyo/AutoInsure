@@ -19,6 +19,11 @@ contract FlightPolicy is ReentrancyGuard {
         _;
     }
 
+    modifier atStatus(PolicyStatus status) {
+        require(userPolicies[nextUserPolicyId].status == status, "BaggagePolicy: Policy is not in the correct status");
+        _;
+    }
+
     enum PolicyTemplateStatus {
         Active,
         Deactivated
@@ -64,17 +69,17 @@ contract FlightPolicy is ReentrancyGuard {
 
     // ====== Insurer Functions ======
     // View all purchased policies
-    function getAllPolicies() external view onlyInsurer returns (UserPolicy[] memory) {
+    function getAllPolicies() external view returns (UserPolicy[] memory) {
         uint256 count = nextUserPolicyId;
         UserPolicy[] memory results = new UserPolicy[](count);
         for (uint256 i = 0; i < count; i++) {
             results[i] = userPolicies[i];
         }
-        return results;
+        return updateStatus(results);
     }
 
     // TODO: Cron job to mark policies as expired
-    function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
+    function markPolicyAsExpired(uint256 policyId) atStatus(PolicyStatus.Active) external onlyInsurer {
         require(policyId < nextUserPolicyId, "Invalid policyId");
         
         UserPolicy storage policy = userPolicies[policyId];
@@ -119,7 +124,7 @@ contract FlightPolicy is ReentrancyGuard {
         for (uint256 i = 0; i < count; i++) {
             results[i] = userPolicies[userPolicyIds[user][i]];
         }
-        return results;
+        return updateStatus(results);
     }
 
     // Get all policies by template ID
@@ -139,14 +144,17 @@ contract FlightPolicy is ReentrancyGuard {
                 j++;
             }
         }
-        return result;
+        return updateStatus(result);
     }
 
     // Claim a policy and give payout based on flight delay
     function claimPayout(uint256 policyId, address buyer) external nonReentrant {
         require(policyId < nextUserPolicyId, "Invalid policyId");
 
-        UserPolicy storage policy = userPolicies[policyId];
+        UserPolicy[] memory policies = new UserPolicy[](1);
+        policies[0] = userPolicies[policyId];              
+        UserPolicy[] memory updated = updateStatus(policies); 
+        UserPolicy memory policy = updated[0];           
         require(buyer == policy.buyer, "Not policy owner");
         require(policy.status == PolicyStatus.Active, "Policy not active");
 
@@ -168,5 +176,17 @@ contract FlightPolicy is ReentrancyGuard {
         policy.payoutToDate = payout;
 
         payable(policy.buyer).transfer(payout);
+    }
+
+    function updateStatus(UserPolicy[] memory policies) internal view returns (UserPolicy[] memory) {
+        for (uint256 i=0; i < policies.length; i++) {
+            if (policies[i].status == PolicyStatus.Active) {
+                uint256 expiryTime = policies[i].createdAt + (userPolicies[i].template.coverageDurationDays * 1 days);
+                if (block.timestamp > expiryTime) {
+                    policies[i].status = PolicyStatus.Expired;
+                }
+            }
+        }
+        return policies;
     }
 }

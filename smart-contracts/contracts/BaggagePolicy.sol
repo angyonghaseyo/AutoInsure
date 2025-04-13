@@ -19,6 +19,11 @@ contract BaggagePolicy is ReentrancyGuard {
         _;
     }
 
+    modifier atStatus(PolicyStatus status) {
+        require(userPolicies[nextUserPolicyId].status == status, "BaggagePolicy: Policy is not in the correct status");
+        _;
+    }
+
     enum PolicyTemplateStatus {
         Active,
         Deactivated
@@ -61,17 +66,17 @@ contract BaggagePolicy is ReentrancyGuard {
 
     // ====== Insurer Functions ======
     // View all purchased policies
-    function getAllPolicies() external view onlyInsurer returns (UserPolicy[] memory) {
+    function getAllPolicies() external view returns (UserPolicy[] memory) {
         uint256 count = nextUserPolicyId;
         UserPolicy[] memory results = new UserPolicy[](count);
         for (uint256 i = 0; i < count; i++) {
             results[i] = userPolicies[i];
         }
-        return results;
+        return updateStatus(results);
     }
 
     // TODO: Cron job to mark policies as expired
-    function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
+    function markPolicyAsExpired(uint256 policyId) atStatus(PolicyStatus.Active) external onlyInsurer {
         require(policyId < nextUserPolicyId, "Invalid policyId");
         
         UserPolicy storage policy = userPolicies[policyId];
@@ -112,7 +117,7 @@ contract BaggagePolicy is ReentrancyGuard {
         for (uint256 i = 0; i < count; i++) {
             results[i] = userPolicies[userPolicyIds[user][i]];
         }
-        return results;
+        return updateStatus(results);
     }
 
     // Get all policies by template ID
@@ -132,6 +137,18 @@ contract BaggagePolicy is ReentrancyGuard {
                 j++;
             }
         }
-        return result;
+        return updateStatus(result);
+    }
+
+    function updateStatus(UserPolicy[] memory policies) private view returns (UserPolicy[] memory) {
+        for (uint256 i=0; i < policies.length; i++) {
+            if (policies[i].status == PolicyStatus.Active) {
+                uint256 expiryTime = policies[i].createdAt + (userPolicies[i].template.coverageDurationDays * 1 days);
+                if (block.timestamp > expiryTime) {
+                    policies[i].status = PolicyStatus.Expired;
+                }
+            }
+        }
+        return policies;
     }
 }
