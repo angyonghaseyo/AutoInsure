@@ -26,6 +26,20 @@ contract OracleConnector is ChainlinkClient, Ownable {
         string oracleAPIUrl;
         bytes32 jobId;
     }
+
+    struct BaggageRequest {
+        string flightNumber;
+        string departureTime;
+        string itemDescription;
+    }
+
+    struct BaggageData {
+        string itemDescription;
+        bool baggageStatus;
+        bool dataReceived;
+        string flightNumber;
+        string departureTime; // refering to original departure
+    }
     
     // Flight data storage
     struct FlightData {
@@ -50,11 +64,16 @@ contract OracleConnector is ChainlinkClient, Ownable {
     // Mapping from request ID to flight data
     mapping(bytes32 => string) private requestToFlightNumber;
     mapping(bytes32 => string) private requestToDepartureTime;
+    mapping(bytes32 => BaggageRequest) private requestIDToBaggageRequest;
     mapping(string => mapping(string => FlightData)) private flightDataStore;
+    mapping(string => mapping(string => mapping(string => BaggageData))) private baggageDataStore;
     
     // Events
     event FlightDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime);
     event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
+
+    event BaggageDataRequest(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription);
+    event BaggageDataRecieved(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription, bool baggageStatus);
     
     constructor(address _linkToken) Ownable() {
         // Set Chainlink token address (for the relevant network)
@@ -67,18 +86,11 @@ contract OracleConnector is ChainlinkClient, Ownable {
         oracles.push(OracleInfo({oracle: _oracle, oracleAPIUrl: _oracleAPIUrl, jobId: _jobId}));
     }
 
-    function requestFlightData(string memory _flightNumber, string memory _departureTime) public returns (bytes32 requestId) 
+    function requestFlightData(string memory _flightNumber, string memory _departureTime) public onlyOwner returns (bytes32 requestId) 
     {
         require(oracles.length > 0, "No oracles set");
 
         for (uint256 i = 0; i < oracles.length; i++) {
-            // Mocking Chainlink Oracle so dont need to actually build a request
-            // Chainlink.Request memory request = buildChainlinkRequest(
-            //     oracles[i].jobId,
-            //     address(this),
-            //     this.fulfillFlightData.selector
-            // );
-            
             // Set the URL to fetch flight data
             //This URL called from each indiv oracle api 
             string memory fullUrl = string(abi.encodePacked(
@@ -174,8 +186,90 @@ contract OracleConnector is ChainlinkClient, Ownable {
         return (data.dataReceived, data.isDelayed, data.delayHours);
     }
     
+    function requestBaggageData(string memory _flightNumber, string memory _departureTime, string memory _itemDescription) 
+    public onlyOwner returns (bytes32 requestId) 
+    {
+        require(oracles.length > 0, "No oracles set");
+
+        for (uint256 i = 0; i < oracles.length; i++) {
+
+            // Set the URL to fetch baggage data
+            //This URL called from each indiv oracle api 
+            string memory fullUrl = string(abi.encodePacked(
+                oracles[i].oracleAPIUrl,
+                _flightNumber,
+                "?departure=",
+                _departureTime,
+                "/",
+                _itemDescription
+            ));
+
+            // Call Mock Oracle Function instead to simulate chainlink sending a request
+            requestId = IMockOracle(oracles[i].oracle).mockChainlinkRequest(
+                address(this),
+                this.fulfillBaggageData.selector,
+                fee,
+                oracles[i].jobId, // example jobId
+                fullUrl,
+                "baggageStatus"
+            );
+            
+            // Store request mapping
+            requestIDToBaggageRequest[requestId] = BaggageRequest(_flightNumber, _departureTime, _itemDescription);
+            
+            // Initialize the flight data structure if it doesn't exist
+            if (flightDataStore[_flightNumber][_departureTime].responseCount == 0) {
+                flightDataStore[_flightNumber][_departureTime].flightNumber = _flightNumber;
+                flightDataStore[_flightNumber][_departureTime].departureTime = _departureTime;
+            }
+            
+            emit BaggageDataRequest(requestId, _flightNumber, _departureTime, _itemDescription);
+        }
+        
+        return requestId;
+    }
+
+    function fulfillBaggageData(bytes32 _requestId, bool _baggageStatus) public {        
+        BaggageRequest storage baggage = requestIDToBaggageRequest[_requestId];
+        string memory flightNumber = baggage.flightNumber;
+        string memory departureTime = baggage.departureTime;
+        string memory itemDescription = baggage.itemDescription;
+
+        // Make sure this is a valid request
+        require(bytes(itemDescription).length > 0, "Invalid request ID");
+
+        BaggageData storage data = baggageDataStore[flightNumber][departureTime][itemDescription];
+
+        data.dataReceived = true;
+        data.baggageStatus = _baggageStatus;
+
+        emit BaggageDataRecieved(_requestId, flightNumber, departureTime, itemDescription, _baggageStatus);
+    }
+
+    function getBaggageStatus(string memory _flightNumber, string memory _departureTime, string memory _itemDescription) public
+    returns (bool dataReceived, bool baggageStatus)
+    {
+        BaggageData storage data = baggageDataStore[_flightNumber][_departureTime][_itemDescription];
+        
+        // If we already have the data, return it
+        if (data.dataReceived) {
+            return (data.dataReceived, data.baggageStatus);
+        }
+
+        requestBaggageData(_flightNumber, _departureTime, _itemDescription);
+        return (data.dataReceived, data.baggageStatus);
+    }
+    
+    function checkBaggageStatus(string memory _flightNumber, string memory _departureTime, string memory _itemDescription) public view
+    returns (bool dataReceived, bool baggageStatus)
+    {
+        BaggageData storage data = baggageDataStore[_flightNumber][_departureTime][_itemDescription];
+        return (data.dataReceived, data.baggageStatus);
+    }
+    
     function withdrawLink() external onlyOwner {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
+
 }

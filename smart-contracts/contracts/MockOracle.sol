@@ -63,7 +63,6 @@ contract MockOracle {
         return requestId;
     }
 
-    // Improved simulateResponse function with better error handling
     function simulateResponse(
         bytes32 requestId,
         address callbackAddress,
