@@ -54,7 +54,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     
     // Events
     event FlightDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime);
-    event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
+    event FlightDataReceived(bytes32 indexed requestId, string indexed flightNumber, string indexed departureTime, bool isDelayed, uint256 delayMinutes);
     
     constructor(address _linkToken) Ownable() {
         // Set Chainlink token address (for the relevant network)
@@ -69,7 +69,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
 
     function requestFlightData(string memory _flightNumber, string memory _departureTime) public returns (bytes32 requestId) 
     {
-        require(oracles.length > 0, "No oracles set");
+        // require(oracles.length > 0, "No oracles set");
 
         for (uint256 i = 0; i < oracles.length; i++) {
             // Mocking Chainlink Oracle so dont need to actually build a request
