@@ -73,7 +73,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
 
     event BaggageDataRequest(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription);
-    event BaggageDataRecieved(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription, bool baggageStatus);
+    event BaggageDataRecieved(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription, uint256 retrievedBaggageStatus);
     
     constructor(address _linkToken) Ownable() {
         // Set Chainlink token address (for the relevant network)
@@ -229,7 +229,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
         return requestId;
     }
 
-    function fulfillBaggageData(bytes32 _requestId, bool _baggageStatus) public {        
+    function fulfillBaggageData(bytes32 _requestId, uint256 _baggageStatus) public {        
         BaggageRequest storage baggage = requestIDToBaggageRequest[_requestId];
         string memory flightNumber = baggage.flightNumber;
         string memory departureTime = baggage.departureTime;
@@ -241,8 +241,11 @@ contract OracleConnector is ChainlinkClient, Ownable {
         BaggageData storage data = baggageDataStore[flightNumber][departureTime][itemDescription];
 
         data.dataReceived = true;
-        data.baggageStatus = _baggageStatus;
-
+        if (_baggageStatus == 0) {
+            data.baggageStatus = false;
+        } else {
+            data.baggageStatus = true;
+        }
         emit BaggageDataRecieved(_requestId, flightNumber, departureTime, itemDescription, _baggageStatus);
     }
 

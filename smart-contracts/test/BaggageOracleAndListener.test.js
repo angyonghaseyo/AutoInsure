@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
 
-describe("OracleConnector + Listener.js Integration", function () {
+describe("OracleConnector + Listener.js Integration for Baggage", function () {
   this.timeout(30000); // 30 seconds timeout for the entire test suite
 
   let mockLinkToken, mockOracle, oracleConnector, listenerProcess;
@@ -14,8 +14,7 @@ describe("OracleConnector + Listener.js Integration", function () {
   const FLIGHT_NUMBER = "SQ100";
   const DEPARTURE_TIME = "2025-03-30T15:00:00Z";
   const BAGGAGE_DES = "GreenLuggage"
-  const MOCK_API_URL = "https://236a3f11-39f2-40f7-989b-d51bcdcca6f2.mock.pstmn.io/";
-  const EXPECTED_DELAY = 120; // 2 hours in minutes
+  const MOCK_API_URL = "https://c5f06716-b81d-4e73-b825-1289c0745221.mock.pstmn.io/";
 
   before(async function() {
     console.log("Setting up test environment...");
@@ -43,7 +42,7 @@ describe("OracleConnector + Listener.js Integration", function () {
     await mockLinkToken.transfer(await oracleConnector.getAddress(), ethers.parseEther("100"));
     
     // Register mock oracle with connector
-    const jobId = ethers.encodeBytes32String("flightdelay");
+    const jobId = ethers.encodeBytes32String("baggagedelay");
     await oracleConnector.addOracle(
       await mockOracle.getAddress(),
       MOCK_API_URL,
@@ -108,23 +107,24 @@ describe("OracleConnector + Listener.js Integration", function () {
     }
   });
 
-  it("should request flight data and receive oracle response via listener", async function() {    
+
+  it("should request baggage data and receive oracle response via listener", async function() {    
     // Request flight data through the oracle connector
-    console.log(`Requesting flight data for ${FLIGHT_NUMBER} departing at ${DEPARTURE_TIME}`);
+    console.log(`Requesting Baggage data for ${FLIGHT_NUMBER} departing at ${DEPARTURE_TIME} with description ${BAGGAGE_DES}`);
     
-    const tx = await oracleConnector.requestFlightData(FLIGHT_NUMBER, DEPARTURE_TIME);
+    const tx = await oracleConnector.requestBaggageData(FLIGHT_NUMBER, DEPARTURE_TIME, BAGGAGE_DES);
     // Making sure event actually emitted
     // const logs = await mockOracle.queryFilter("OracleRequest");
     // console.log("OracleRequest logs:", logs);
     const receipt = await tx.wait();
-    
+
     // Find the FlightDataRequested event
     const requestEvent = receipt.logs.find(
-      log => log.fragment && log.fragment.name === "FlightDataRequested"
+          log => log.fragment && log.fragment.name === "BaggageDataRequest"
     );
-    
+        
     if (!requestEvent) {
-      throw new Error("FlightDataRequested event not found in transaction logs");
+        throw new Error("BaggageDataRequest event not found in transaction logs");
     }
     
     const requestId = requestEvent.args[0];
@@ -139,16 +139,15 @@ describe("OracleConnector + Listener.js Integration", function () {
     console.log("TestCallback logs:", logs)
 
     // Check that the flight data was received and processed correctly
-    console.log("Checking flight status...");
-    const [dataReceived, isDelayed, delayHours] = await oracleConnector.checkFlightStatus(FLIGHT_NUMBER, DEPARTURE_TIME);
+    console.log("Checking baggage status...");
+    const [dataReceived, baggageStatus] = await oracleConnector.checkBaggageStatus(FLIGHT_NUMBER, DEPARTURE_TIME, BAGGAGE_DES);
 
-    console.log(`Data Recieved ${dataReceived}, Delay Status ${isDelayed}, Delay Hours ${delayHours}`)
+    console.log(`Data Recieved ${dataReceived}, BaggageStatus ${baggageStatus}`)
     
     expect(dataReceived).to.be.true;
-    expect(isDelayed).to.be.true;
-    expect(delayHours).to.equal(2); // 120 minutes = 2 hours
-    
-    console.log(`Flight status: Data received=${dataReceived}, Delayed=${isDelayed}, Delay hours=${delayHours}`);
+    expect(baggageStatus).to.be.true;
+
+    console.log(`Baggage status: Data received=${dataReceived}, Baggage Status ${baggageStatus}`);
   });
 
 });
