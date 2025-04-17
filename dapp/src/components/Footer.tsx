@@ -3,8 +3,8 @@ import { Layout } from 'antd';
 
 const { Footer } = Layout;
 
-const CustomFooter: React.FC = () => {
-  const currentYear = new Date().getFullYear();
+const CustomFooter = () => {
+  const currentYear: number = new Date().getFullYear();
 
   return (
     <Footer style={{ background: 'transparent', padding: '20px 0', textAlign: 'center' }}>

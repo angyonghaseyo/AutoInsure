@@ -2,11 +2,7 @@ import { useState } from "react";
 import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
 import { useFlightInsurance } from "@/services/flightInsurance";
 import { useBaggageInsurance } from "@/services/baggageInsurance";
-/**
- * Props for CreatePolicyTemplate component.
- * onClose: callback to close modal or drawer
- * onUpdate: callback to refresh the template list after creation
- */
+
 interface CreatePolicyTemplateProps {
   onClose: () => void;
   onUpdate: () => void;
@@ -22,36 +18,36 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
   const { createFlightPolicyTemplate } = useFlightInsurance();
   const { createBaggagePolicyTemplate } = useBaggageInsurance();
 
-  /**
-   * Submits the policy template form and creates a new policy template on-chain.
-   */
   const handleSubmit = async (values: any) => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
+      const { name, description, premium, maxTotalPayout, coverageDurationDays } = values;
       if (type === "flight") {
+        const { payoutPerHour, delayThresholdHours } = values;
         await createFlightPolicyTemplate(
-          values.name,
-          values.description,
-          values.premium,
-          values.payoutPerHour,
-          values.delayThresholdHours,
-          values.maxTotalPayout,
-          values.coverageDurationDays
+          name,
+          description,
+          premium,
+          payoutPerHour,
+          maxTotalPayout,
+          delayThresholdHours,
+          coverageDurationDays
         );
       }
 
       if (type === "baggage") {
+        const { payoutIfDelayed, payoutIfLost } = values;
         await createBaggagePolicyTemplate(
-          values.name,
-          values.description,
-          values.premium,
-          values.payoutIfDelayed,
-          values.payoutIfLost,
-          values.maxTotalPayout,
-          values.coverageDurationDays
+          name,
+          description,
+          premium,
+          payoutIfDelayed,
+          payoutIfLost,
+          maxTotalPayout,
+          coverageDurationDays
         );
       }
 
@@ -61,11 +57,36 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
       form.resetFields();
     } catch (err) {
       console.error("Error creating template:", err);
-      setError("An error occurred while adding the policy template.");
+      setError(`An error occurred while adding the ${type} policy template.`);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Fields specific to each type
+  const flightFields = (
+    <>
+      <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="ETH/hr" style={{ width: "100%" }} />
+      </Form.Item>
+
+      <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
+      </Form.Item>
+    </>
+  );
+
+  const baggageFields = (
+    <>
+      <Form.Item name="payoutIfDelayed" label="Payout If Delayed" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
+      </Form.Item>
+
+      <Form.Item name="payoutIfLost" label="Payout If Lost" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
+      </Form.Item>
+    </>
+  );
 
   return (
     <Card title={`Add new ${type} policy template`}>
@@ -85,29 +106,8 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
         </Form.Item>
 
-        {type === "flight" && (
-          <>
-            <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="ETH/hr" style={{ width: "100%" }} />
-            </Form.Item>
-          </>
-        )}
-
-        {type === "baggage" && (
-          <>
-            <Form.Item name="payoutIfDelayed" label="Payout If Delayed" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item name="payoutIfLost" label="Payout If Lost" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
-            </Form.Item>
-          </>
-        )}
+        {/* Conditional Fields Based on Policy Type */}
+        {type === "flight" ? flightFields : baggageFields}
 
         <Form.Item name="maxTotalPayout" label="Maximum Total Payout" rules={[{ required: true }]}>
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
