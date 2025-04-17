@@ -31,6 +31,9 @@ contract MockOracle {
         uint256 data
     );
 
+    event TestCallback(bytes32 requestId, uint256 delayMinutes);
+    event CallbackFailure(bytes32 requestId, string reason);
+
     constructor(address _linkToken) {
         linkToken = LinkTokenInterface(_linkToken);
     }
@@ -62,6 +65,7 @@ contract MockOracle {
         // Return Request ID for Oracle Connector
         return requestId;
     }
+
 
     function simulateResponse(
         bytes32 requestId,
@@ -101,10 +105,26 @@ contract MockOracle {
         }
     }
 
+    function _getRevertMsg(bytes memory _returnData) internal pure returns (string memory) {
+        // If the return data length is less than 68, then the transaction failed silently (no revert reason)
+        if (_returnData.length < 68) return "Transaction reverted silently";
+
+        assembly {
+            // Slice the sighash.
+            _returnData := add(_returnData, 0x04)
+        }
+        return abi.decode(_returnData, (string));
+    }
+
     /// Fulfilled using off-chain listener calling back with real data
     function fulfillDataFromOffChain(bytes32 requestId, uint256 data) external {
+        // retrieve request from mapping
         Request storage req = requests[requestId];
-        if (req.requester == address(0) || req.fulfilled) {
+
+        emit TestCallback(requestId, data);
+
+        // if request already fulfilled dont callback just emit
+        if (req.fulfilled) {
             // Just emit the event without failing if request doesn't exist
             emit OracleResponse(requestId, data);
             return;
@@ -114,13 +134,15 @@ contract MockOracle {
         req.fulfilled = true;
 
         // Call back the requester with the data
-        (bool success, ) = req.requester.call(
+        (bool success, bytes memory result) = req.requester.call(
             abi.encodeWithSelector(req.callbackFunctionId, requestId, data)
         );
         
         // If callback fails, revert the fulfilled status but don't fail the transaction
         if (!success) {
             req.fulfilled = false;
+            string memory reason = _getRevertMsg(result);
+            emit CallbackFailure(requestId, reason);
         } else {
             emit OracleResponse(requestId, data);
         }

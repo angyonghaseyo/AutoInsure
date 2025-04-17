@@ -49,16 +49,19 @@ describe("OracleConnector + Listener.js Integration", function () {
       jobId
     );
 
-    // Create a temporary .env file for the listener process
-    const listenerEnvPath = path.join(__dirname, "temp-listener.env");
+    // Create a .env file for the listener process 
+    // private key is the first hardhat code key
+    const listenerEnvPath = path.join(__dirname, "../listener/.env");
     const envContent = `
       RPC_URL=http://127.0.0.1:8545
-      PRIVATE_KEY=${owner.privateKey}
+      PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
       ORACLE_CONTRACT_ADDRESS=${await mockOracle.getAddress()}
     `;
     fs.writeFileSync(listenerEnvPath, envContent);
 
-      // Start the listener process
+    console.log(`Test ${await mockOracle.getAddress()}`)
+
+    // Start the listener process
     console.log("Starting listener process...");
     // Instead of using the invalid private key from .env, 
     // we'll use the default Hardhat private key for testing
@@ -85,7 +88,9 @@ describe("OracleConnector + Listener.js Integration", function () {
     });
 
     // Wait for listener to boot up
+    console.log("Waiting for listener to start...");
     await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log('Listener Started')
   });
 
   after(async function() {
@@ -102,14 +107,14 @@ describe("OracleConnector + Listener.js Integration", function () {
     }
   });
 
-  it("should request flight data and receive oracle response via listener", async function() {
-    // Create a mock response handler for the flight API
-    // In a real test, you would set up a mock server or intercept the API calls
-    // For this test, we'll directly fulfill the oracle request
-    
+  it("should request flight data and receive oracle response via listener", async function() {    
     // Request flight data through the oracle connector
     console.log(`Requesting flight data for ${FLIGHT_NUMBER} departing at ${DEPARTURE_TIME}`);
+    
     const tx = await oracleConnector.requestFlightData(FLIGHT_NUMBER, DEPARTURE_TIME);
+    // Making sure event actually emitted
+    // const logs = await mockOracle.queryFilter("OracleRequest");
+    // console.log("OracleRequest logs:", logs);
     const receipt = await tx.wait();
     
     // Find the FlightDataRequested event
@@ -123,22 +128,20 @@ describe("OracleConnector + Listener.js Integration", function () {
     
     const requestId = requestEvent.args[0];
     console.log(`Request ID: ${requestId}`);
-    
-    // Wait for the listener to detect the event and fulfill the request
-    // In a real environment, the listener would call the API and get the real flight data
     console.log("Waiting for listener to process the request...");
     
-    // Mock the API call by directly fulfilling the request with our expected delay
-    // This simulates what would happen if we had a mock API server
-    console.log(`Simulating API response with ${EXPECTED_DELAY} minutes delay`);
-    await mockOracle.fulfillDataFromOffChain(requestId, EXPECTED_DELAY);
-    
     // Wait for the fulfillment to be processed
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 10000));
     
+    // check if any callback failure from mock oracle to oracle connector
+    const logs = await mockOracle.queryFilter("CallbackFailure");
+    console.log("TestCallback logs:", logs)
+
     // Check that the flight data was received and processed correctly
     console.log("Checking flight status...");
     const [dataReceived, isDelayed, delayHours] = await oracleConnector.checkFlightStatus(FLIGHT_NUMBER, DEPARTURE_TIME);
+
+    console.log(`Data Recieved ${dataReceived}, Delay Status ${isDelayed}, Delay Hours ${delayHours}`)
     
     expect(dataReceived).to.be.true;
     expect(isDelayed).to.be.true;
