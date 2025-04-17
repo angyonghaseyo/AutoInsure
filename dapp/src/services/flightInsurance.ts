@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { useWeb3 } from "../components/Web3Provider";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, FlightPolicyTemplateCreate, FlightPolicyTemplateUpdate } from "@/types/FlightPolicy";
+import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, FlightPolicyTemplateCreate, FlightPolicyTemplateUpdate } from "../types/FlightPolicy";
 
 export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
   return {
@@ -46,7 +46,7 @@ export function formatUserPolicy(raw: any): FlightUserPolicy {
 }
 
 export function useFlightInsurance() {
-  const { insurerContract, account } = useWeb3();
+  const { insurerContract } = useWeb3();
 
   // ====== Insurer Functions ======
   async function createFlightPolicyTemplate(
@@ -59,19 +59,18 @@ export function useFlightInsurance() {
     coverageDurationDays: number
   ): Promise<FlightPolicyTemplate> {
     const template: FlightPolicyTemplateCreate = {
-      name: name,
-      description: description,
+      name,
+      description,
       premium: premium.toString(),
       payoutPerHour: payoutPerHour.toString(),
-      delayThresholdHours: delayThresholdHours,
+      delayThresholdHours,
       maxTotalPayout: maxTotalPayout.toString(),
-      coverageDurationDays: coverageDurationDays,
+      coverageDurationDays,
     };
+
     const res = await fetch("/api/flightTemplates", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(template),
     });
     const templates = await res.json();
@@ -89,19 +88,18 @@ export function useFlightInsurance() {
     coverageDurationDays: number
   ): Promise<FlightPolicyTemplate> {
     const template: FlightPolicyTemplateUpdate = {
-      name: name,
-      description: description,
+      name,
+      description,
       premium: premium.toString(),
       payoutPerHour: payoutPerHour.toString(),
-      delayThresholdHours: delayThresholdHours,
+      delayThresholdHours,
       maxTotalPayout: maxTotalPayout.toString(),
-      coverageDurationDays: coverageDurationDays,
+      coverageDurationDays,
     };
+
     const res = await fetch(`/api/flightTemplates/${templateId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(template),
     });
     const templates = await res.json();
@@ -109,15 +107,11 @@ export function useFlightInsurance() {
   }
 
   async function deactivateFlightPolicyTemplate(templateId: string): Promise<void> {
-    const res = await fetch(`/api/flightTemplates/${templateId}`, {
+    await fetch(`/api/flightTemplates/${templateId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: FlightPolicyTemplateStatus.Deactivated }),
     });
-    const template = await res.json();
-    return template.data;
   }
 
   async function getAllFlightPolicyTemplates(): Promise<FlightPolicyTemplate[]> {
@@ -137,6 +131,12 @@ export function useFlightInsurance() {
     }
   }
 
+  async function getActiveFlightPolicyTemplates(): Promise<FlightPolicyTemplate[]> {
+    const res = await fetch(`/api/flightTemplates?status=${FlightPolicyTemplateStatus.Active}`);
+    const templates = await res.json();
+    return templates.data;
+  }
+
   async function getAllFlightPolicies(): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
     const rawPolicies = await insurerContract.getAllFlightPolicies();
@@ -154,10 +154,14 @@ export function useFlightInsurance() {
   ): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
 
-    const tx = await insurerContract.purchaseFlightPolicy(template, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, {
-      value: ethers.parseEther(premium),
-    });
-
+    const tx = await insurerContract.purchaseFlightPolicy(
+      template,
+      flightNumber,
+      departureAirportCode,
+      arrivalAirportCode,
+      departureTime,
+      { value: ethers.parseEther(premium) }
+    );
     await tx.wait();
     return tx.hash;
   }
@@ -197,22 +201,15 @@ export function useFlightInsurance() {
     }
   }
 
-  async function isFlightPolicyTemplateAllowedForPurchase(templates: FlightPolicyTemplate[]): Promise<boolean[]> {
-    if (!insurerContract) return [];
-    const isAllowed = await insurerContract.isFlightPolicyAllowedForPurchase(templates);
-    return isAllowed;
-  }
-
-  async function getActiveFlightPolicyTemplates(): Promise<FlightPolicyTemplate[]> {
-    const res = await fetch(`/api/flightTemplates?status=${FlightPolicyTemplateStatus.Active}`);
-    const templates = await res.json();
-    return templates.data;
-  }
-
   // ====== Utility Functions ======
   async function isInsurer(userAddress: string): Promise<boolean> {
     if (!insurerContract) return false;
     return await insurerContract.isInsurer(userAddress);
+  }
+
+  async function isFlightPolicyTemplateAllowedForPurchase(templates: FlightPolicyTemplate[]): Promise<boolean[]> {
+    if (!insurerContract) return [];
+    return await insurerContract.isFlightPolicyAllowedForPurchase(templates);
   }
 
   return {
@@ -221,13 +218,13 @@ export function useFlightInsurance() {
     deactivateFlightPolicyTemplate,
     getAllFlightPolicyTemplates,
     getFlightPolicyTemplateById,
+    getActiveFlightPolicyTemplates,
     getAllFlightPolicies,
     purchaseFlightPolicy,
     getUserFlightPolicies,
     getUserFlightPoliciesByTemplate,
     claimFlightPayout,
-    isFlightPolicyTemplateAllowedForPurchase,
-    getActiveFlightPolicyTemplates,
     isInsurer,
+    isFlightPolicyTemplateAllowedForPurchase,
   };
 }

@@ -20,7 +20,7 @@ contract FlightPolicy is ReentrancyGuard {
     }
 
     modifier atStatus(PolicyStatus status) {
-        require(userPolicies[nextUserPolicyId].status == status, "BaggagePolicy: Policy is not in the correct status");
+        require(userPolicies[nextUserPolicyId].status == status, "FlightPolicy: Policy is not in the correct status");
         _;
     }
 
@@ -76,20 +76,6 @@ contract FlightPolicy is ReentrancyGuard {
             results[i] = userPolicies[i];
         }
         return updateStatus(results);
-    }
-
-    // TODO: Cron job to mark policies as expired
-    function markPolicyAsExpired(uint256 policyId) atStatus(PolicyStatus.Active) external onlyInsurer {
-        require(policyId < nextUserPolicyId, "Invalid policyId");
-        
-        UserPolicy storage policy = userPolicies[policyId];
-        require(policy.status == PolicyStatus.Active, "Policy is not active");
-
-        uint256 expiryTime = policy.createdAt + (policy.template.coverageDurationDays * 1 days);
-
-        require(block.timestamp > expiryTime, "Policy has not expired yet");
-
-        policy.status = PolicyStatus.Expired;
     }
 
     // ====== User Functions ======
@@ -178,6 +164,7 @@ contract FlightPolicy is ReentrancyGuard {
         payable(policy.buyer).transfer(payout);
     }
 
+    // Update the status of policies based on their expiry
     function updateStatus(UserPolicy[] memory policies) internal view returns (UserPolicy[] memory) {
         for (uint256 i=0; i < policies.length; i++) {
             if (policies[i].status == PolicyStatus.Active) {
