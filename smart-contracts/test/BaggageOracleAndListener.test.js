@@ -120,11 +120,11 @@ describe("OracleConnector + Listener.js Integration for Baggage", function () {
 
     // Find the FlightDataRequested event
     const requestEvent = receipt.logs.find(
-          log => log.fragment && log.fragment.name === "BaggageDataRequest"
+          log => log.fragment && log.fragment.name === "BaggageDataRequested"
     );
         
     if (!requestEvent) {
-        throw new Error("BaggageDataRequest event not found in transaction logs");
+        throw new Error("BaggageDataRequested event not found in transaction logs");
     }
     
     const requestId = requestEvent.args[0];

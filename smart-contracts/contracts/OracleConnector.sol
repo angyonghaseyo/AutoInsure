@@ -72,7 +72,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     event FlightDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime);
     event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
 
-    event BaggageDataRequest(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription);
+    event BaggageDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription);
     event BaggageDataRecieved(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription, uint256 retrievedBaggageStatus);
     
     constructor(address _linkToken) Ownable() {
@@ -223,7 +223,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
                 flightDataStore[_flightNumber][_departureTime].departureTime = _departureTime;
             }
             
-            emit BaggageDataRequest(requestId, _flightNumber, _departureTime, _itemDescription);
+            emit BaggageDataRequested(requestId, _flightNumber, _departureTime, _itemDescription);
         }
         
         return requestId;
