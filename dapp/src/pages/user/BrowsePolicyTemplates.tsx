@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Typography, Modal, Spin, Alert } from "antd";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { FlightPolicyTemplate } from "@/types/FlightPolicy";
-import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
-import PurchasePolicy from "@/components/PurchasePolicy";
-import UserPolicyTemplateCard from "@/components/UserPolicyTemplateCard";
+import PurchasePolicy from "../../components/PurchasePolicy";
+import UserPolicyTemplateCard from "../../components/UserPolicyTemplateCard";
+import { useFlightInsurance } from "../../services/flightInsurance";
+import { useBaggageInsurance } from "../../services/baggageInsurance";
+import { FlightPolicyTemplate } from "../../types/FlightPolicy";
+import { BaggagePolicyTemplate } from "../../types/BaggagePolicy";
 
 const { Title, Paragraph } = Typography;
 

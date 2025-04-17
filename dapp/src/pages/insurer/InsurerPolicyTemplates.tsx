@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Button, Card, Col, Dropdown, Modal, Row, Select, Statistic, Typography, message } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { useWeb3 } from "@/components/Web3Provider";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
-import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
-import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
-import EditPolicyTemplate from "@/components/EditPolicyTemplate";
-import InsurerPolicyTemplateCard from "@/components/InsurerPolicyTemplateCard";
-import PolicyTemplateDrawer from "@/components/PolicyTemplateDrawer";
+import { useWeb3 } from "../../components/Web3Provider";
+import CreatePolicyTemplate from "../../components/CreatePolicyTemplate";
+import EditPolicyTemplate from "../../components/EditPolicyTemplate";
+import InsurerPolicyTemplateCard from "../../components/InsurerPolicyTemplateCard";
+import PolicyTemplateDrawer from "../../components/PolicyTemplateDrawer";
+import { useFlightInsurance } from "../../services/flightInsurance";
+import { useBaggageInsurance } from "../../services/baggageInsurance";
+import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "../../types/FlightPolicy";
+import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "../../types/BaggagePolicy";
 
 const { Title } = Typography;
 const { Option } = Select;

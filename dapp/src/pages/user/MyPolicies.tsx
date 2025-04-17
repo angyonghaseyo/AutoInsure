@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Alert, Modal, Select, message, Spin } from "antd";
+import { Card, Row, Col, Typography, Alert, Tag, Select, message, Spin } from "antd";
 import { WalletOutlined } from "@ant-design/icons";
 
-import { useWeb3 } from "@/components/Web3Provider";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { FlightPolicyStatus, FlightUserPolicy } from "@/types/FlightPolicy";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { BaggageUserPolicy } from "@/types/BaggagePolicy";
-import { getStatusTag } from "@/utils/utils";
-import { ViewPolicyModal } from "@/components/ViewPolicyModal";
+import { useWeb3 } from "../../components/Web3Provider";
+import ViewPolicyModal from "../../components/ViewPolicyModal";
+import { useFlightInsurance } from "../../services/flightInsurance";
+import { useBaggageInsurance } from "../../services/baggageInsurance";
+import { FlightPolicyStatus, FlightUserPolicy } from "../../types/FlightPolicy";
+import { BaggagePolicyStatus, BaggageUserPolicy } from "../../types/BaggagePolicy";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -27,13 +26,26 @@ const MyFlightPolicies = () => {
   const [selectedPolicy, setSelectedPolicy] = useState<FlightUserPolicy | BaggageUserPolicy>();
   const [type, setType] = useState<"flight" | "baggage">("flight");
 
+  const getStatusTag = (status: FlightPolicyStatus | BaggagePolicyStatus) => {
+    switch (status) {
+      case FlightPolicyStatus.Active | BaggagePolicyStatus.Active:
+        return <Tag color="green">Active</Tag>;
+      case FlightPolicyStatus.Claimed | BaggagePolicyStatus.Claimed:
+        return <Tag color="blue">Claimed</Tag>;
+      case FlightPolicyStatus.Expired | BaggagePolicyStatus.Expired:
+        return <Tag color="orange">Expired</Tag>;
+      default:
+        return <Tag color="gray">Unknown</Tag>;
+    }
+  };
+
   /**
    * Fetch policies for connected user
    */
   const fetchPolicies = async () => {
     if (!account) return;
+    setLoading(true);
     try {
-      setLoading(true);
       const flightPolicies = await getUserFlightPolicies(account);
       setFlightPolicies(flightPolicies);
       setFlightFiltered(flightPolicies);

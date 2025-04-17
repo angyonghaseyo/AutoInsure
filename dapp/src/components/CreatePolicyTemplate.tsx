@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { useFlightInsurance } from "../services/flightInsurance";
+import { useBaggageInsurance } from "../services/baggageInsurance";
 
 interface CreatePolicyTemplateProps {
   onClose: () => void;

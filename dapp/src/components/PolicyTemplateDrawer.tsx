@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Drawer, Statistic, Row, Col, Table } from "antd";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy } from "@/types/FlightPolicy";
-import { BaggagePolicyStatus, BaggagePolicyTemplate, BaggageUserPolicy } from "@/types/BaggagePolicy";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { useFlightInsurance } from "../services/flightInsurance";
+import { useBaggageInsurance } from "../services/baggageInsurance";
+import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy } from "../types/FlightPolicy";
+import { BaggagePolicyStatus, BaggagePolicyTemplate, BaggageUserPolicy } from "../types/BaggagePolicy";
 
 interface PolicyTemplateDrawerProps {
   policyTemplate: FlightPolicyTemplate | BaggagePolicyTemplate;

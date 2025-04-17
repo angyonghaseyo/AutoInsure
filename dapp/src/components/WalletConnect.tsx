@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Dropdown, Button, Statistic, Row, Col, Modal, Alert } from "antd";
-import { useWeb3, Role } from "./Web3Provider";
-import { ethers } from "ethers";
-import { DownOutlined, LogoutOutlined, WalletOutlined, PlusOutlined, MinusOutlined } from "@ant-design/icons";
-import DepositWithdraw from "./DepositWithdraw";
 import { useRouter } from "next/router";
+import { Dropdown, Button, Statistic, Row, Col, Modal, Alert } from "antd";
+import { DownOutlined, LogoutOutlined, WalletOutlined, PlusOutlined, MinusOutlined } from "@ant-design/icons";
+import { ethers } from "ethers";
+import DepositWithdraw from "./DepositWithdraw";
+import { useWeb3, Role } from "./Web3Provider";
 
 const WalletConnect = () => {
   const { account, isConnecting, connectWallet, disconnectWallet, provider, insurerContract, role } = useWeb3();
