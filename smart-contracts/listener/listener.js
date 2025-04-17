@@ -1,6 +1,6 @@
 require("dotenv").config();
 const fetch = require("node-fetch");
-const { JsonRpcProvider, Wallet, Contract } = require("ethers");
+const { ethers } = require("ethers");
 
 const abi = [
   "event OracleRequest(bytes32 indexed requestId, address indexed oracleAddress, string url, string path)",
@@ -8,45 +8,39 @@ const abi = [
 ];
 
 // Set up provider and signer
-const provider = new JsonRpcProvider(process.env.RPC_URL || "http://localhost:8545");
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || "http://localhost:8545");
 
-// Private key handling with better error checking
+
+// Set up wallet to be able to callback to mockoracle
 let wallet;
 try {
-  // Check if private key has 0x prefix, if not add it
-  const privateKey = process.env.PRIVATE_KEY.startsWith('0x') 
-    ? process.env.PRIVATE_KEY 
-    : `0x${process.env.PRIVATE_KEY}`;
-    
-  // Create wallet
-  wallet = new Wallet(privateKey, provider);
+  const privateKey = process.env.PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+  wallet = new ethers.Wallet(privateKey, provider);
   console.log(`Wallet configured with address: ${wallet.address}`);
 } catch (error) {
-  console.error("Error initializing wallet. Make sure PRIVATE_KEY is a valid Ethereum private key:");
+  console.error("Error initializing wallet. Make sure PRIVATE_KEY is valid.");
   console.error(error.message);
-  console.error("Using a random wallet for testing purposes instead");
-  // Generate a random wallet for testing as fallback
-  wallet = Wallet.createRandom().connect(provider);
+  wallet = ethers.Wallet.createRandom().connect(provider);
   console.log(`Using generated test wallet: ${wallet.address}`);
 }
 
-// Use string address for contract
+// contract address
 const contractAddress = process.env.ORACLE_CONTRACT_ADDRESS;
 if (!contractAddress) {
-  console.error("ORACLE_CONTRACT_ADDRESS environment variable is not set!");
+  console.error("ORACLE_CONTRACT_ADDRESS environment variable is not set.");
   process.exit(1);
 }
 
-const contract = new Contract(contractAddress, abi, wallet);
+// connect mock oracle, event emitted and wallet to callback with to make new contract
+const contract = new ethers.Contract(contractAddress, abi, wallet);
 
 console.log("Listening for OracleRequest events...");
 console.log(`Connected to RPC: ${process.env.RPC_URL}`);
 console.log(`Oracle contract address: ${contractAddress}`);
 
 async function handleOracleRequest(requestId, oracleAddress, url, path) {
-  console.log(`Handling OracleRequest for URL: ${url} with path ${path}`);
+  console.log(`Handling OracleRequest for URL: ${url} with path: ${path}`);
   try {
-    // For testing, allow timeout 
     const fetchTimeout = 10000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), fetchTimeout);
@@ -62,6 +56,7 @@ async function handleOracleRequest(requestId, oracleAddress, url, path) {
     console.log("-----");
 
     const data = json[path];
+    //const data = path.split('.').reduce((obj, key) => (obj || {})[key], json);
     
     // Verify we got a valid number from the API
     if (typeof data !== 'number') {
@@ -69,49 +64,58 @@ async function handleOracleRequest(requestId, oracleAddress, url, path) {
       return;
     }
 
-    console.log(`Submitting data: ${data} to contract for request ${requestId}`);
+    console.log(`Submitting data: ${data} back to mock oracle for request ${requestId}`);
     const tx = await contract.fulfillDataFromOffChain(requestId, data);
     console.log(`Transaction submitted: ${tx.hash}`);
-    
+
     const receipt = await tx.wait();
     console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
-    console.log("Data fulfilled on chain");
   } catch (err) {
     if (err.name === 'AbortError') {
-      console.error("API request timed out");
+      console.error("API request timed out.");
     } else {
       console.error("Error fulfilling:", err.message);
-      
-      // For testing purposes, we'll create a mock response
-      if (process.env.NODE_ENV === 'test') {
-        console.log("Running in test mode - sending mock response with 120 minutes delay");
-        try {
-          const mockData = 120;
-          const tx = await contract.fulfillDataFromOffChain(requestId, mockData);
-          console.log(`Mock data transaction submitted: ${tx.hash}`);
-        } catch (mockErr) {
-          console.error("Error sending mock data:", mockErr.message);
-        }
-      }
     }
   }
 }
 
-// Register the event listener
-contract.on("OracleRequest", handleOracleRequest);
+contract.on("OracleRequest", async (...args) => {
+  //console.log("Raw OracleRequest event args:", args);
 
-// In ethers.js v6, we need to handle errors differently
-// Instead of listening for "error" events (which isn't in our ABI)
-// we can use a general process error handler
+  const event = args[args.length - 1];
+  if (!event || !event.args) {
+    console.log("Event object missing or args not available");
+    return;
+  }
+
+  const { requestId, oracleAddress, url, path } = event.args;
+  console.log("OracleRequest event received");
+  console.log("Request ID:", requestId);
+  console.log("URL:", url);
+  console.log("Path:", path);
+
+  try {
+    await handleOracleRequest(requestId, oracleAddress, url, path);
+  } catch (e) {
+    console.error("Listener handler error:", e);
+  }
+});
+
+
+
+console.log("Listener is fully initialized and ready");
+
 process.on('uncaughtException', (error) => {
   console.error("Uncaught exception:", error.message);
 });
 
-// Keep the process running
 process.on('SIGINT', () => {
   console.log('Shutting down listener...');
   process.exit(0);
 });
+
+// Keep process running
+setInterval(() => {}, 1 << 30);
 
 // Export for testing
 module.exports = handleOracleRequest;
