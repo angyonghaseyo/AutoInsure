@@ -3,10 +3,10 @@ import { Card, Form, Input, Button, DatePicker, TimePicker, message } from "antd
 import { DollarOutlined, CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { FlightPolicyTemplate } from "@/types/FlightPolicy";
-import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
+import { useFlightInsurance } from "../services/flightInsurance";
+import { useBaggageInsurance } from "../services/baggageInsurance";
+import { FlightPolicyTemplate } from "../types/FlightPolicy";
+import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
 
 // Extend dayjs to use the UTC plugin
 dayjs.extend(utc);

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { FlightPolicyTemplate } from "@/types/FlightPolicy";
-import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
+import { useFlightInsurance } from "../services/flightInsurance";
+import { useBaggageInsurance } from "../services/baggageInsurance";
+import { FlightPolicyTemplate } from "../types/FlightPolicy";
+import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
 
 /**
  * Props for EditPolicyTemplate component.

@@ -9,7 +9,7 @@ type ViewPolicyModalProps = {
   onCancel: () => void;
 };
 
-export const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps) => {
+const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps) => {
   return (
     <>
       {/* Optional Modal to show more details (can link to ViewPolicy component) */}
@@ -105,3 +105,5 @@ export const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps
     </>
   );
 };
+
+export default ViewPolicyModal;

@@ -1,7 +1,7 @@
-import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
-import { DollarOutlined, ClockCircleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { Button, Card, Tag } from "antd";
+import { DollarOutlined, ClockCircleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "../types/FlightPolicy";
+import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "../types/BaggagePolicy";
 
 type TemplateCardProps = {
   template: FlightPolicyTemplate | BaggagePolicyTemplate;

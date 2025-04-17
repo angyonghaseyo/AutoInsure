@@ -1,7 +1,7 @@
 import { Layout, Menu } from "antd";
-import { useRouter } from "next/router";
-import WalletConnect from "../components/WalletConnect";
 import Link from "next/link";
+import { useRouter } from "next/router";
+import WalletConnect from "./WalletConnect";
 import { useWeb3, Role } from "./Web3Provider";
 
 const { Header } = Layout;
