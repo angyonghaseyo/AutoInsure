@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
-import { useFlightInsurance } from "../services/flightInsurance";
-import { useBaggageInsurance } from "../services/baggageInsurance";
-
+import { useFlightInsurance } from "@/services/flightInsurance";
+import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { convertDaysToSeconds } from "@/utils/utils";
 interface CreatePolicyTemplateProps {
   onClose: () => void;
   onUpdate: () => void;
@@ -27,28 +27,12 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
       const { name, description, premium, maxTotalPayout, coverageDurationDays } = values;
       if (type === "flight") {
         const { payoutPerHour, delayThresholdHours } = values;
-        await createFlightPolicyTemplate(
-          name,
-          description,
-          premium,
-          payoutPerHour,
-          maxTotalPayout,
-          delayThresholdHours,
-          coverageDurationDays
-        );
+        await createFlightPolicyTemplate(name, description, premium, payoutPerHour, maxTotalPayout, delayThresholdHours, convertDaysToSeconds(coverageDurationDays));
       }
 
       if (type === "baggage") {
         const { payoutIfDelayed, payoutIfLost } = values;
-        await createBaggagePolicyTemplate(
-          name,
-          description,
-          premium,
-          payoutIfDelayed,
-          payoutIfLost,
-          maxTotalPayout,
-          coverageDurationDays
-        );
+        await createBaggagePolicyTemplate(name, description, premium, payoutIfDelayed, payoutIfLost, maxTotalPayout, convertDaysToSeconds(coverageDurationDays));
       }
 
       setSuccess("Template successfully added!");

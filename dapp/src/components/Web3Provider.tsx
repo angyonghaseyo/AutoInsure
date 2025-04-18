@@ -112,6 +112,7 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     try {
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       setAccount(accounts[0]);
+
       await setProviderSignerChainId();
     } catch (error) {
       console.error("Error connecting wallet:", error);
@@ -259,7 +260,23 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   }, []);
 
   return (
-    <Web3Context.Provider value={{ provider, signer, account, chainId, baggagePolicyContract, flightPolicyContract, insurerContract, oracleConnectorContract, isConnecting, connectWallet, disconnectWallet, network, role }}>
+    <Web3Context.Provider
+      value={{
+        provider,
+        signer,
+        account,
+        chainId,
+        baggagePolicyContract,
+        flightPolicyContract,
+        insurerContract,
+        oracleConnectorContract,
+        isConnecting,
+        connectWallet,
+        disconnectWallet,
+        network,
+        role,
+      }}
+    >
       {children}
     </Web3Context.Provider>
   );

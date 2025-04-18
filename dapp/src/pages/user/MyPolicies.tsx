@@ -8,6 +8,7 @@ import { useFlightInsurance } from "../../services/flightInsurance";
 import { useBaggageInsurance } from "../../services/baggageInsurance";
 import { FlightPolicyStatus, FlightUserPolicy } from "../../types/FlightPolicy";
 import { BaggagePolicyStatus, BaggageUserPolicy } from "../../types/BaggagePolicy";
+import { getStatusTag } from "@/utils/utils";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -25,19 +26,6 @@ const MyFlightPolicies = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPolicy, setSelectedPolicy] = useState<FlightUserPolicy | BaggageUserPolicy>();
   const [type, setType] = useState<"flight" | "baggage">("flight");
-
-  const getStatusTag = (status: FlightPolicyStatus | BaggagePolicyStatus) => {
-    switch (status) {
-      case FlightPolicyStatus.Active | BaggagePolicyStatus.Active:
-        return <Tag color="green">Active</Tag>;
-      case FlightPolicyStatus.Claimed | BaggagePolicyStatus.Claimed:
-        return <Tag color="blue">Claimed</Tag>;
-      case FlightPolicyStatus.Expired | BaggagePolicyStatus.Expired:
-        return <Tag color="orange">Expired</Tag>;
-      default:
-        return <Tag color="gray">Unknown</Tag>;
-    }
-  };
 
   /**
    * Fetch policies for connected user

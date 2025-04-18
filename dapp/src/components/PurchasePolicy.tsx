@@ -7,7 +7,7 @@ import { useFlightInsurance } from "../services/flightInsurance";
 import { useBaggageInsurance } from "../services/baggageInsurance";
 import { FlightPolicyTemplate } from "../types/FlightPolicy";
 import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
-
+import { convertSecondsToDays } from "@/utils/utils";
 // Extend dayjs to use the UTC plugin
 dayjs.extend(utc);
 
@@ -58,15 +58,15 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
       } else if (type === "baggage") {
         const baggageTemplate = selectedTemplate as BaggagePolicyTemplate;
         await purchaseBaggagePolicy(baggageTemplate, itemDescription, selectedTemplate.premium);
-        
+
         message.success(`${type} Policy "${baggageTemplate.name}" purchased successfully!`);
         onClose();
       }
 
       form.resetFields();
     } catch (err: any) {
-      console.error("❌ Purchase failed:", err);
-      message.error(err?.message || "An error occurred while purchasing the policy.");
+      console.error("Purchase failed:", err);
+      setError(err?.message || "An error occurred while purchasing the policy.");
     } finally {
       setIsLoading(false);
     }
@@ -109,12 +109,20 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
         )}
 
         {/* Policy Info (readonly) */}
+        <Form.Item label="Premium">
+          <Input prefix={<DollarOutlined />} value={`${selectedTemplate.premium} ETH`} disabled />
+        </Form.Item>
+
+        <Form.Item label="Coverage Duration">
+          <Input prefix={<ClockCircleOutlined />} value={`${convertSecondsToDays(selectedTemplate.coverageDurationSeconds).toPrecision(1)} days`} disabled />
+        </Form.Item>
+
+        <Form.Item label="Max Total Payout">
+          <Input prefix={<DollarOutlined />} value={`${selectedTemplate.maxTotalPayout} ETH`} disabled />
+        </Form.Item>
+
         {type === "baggage" && (
           <>
-            <Form.Item label="Premium">
-              <Input prefix={<DollarOutlined />} value={`${selectedTemplate.premium} ETH`} disabled />
-            </Form.Item>
-
             <Form.Item label="Payout If Delayed">
               <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as BaggagePolicyTemplate).payoutIfDelayed} ETH`} disabled />
             </Form.Item>
@@ -122,37 +130,17 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
             <Form.Item label="Payout If Lost">
               <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as BaggagePolicyTemplate).payoutIfLost} ETH`} disabled />
             </Form.Item>
-
-            <Form.Item label="Max Total Payout">
-              <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as BaggagePolicyTemplate).maxTotalPayout} ETH`} disabled />
-            </Form.Item>
-
-            <Form.Item label="Coverage Duration">
-              <Input prefix={<ClockCircleOutlined />} value={`${(selectedTemplate as BaggagePolicyTemplate).coverageDurationDays} days`} disabled />
-            </Form.Item>
           </>
         )}
 
         {type === "flight" && (
           <>
-            <Form.Item label="Premium">
-              <Input prefix={<DollarOutlined />} value={`${selectedTemplate.premium} ETH`} disabled />
-            </Form.Item>
-
             <Form.Item label="Payout Per Hour">
               <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as FlightPolicyTemplate).payoutPerHour} ETH`} disabled />
             </Form.Item>
 
-            <Form.Item label="Max Total Payout">
-              <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as FlightPolicyTemplate).maxTotalPayout} ETH`} disabled />
-            </Form.Item>
-
             <Form.Item label="Delay Threshold">
               <Input prefix={<ClockCircleOutlined />} value={`${(selectedTemplate as FlightPolicyTemplate).delayThresholdHours} hrs`} disabled />
-            </Form.Item>
-
-            <Form.Item label="Coverage Duration">
-              <Input prefix={<ClockCircleOutlined />} value={`${(selectedTemplate as FlightPolicyTemplate).coverageDurationDays} days`} disabled />
             </Form.Item>
           </>
         )}

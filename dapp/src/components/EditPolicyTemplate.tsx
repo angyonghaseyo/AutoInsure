@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
-import { useFlightInsurance } from "../services/flightInsurance";
-import { useBaggageInsurance } from "../services/baggageInsurance";
-import { FlightPolicyTemplate } from "../types/FlightPolicy";
-import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
+import { useFlightInsurance } from "@/services/flightInsurance";
+import { FlightPolicyTemplate } from "@/types/FlightPolicy";
+import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
+import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { convertDaysToSeconds, convertSecondsToDays } from "@/utils/utils";
 
-/**
- * Props for EditPolicyTemplate component.
- * onClose: callback to close modal or drawer
- * onUpdate: callback to refresh the template list after editing
- */
 interface EditPolicyTemplateProps {
   policyTemplate: FlightPolicyTemplate | BaggagePolicyTemplate;
   type: "flight" | "baggage";
@@ -44,7 +40,7 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: EditPol
           values.payoutPerHour,
           values.maxTotalPayout,
           values.delayThresholdHours,
-          values.coverageDurationDays
+          convertDaysToSeconds(values.coverageDurationDays)
         );
       } else if (type === "baggage") {
         await editBaggagePolicyTemplate(
@@ -55,10 +51,9 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: EditPol
           values.payoutIfDelayed,
           values.payoutIfLost,
           values.maxTotalPayout,
-          values.coverageDurationDays
+          convertDaysToSeconds(values.coverageDurationDays)
         );
       }
-
       setSuccess(`${type === "flight" ? "Flight" : "Baggage"} template successfully edited!`);
       onClose();
       onUpdate();
@@ -121,7 +116,12 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: EditPol
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item name="coverageDurationDays" label="Coverage Duration" rules={[{ required: true }]}>
+        <Form.Item
+          name="coverageDurationDays"
+          label="Coverage Duration"
+          rules={[{ required: true }]}
+          initialValue={convertSecondsToDays(policyTemplate.coverageDurationSeconds).toPrecision(1)}
+        >
           <InputNumber min={0} addonAfter="days" style={{ width: "100%" }} />
         </Form.Item>
 

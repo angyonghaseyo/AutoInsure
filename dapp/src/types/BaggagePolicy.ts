@@ -19,7 +19,7 @@ export interface BaggagePolicyTemplate {
   payoutIfDelayed: string;
   payoutIfLost: string;
   maxTotalPayout: string;
-  coverageDurationDays: number;
+  coverageDurationSeconds: number;
   status: BaggagePolicyTemplateStatus;
 }
 

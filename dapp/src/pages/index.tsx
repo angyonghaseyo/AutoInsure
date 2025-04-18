@@ -44,12 +44,7 @@ const HomePage = () => {
 
         {account ? (
           <Link href={getPolicyRedirectRoute()}>
-            <Button
-              type="primary"
-              size="large"
-              icon={<ArrowRightOutlined />}
-              className="animate-pulse bg-blue-500 border-none text-white shadow-lg hover:bg-blue-600"
-            >
+            <Button type="primary" size="large" icon={<ArrowRightOutlined />} className="animate-pulse bg-blue-500 border-none text-white shadow-lg hover:bg-blue-600">
               {role === Role.Insurer ? "Manage Policies" : "View My Policies"}
             </Button>
           </Link>
@@ -64,15 +59,7 @@ const HomePage = () => {
             >
               Get Started
             </Button>
-            {showConnectError && (
-              <Alert
-                message="Connection Error"
-                description="Unable to connect to your wallet. Please try again."
-                type="error"
-                showIcon
-                className="mt-4"
-              />
-            )}
+            {showConnectError && <Alert message="Connection Error" description="Unable to connect to your wallet. Please try again." type="error" showIcon className="mt-4" />}
           </>
         )}
       </div>
@@ -85,18 +72,14 @@ const HomePage = () => {
       </Divider>
 
       <div className="py-20 bg-gray-100 text-center">
-        <Paragraph className="text-lg text-gray-600">
-          Our decentralized travel insurance platform makes protecting your travels simple and transparent.
-        </Paragraph>
+        <Paragraph className="text-lg text-gray-600">Our decentralized travel insurance platform makes protecting your travels simple and transparent.</Paragraph>
 
         <Row gutter={[32, 32]} justify="center">
           {/* Flight Delay Section */}
           <Col xs={24} md={8}>
             <Card title="Flight Delay" className="custom-card bg-white text-black hover:shadow-xl">
               <CloudOutlined style={{ fontSize: 60, color: "#40A9FF" }} />
-              <Paragraph>
-                Protect yourself from flight delays. If your flight is delayed beyond the threshold, you can claim a payout directly to your wallet.
-              </Paragraph>
+              <Paragraph>Protect yourself from flight delays. If your flight is delayed beyond the threshold, you can claim a payout directly to your wallet.</Paragraph>
             </Card>
           </Col>
 
