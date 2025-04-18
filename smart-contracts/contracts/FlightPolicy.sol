@@ -22,7 +22,7 @@ contract FlightPolicy is ReentrancyGuard {
     }
 
     modifier atStatus(PolicyStatus status) {
-        require(userPolicies[nextUserPolicyId].status == status, "BaggagePolicy: Policy is not in the correct status");
+        require(userPolicies[nextUserPolicyId].status == status, "FlightPolicy: Policy is not in the correct status");
         _;
     }
 
@@ -69,6 +69,9 @@ contract FlightPolicy is ReentrancyGuard {
     mapping(address => uint256[]) public userPolicyIds;
     uint256 public nextUserPolicyId;
 
+    // Emitted once a payout is really sent
+    event PayoutClaimed(uint256 indexed policyId, address indexed buyer, uint256 amount);
+
     // ====== Insurer Functions ======
     // View all purchased policies
     function getAllPolicies(uint256 currentTime) external view returns (UserPolicy[] memory) {
@@ -79,9 +82,9 @@ contract FlightPolicy is ReentrancyGuard {
         }
         return updateStatus(results, currentTime);
     }
-
+    
     // TODO: Cron job to mark policies as expired
-    function markPolicyAsExpired(uint256 policyId) atStatus(PolicyStatus.Active) external onlyInsurer {
+    function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
         require(policyId < nextUserPolicyId, "Invalid policyId");
         
         UserPolicy storage policy = userPolicies[policyId];
@@ -98,7 +101,7 @@ contract FlightPolicy is ReentrancyGuard {
     // Purchase a policy based on a template
     function purchasePolicy(PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime, address buyer) external payable returns (uint256) {
         require(template.status == PolicyTemplateStatus.Active, "Policy template is not active");
-        require(departureTime > block.timestamp, "Departure time must be in the future");
+        // require(departureTime > block.timestamp, "Departure time must be in the future");
         require(msg.value >= template.premium, "Insufficient premium sent");
 
         uint256 policyId = nextUserPolicyId++;
@@ -153,18 +156,14 @@ contract FlightPolicy is ReentrancyGuard {
     // Claim a policy and give payout based on flight delay
     function claimPayout(uint256 policyId, address buyer) external nonReentrant {
         require(policyId < nextUserPolicyId, "Invalid policyId");
-
-        UserPolicy[] memory policies = new UserPolicy[](1);
-        policies[0] = userPolicies[policyId];              
-        UserPolicy[] memory updated = updateStatus(policies, block.timestamp); 
-        UserPolicy memory policy = updated[0];           
+        UserPolicy storage policy = userPolicies[policyId];   
         require(buyer == policy.buyer, "Not policy owner");
         require(policy.status == PolicyStatus.Active, "Policy not active");
 
-        string memory departureTimeStr = Strings.toString(policy.departureTime);
-
-        (bool dataReceived, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, departureTimeStr);
+        (bool dataReceived, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, Strings.toString(policy.departureTime));
         
+        // if oracle hasn’t yet returned data, we revert with this special code
+        require(dataReceived, "ORACLE_PENDING");
         require(isDelayed, "Flight not delayed");
 
         uint256 payout = delayHours * policy.template.payoutPerHour;
@@ -179,8 +178,11 @@ contract FlightPolicy is ReentrancyGuard {
         policy.payoutToDate = payout;
 
         payable(policy.buyer).transfer(payout);
+
+        emit PayoutClaimed(policyId, policy.buyer, payout);
     }
 
+    // Update the status of policies based on their expiry
     function updateStatus(UserPolicy[] memory policies, uint256 currentTime) internal pure returns (UserPolicy[] memory) {
         for (uint256 i=0; i < policies.length; i++) {
             if (policies[i].status == PolicyStatus.Active) {

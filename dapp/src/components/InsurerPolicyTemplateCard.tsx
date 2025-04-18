@@ -12,15 +12,17 @@ type TemplateCardProps = {
   onDelete: () => void;
 };
 
-export const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, onEdit }: TemplateCardProps) => {
+const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, onEdit }: TemplateCardProps) => {
   /**
    * Maps a policy template status to tag color.
    */
   const getStatusColor = (status: FlightPolicyTemplateStatus | BaggagePolicyTemplateStatus): string => {
     switch (status) {
-      case FlightPolicyTemplateStatus.Active | BaggagePolicyTemplateStatus.Active:
+      case FlightPolicyTemplateStatus.Active:
+      case BaggagePolicyTemplateStatus.Active:
         return "green";
-      case FlightPolicyTemplateStatus.Deactivated | BaggagePolicyTemplateStatus.Deactivated:
+      case FlightPolicyTemplateStatus.Deactivated:
+      case BaggagePolicyTemplateStatus.Deactivated:
         return "red";
       default:
         return "gray";
@@ -87,9 +89,10 @@ export const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, on
         flexDirection: "column",
         justifyContent: "space-between",
       }}
-      extra={<Tag color={getStatusColor(template.status)}>{FlightPolicyTemplateStatus[template.status]}</Tag>}
+      extra={<Tag color={getStatusColor(template.status)}>{template.status === FlightPolicyTemplateStatus.Active ? "Active" : "Deactivated"}</Tag>}
     >
       {showTemplate(template)}
+
       <div
         style={{
           marginTop: "auto",
@@ -98,16 +101,18 @@ export const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, on
           flexWrap: "wrap",
         }}
       >
-        <Button icon={<EyeOutlined />} onClick={() => onView()} style={{ flex: 1 }}>
+        <Button icon={<EyeOutlined />} onClick={onView} style={{ flex: 1 }}>
           View Purchased Policies
         </Button>
-        <Button onClick={() => onEdit()} disabled={isDisabled(template.status)} style={{ flex: 1 }}>
+        <Button onClick={onEdit} disabled={isDisabled(template.status)} style={{ flex: 1 }}>
           Edit Template
         </Button>
-        <Button danger icon={<DeleteOutlined />} onClick={() => onDelete()} disabled={isDisabled(template.status)} style={{ flex: 1 }}>
+        <Button danger icon={<DeleteOutlined />} onClick={onDelete} disabled={isDisabled(template.status)} style={{ flex: 1 }}>
           Deactivate
         </Button>
       </div>
     </Card>
   );
 };
+
+export default InsurerPolicyTemplateCard;

@@ -44,4 +44,4 @@ export type FlightPolicyTemplateUpdate = Partial<FlightPolicyTemplate>;
 /**
  * Policy create interface with required fields
  */
-export type FlightPolicyTemplateCreate = Omit<FlightPolicyTemplate, "createdAt" | "updatedAt" | "templateId" | "status">;
+export type FlightPolicyTemplateCreate = Omit<FlightPolicyTemplate, "templateId" | "createdAt" | "updatedAt" | "status">;

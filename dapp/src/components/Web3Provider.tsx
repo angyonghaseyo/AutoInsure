@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { ethers } from "ethers";
 import { Web3Provider as EthersWeb3Provider } from "@ethersproject/providers";
-import InsurerABI from "../utils/abis/Insurer.json";
+import BaggagePolicyABI from "../utils/abis/BaggagePolicy.json";
 import FlightPolicyABI from "../utils/abis/FlightPolicy.json";
+import InsurerABI from "../utils/abis/Insurer.json";
+import OracleConnectorABI from "../utils/abis/OracleConnector.json";
 import contractAddresses from "../utils/contractAddresses.json";
 
 // Extend the Window interface to recognize `ethereum` injected by MetaMask
@@ -23,15 +25,14 @@ interface Web3ContextType {
   signer: ethers.Signer | null;
   account: string | null;
   chainId: number | null;
-  insurerContract: ethers.Contract | null;
+  baggagePolicyContract: ethers.Contract | null;
   flightPolicyContract: ethers.Contract | null;
+  insurerContract: ethers.Contract | null;
+  oracleConnectorContract: ethers.Contract | null;
   isConnecting: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  network: {
-    name: string;
-    isSupported: boolean;
-  };
+  network: { name: string; isSupported: boolean };
   role: Role | null;
 }
 
@@ -64,8 +65,10 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [insurerContract, setInsurerContract] = useState<ethers.Contract | null>(null);
+  const [baggagePolicyContract, setBaggagePolicyContract] = useState<ethers.Contract | null>(null);
   const [flightPolicyContract, setFlightPolicyContract] = useState<ethers.Contract | null>(null);
+  const [insurerContract, setInsurerContract] = useState<ethers.Contract | null>(null);
+  const [oracleConnectorContract, setOracleConnectorContract] = useState<ethers.Contract | null>(null);
   const [role, setRole] = useState<Role | null>(null);
 
   // Compute network name and support status
@@ -78,12 +81,22 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   );
 
   const setProviderSignerChainId = async () => {
-    const web3Provider = new ethers.BrowserProvider(window.ethereum);
-    const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
-    const networkChainId = parseInt(chainIdHex, 16);
-    setProvider(web3Provider as unknown as EthersWeb3Provider);
-    setSigner(await web3Provider.getSigner());
-    setChainId(networkChainId);
+    // Check if window.ethereum exists
+    if (!window.ethereum) {
+      console.error("No Ethereum provider detected. Please install MetaMask or another Web3 wallet.");
+      return;
+    }
+
+    try {
+      const web3Provider = new ethers.BrowserProvider(window.ethereum);
+      const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
+      const networkChainId = parseInt(chainIdHex, 16);
+      setProvider(web3Provider as unknown as EthersWeb3Provider);
+      setSigner(await web3Provider.getSigner());
+      setChainId(networkChainId);
+    } catch (error) {
+      console.error("Error setting up Web3 provider:", error);
+    }
   };
 
   // Connect wallet via MetaMask
@@ -99,7 +112,8 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     try {
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       setAccount(accounts[0]);
-      setProviderSignerChainId();
+
+      await setProviderSignerChainId();
     } catch (error) {
       console.error("Error connecting wallet:", error);
     } finally {
@@ -112,7 +126,10 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
    */
   useEffect(() => {
     const autoConnect = async () => {
-      if (!window.ethereum) return;
+      if (!window.ethereum) {
+        console.log("No Ethereum provider found. Please install MetaMask.");
+        return;
+      }
 
       if (localStorage.getItem("wallet-disconnected") === "true") return;
 
@@ -122,7 +139,7 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
         // If there is a connected account, proceed to connect
         if (accounts.length > 0) {
           setAccount(accounts[0]);
-          setProviderSignerChainId();
+          await setProviderSignerChainId();
         }
       } catch (err) {
         console.error("🔁 Auto-connect failed:", err);
@@ -140,8 +157,10 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     setSigner(null);
     setAccount(null);
     setChainId(null);
-    setInsurerContract(null);
+    setBaggagePolicyContract(null);
     setFlightPolicyContract(null);
+    setInsurerContract(null);
+    setOracleConnectorContract(null);
     setRole(null);
   }, []);
 
@@ -166,18 +185,30 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     if (provider && signer && chainId) {
       const addresses = contractAddresses[String(chainId) as keyof typeof contractAddresses] || {};
 
-      if (addresses.Insurer) {
-        const insurer = new ethers.Contract(addresses.Insurer, InsurerABI.abi, signer);
-        setInsurerContract(insurer);
+      if (addresses.BaggagePolicy) {
+        const baggagePolicy = new ethers.Contract(addresses.BaggagePolicy, BaggagePolicyABI.abi, signer);
+        setBaggagePolicyContract(baggagePolicy);
       }
 
       if (addresses.FlightPolicy) {
         const policy = new ethers.Contract(addresses.FlightPolicy, FlightPolicyABI.abi, signer);
         setFlightPolicyContract(policy);
       }
+
+      if (addresses.Insurer) {
+        const insurer = new ethers.Contract(addresses.Insurer, InsurerABI.abi, signer);
+        setInsurerContract(insurer);
+      }
+
+      if (addresses.OracleConnector) {
+        const oracleConnector = new ethers.Contract(addresses.OracleConnector, OracleConnectorABI.abi, signer);
+        setOracleConnectorContract(oracleConnector);
+      }
     } else {
-      setInsurerContract(null);
+      setBaggagePolicyContract(null);
       setFlightPolicyContract(null);
+      setInsurerContract(null);
+      setOracleConnectorContract(null);
     }
   }, [provider, signer, chainId]);
 
@@ -187,7 +218,9 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
   }, [fetchUserRole]);
 
   useEffect(() => {
-    setProviderSignerChainId();
+    if (account) {
+      setProviderSignerChainId();
+    }
   }, [account]);
 
   // Handle account changes (MetaMask)
@@ -209,8 +242,41 @@ const Web3Provider = ({ children }: Web3ProviderProps) => {
     };
   }, [fetchUserRole, disconnectWallet]);
 
+  // Handle chain/network changes
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const handleChainChanged = (chainIdHex: string) => {
+      const newChainId = parseInt(chainIdHex, 16);
+      setChainId(newChainId);
+      // Refresh the page to ensure all contracts are properly initialized
+      window.location.reload();
+    };
+
+    window.ethereum.on("chainChanged", handleChainChanged);
+    return () => {
+      window.ethereum.removeListener("chainChanged", handleChainChanged);
+    };
+  }, []);
+
   return (
-    <Web3Context.Provider value={{ provider, signer, account, chainId, insurerContract, flightPolicyContract, isConnecting, connectWallet, disconnectWallet, network, role }}>
+    <Web3Context.Provider
+      value={{
+        provider,
+        signer,
+        account,
+        chainId,
+        baggagePolicyContract,
+        flightPolicyContract,
+        insurerContract,
+        oracleConnectorContract,
+        isConnecting,
+        connectWallet,
+        disconnectWallet,
+        network,
+        role,
+      }}
+    >
       {children}
     </Web3Context.Provider>
   );

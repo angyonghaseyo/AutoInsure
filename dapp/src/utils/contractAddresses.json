@@ -1,42 +1,12 @@
 {
-  "1": {
-    "MockLinkToken": "",
-    "MockOracle": "",
-    "OracleConnector": "",
-    "FlightPolicy": "",
-    "BaggagePolicy": "",
-    "Insurer": ""
-  },
-  "137": {
-    "MockLinkToken": "",
-    "MockOracle": "",
-    "OracleConnector": "",
-    "FlightPolicy": "",
-    "BaggagePolicy": "",
-    "Insurer": ""
-  },
   "31337": {
-    "MockLinkToken": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
-    "MockOracle": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-    "OracleConnector": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
-    "FlightPolicy": "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
-    "BaggagePolicy": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
-    "Insurer": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed"
-  },
-  "80001": {
-    "MockLinkToken": "",
-    "MockOracle": "",
-    "OracleConnector": "",
-    "FlightPolicy": "",
-    "BaggagePolicy": "",
-    "Insurer": ""
-  },
-  "11155111": {
-    "MockLinkToken": "",
-    "MockOracle": "",
-    "OracleConnector": "",
-    "FlightPolicy": "",
-    "BaggagePolicy": "",
-    "Insurer": ""
+    "MockLinkToken": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
+    "MockOracle": "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+    "MockOracle2": "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
+    "MockOracle3": "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+    "OracleConnector": "0x851356ae760d987E095750cCeb3bC6014560891C",
+    "FlightPolicy": "0xf5059a5D33d5853360D16C683c16e67980206f36",
+    "BaggagePolicy": "0x95401dc811bb5740090279Ba06cfA8fcF6113778",
+    "Insurer": "0x998abeb3E57409262aE5b751f60747921B33613E"
   }
 }

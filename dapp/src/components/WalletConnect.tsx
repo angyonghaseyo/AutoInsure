@@ -1,27 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { Dropdown, Button, Space, Statistic, Row, Col, Modal } from "antd";
-import { useWeb3, Role } from "./Web3Provider";
-import { ethers } from "ethers";
-import { DownOutlined, LogoutOutlined, LinkOutlined, WalletOutlined, PlusOutlined, MinusOutlined } from "@ant-design/icons";
-import DepositWithdraw from "./DepositWithdraw";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
+import { Dropdown, Button, Statistic, Row, Col, Modal, Alert } from "antd";
+import { DownOutlined, LogoutOutlined, WalletOutlined, PlusOutlined, MinusOutlined } from "@ant-design/icons";
+import { ethers } from "ethers";
+import DepositWithdraw from "./DepositWithdraw";
+import { useWeb3, Role } from "./Web3Provider";
 
-const WalletConnect: React.FC = () => {
-  const { account, chainId, isConnecting, connectWallet, disconnectWallet, network, provider, insurerContract, role } = useWeb3();
+const WalletConnect = () => {
+  const { account, isConnecting, connectWallet, disconnectWallet, provider, insurerContract, role } = useWeb3();
   const [walletBalance, setWalletBalance] = useState("0");
   const [contractBalance, setContractBalance] = useState("0");
   const [showDepositWithdrawModal, setShowDepositWithdrawModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const router = useRouter();
-
   const [modalType, setModalType] = useState<"deposit" | "withdraw">("deposit");
+  const [showConnectError, setShowConnectError] = useState(false);
+  const router = useRouter();
 
   // Fetch wallet balance using ethers.js
   const fetchWalletBalance = async () => {
     if (provider && account) {
       const balance = await provider.getBalance(account);
-      setWalletBalance(ethers.formatEther(balance));
-      console.log(`Wallet balance: ${ethers.formatEther(balance)} ETH`);
+      setWalletBalance(ethers.formatEther(balance.toString()));
     }
   };
 
@@ -30,7 +29,6 @@ const WalletConnect: React.FC = () => {
     if (insurerContract) {
       const balance = await insurerContract.getContractBalance();
       setContractBalance(ethers.formatEther(balance));
-      console.log(`Contract balance: ${ethers.formatEther(balance)} ETH`);
     }
   };
 
@@ -41,11 +39,12 @@ const WalletConnect: React.FC = () => {
         fetchContractBalance();
       }
     }
-  }, [account, insurerContract, provider]);
+  }, [account, provider, insurerContract, role]);
 
   const shortenAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
 
-  const userMenuItems = [
+  // Menu items for users and insurers
+  const userMenuItems = useMemo(() => [
     {
       key: "walletStatistic",
       label: (
@@ -71,19 +70,18 @@ const WalletConnect: React.FC = () => {
         </Button>
       ),
     },
-  ];
+  ], [walletBalance, disconnectWallet, router]);
 
-  const insurerMenuItems = [
+  const insurerMenuItems = useMemo(() => [
     {
       key: "statistics",
       label: (
         <div style={{ padding: "10px", textAlign: "center", cursor: "default" }}>
-          {/* Statistics Row */}
           <Row gutter={16} justify="center">
-            <Col span={12} style={{ textAlign: "center" }}>
+            <Col span={12}>
               <Statistic title="Wallet Balance" value={parseFloat(walletBalance)} precision={2} suffix="ETH" />
             </Col>
-            <Col span={12} style={{ textAlign: "center" }}>
+            <Col span={12}>
               <Statistic title="Contract Balance" value={parseFloat(contractBalance)} precision={2} suffix="ETH" />
             </Col>
           </Row>
@@ -139,7 +137,7 @@ const WalletConnect: React.FC = () => {
         </Button>
       ),
     },
-  ];
+  ], [walletBalance, contractBalance, disconnectWallet, router]);
 
   return (
     <>
@@ -149,11 +147,23 @@ const WalletConnect: React.FC = () => {
             {shortenAddress(account)} <DownOutlined />
           </Button>
         ) : (
-          <Button type="primary" onClick={connectWallet} loading={isConnecting} icon={<WalletOutlined />}>
-            Connect Wallet
-          </Button>
+          <>
+            <Button type="primary" onClick={connectWallet} loading={isConnecting} icon={<WalletOutlined />}>
+              Connect Wallet
+            </Button>
+            {showConnectError && (
+              <Alert
+                message="Connection Error"
+                description="Unable to connect to your wallet. Please try again."
+                type="error"
+                showIcon
+                className="mt-4"
+              />
+            )}
+          </>
         )}
       </Dropdown>
+      
       {/* Deposit Withdraw Modal */}
       <Modal open={showDepositWithdrawModal} onCancel={() => setShowDepositWithdrawModal(false)} footer={null} destroyOnClose>
         <DepositWithdraw

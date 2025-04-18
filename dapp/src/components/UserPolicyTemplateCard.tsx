@@ -1,8 +1,8 @@
-import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
+import { Button, Card } from "antd";
+import { DollarOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { FlightPolicyTemplate } from "../types/FlightPolicy";
+import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
 import { convertSecondsToDays } from "@/utils/utils";
-import { DollarOutlined, ClockCircleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
-import { Button, Card, Tag } from "antd";
 
 type TemplateCardProps = {
   template: FlightPolicyTemplate | BaggagePolicyTemplate;
@@ -10,7 +10,7 @@ type TemplateCardProps = {
   onPurchase: () => void;
 };
 
-export const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProps) => {
+const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProps) => {
   const showTemplate = (template: FlightPolicyTemplate | BaggagePolicyTemplate) => {
     if (type === "flight") {
       const tpl = template as FlightPolicyTemplate;
@@ -71,10 +71,12 @@ export const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateC
     >
       {showTemplate(template)}
       <div style={{ marginTop: "auto" }}>
-        <Button type="primary" block onClick={() => onPurchase()}>
+        <Button type="primary" block onClick={onPurchase}>
           Purchase Policy
         </Button>
       </div>
     </Card>
   );
 };
+
+export default UserPolicyTemplateCard;

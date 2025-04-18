@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Card, Form, Input, Button, DatePicker, TimePicker, Alert } from "antd";
-import { DollarOutlined, CalendarOutlined, ClockCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Card, Form, Input, Button, DatePicker, TimePicker, message } from "antd";
+import { DollarOutlined, CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { FlightPolicyTemplate } from "@/types/FlightPolicy";
-import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
+import utc from "dayjs/plugin/utc";
+import { useFlightInsurance } from "../services/flightInsurance";
+import { useBaggageInsurance } from "../services/baggageInsurance";
+import { FlightPolicyTemplate } from "../types/FlightPolicy";
+import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
 import { convertSecondsToDays } from "@/utils/utils";
+// Extend dayjs to use the UTC plugin
+dayjs.extend(utc);
 
 interface PurchasePolicyProps {
   type: "flight" | "baggage";
@@ -18,19 +20,18 @@ interface PurchasePolicyProps {
 const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps) => {
   const [form] = Form.useForm();
   const { purchaseFlightPolicy } = useFlightInsurance();
-  const { purchaseBaggagePolicy } = useBaggageInsurance(); // Assuming you have a similar function for baggage policies
+  const { purchaseBaggagePolicy } = useBaggageInsurance();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   /**
-   * Convert date + time input into Unix timestamp
+   * Convert date + time input into Unix timestamp in UTC
    */
   const getDepartureTimestamp = (date: any, time: any): number => {
     const dateStr = date.format("YYYY-MM-DD");
     const timeStr = time.format("HH:mm");
-    return Math.floor(dayjs(`${dateStr} ${timeStr}`).valueOf() / 1000);
+    return Math.floor(dayjs(`${dateStr} ${timeStr}`).utc().valueOf() / 1000);
   };
 
   /**
@@ -42,7 +43,6 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
     try {
       setIsLoading(true);
       setError(null);
-      setSuccessMsg(null);
 
       if (type === "flight") {
         if (!departureDate || !departureTime) {
@@ -52,11 +52,15 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
         const departureTimestamp = getDepartureTimestamp(departureDate, departureTime);
         const flightTemplate = selectedTemplate as FlightPolicyTemplate;
         await purchaseFlightPolicy(flightTemplate, flightNumber, fromAirport, toAirport, departureTimestamp, selectedTemplate.premium);
-        setSuccessMsg(`${type} Policy "${flightTemplate.name}" purchased successfully!`);
+
+        message.success(`${type} Policy "${flightTemplate.name}" purchased successfully!`);
+        onClose();
       } else if (type === "baggage") {
         const baggageTemplate = selectedTemplate as BaggagePolicyTemplate;
         await purchaseBaggagePolicy(baggageTemplate, itemDescription, selectedTemplate.premium);
-        setSuccessMsg(`${type} Policy "${baggageTemplate.name}" purchased successfully!`);
+
+        message.success(`${type} Policy "${baggageTemplate.name}" purchased successfully!`);
+        onClose();
       }
 
       form.resetFields();
@@ -70,9 +74,7 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
 
   return (
     <Card title={`Purchase ${selectedTemplate.name}`}>
-      {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
-      {successMsg && <Alert message={successMsg} type="success" showIcon icon={<CheckCircleOutlined />} style={{ marginBottom: 16 }} />}
-
+      {/* Flight and Baggage Purchase Form */}
       <Form layout="vertical" form={form} onFinish={handleSubmit}>
         {/* Flight Details */}
         {type === "flight" && (
@@ -115,14 +117,18 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
           <Input prefix={<ClockCircleOutlined />} value={`${convertSecondsToDays(selectedTemplate.coverageDurationSeconds).toPrecision(1)} days`} disabled />
         </Form.Item>
 
+        <Form.Item label="Max Total Payout">
+          <Input prefix={<DollarOutlined />} value={`${selectedTemplate.maxTotalPayout} ETH`} disabled />
+        </Form.Item>
+
         {type === "baggage" && (
           <>
-            <Form.Item label="Payout Per Hour">
+            <Form.Item label="Payout If Delayed">
               <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as BaggagePolicyTemplate).payoutIfDelayed} ETH`} disabled />
             </Form.Item>
 
-            <Form.Item label="Delay Threshold">
-              <Input prefix={<ClockCircleOutlined />} value={`${(selectedTemplate as BaggagePolicyTemplate).payoutIfLost} hrs`} disabled />
+            <Form.Item label="Payout If Lost">
+              <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as BaggagePolicyTemplate).payoutIfLost} ETH`} disabled />
             </Form.Item>
           </>
         )}

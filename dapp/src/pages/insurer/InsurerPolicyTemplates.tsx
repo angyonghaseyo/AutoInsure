@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Button, Modal, Select, message, Statistic, Dropdown } from "antd";
+import { Button, Card, Col, Dropdown, Modal, Row, Select, Statistic, Typography, message } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import CreatePolicyTemplate from "@/components/CreatePolicyTemplate";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { useWeb3 } from "@/components/Web3Provider";
-import PolicyTemplateDrawer from "@/components/PolicyTemplateDrawer";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
-import EditPolicyTemplate from "@/components/EditPolicyTemplate";
-import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { InsurerPolicyTemplateCard } from "@/components/InsurerPolicyTemplateCard";
+import { useWeb3 } from "../../components/Web3Provider";
+import CreatePolicyTemplate from "../../components/CreatePolicyTemplate";
+import EditPolicyTemplate from "../../components/EditPolicyTemplate";
+import InsurerPolicyTemplateCard from "../../components/InsurerPolicyTemplateCard";
+import PolicyTemplateDrawer from "../../components/PolicyTemplateDrawer";
+import { useFlightInsurance } from "../../services/flightInsurance";
+import { useBaggageInsurance } from "../../services/baggageInsurance";
+import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "../../types/FlightPolicy";
+import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "../../types/BaggagePolicy";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -17,6 +17,7 @@ const { Option } = Select;
 const InsurerPolicyTemplates = () => {
   const { getAllFlightPolicyTemplates, deactivateFlightPolicyTemplate, getAllFlightPolicies } = useFlightInsurance();
   const { getAllBaggagePolicyTemplates, deactivateBaggagePolicyTemplate, getAllBaggagePolicies } = useBaggageInsurance();
+
   const { insurerContract } = useWeb3();
 
   const [flightTemplates, setFlightTemplates] = useState<FlightPolicyTemplate[]>([]);
@@ -33,7 +34,6 @@ const InsurerPolicyTemplates = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [viewPolicyTemplate, setViewPolicyTemplate] = useState<FlightPolicyTemplate | BaggagePolicyTemplate>();
   const [policyCount, setPolicyCount] = useState(0);
-
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const addTemplateMenuItems = [
@@ -55,34 +55,34 @@ const InsurerPolicyTemplates = () => {
     },
   ];
 
-  /**
-   * Load policy templates from the blockchain.
-   */
   const fetchTemplates = async () => {
     try {
       const flightTemplates = await getAllFlightPolicyTemplates();
-      setFlightTemplates(flightTemplates);
-      setFilteredFlightTemplates(flightTemplates);
       const baggageTenplates = await getAllBaggagePolicyTemplates();
+
+      setFlightTemplates(flightTemplates);
       setBaggageTemplates(baggageTenplates);
+
+      setFilteredFlightTemplates(flightTemplates);
       setFilteredBaggageTemplates(baggageTenplates);
     } catch (err) {
       console.error("Error loading templates:", err);
     }
   };
 
+  const fetchPolicies = async () => {
+    try {
+      const flightPolicies = await getAllFlightPolicies();
+      const baggagePolicies = await getAllBaggagePolicies();
+      setPolicyCount(flightPolicies.length + baggagePolicies.length);
+    } catch (error) {
+      console.error("Error fetching policies:", error);
+      message.error("Failed to fetch policies.");
+    }
+  };
+
   useEffect(() => {
     fetchTemplates();
-    const fetchPolicies = async () => {
-      try {
-        const flightPolicies = await getAllFlightPolicies();
-        const baggagePolicies = await getAllBaggagePolicies();
-        setPolicyCount(flightPolicies.length + baggagePolicies.length);
-      } catch (error) {
-        console.error("Error fetching policies:", error);
-        message.error("Failed to fetch policies.");
-      }
-    };
     fetchPolicies();
   }, [insurerContract]);
 
@@ -143,7 +143,7 @@ const InsurerPolicyTemplates = () => {
 
       <Title level={2}>Policy Templates</Title>
 
-      {/* Statistics*/}
+      {/* Statistics */}
       <Row gutter={16} style={{ marginBottom: "24px" }}>
         <Col span={6}>
           <Card>
@@ -164,7 +164,7 @@ const InsurerPolicyTemplates = () => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="Total Deactivated "
+              title="Total Deactivated"
               value={
                 flightTemplates.filter((tpl) => tpl.status === FlightPolicyTemplateStatus.Deactivated).length +
                 baggageTemplates.filter((tpl) => tpl.status === BaggagePolicyTemplateStatus.Deactivated).length
@@ -244,6 +244,7 @@ const InsurerPolicyTemplates = () => {
         {editPolicyTemplate && <EditPolicyTemplate onClose={() => setShowEditModal(false)} onUpdate={fetchTemplates} policyTemplate={editPolicyTemplate} type={type} />}
       </Modal>
 
+      {/* Policy Template Drawer */}
       {viewPolicyTemplate && <PolicyTemplateDrawer setDrawerVisible={setDrawerVisible} policyTemplate={viewPolicyTemplate} visible={drawerVisible} type={type} />}
     </div>
   );
