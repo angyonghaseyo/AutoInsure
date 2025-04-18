@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { useWeb3 } from "../components/Web3Provider";
+import OracleConnectorABI from "@/utils/abis/OracleConnector.json";
 import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, FlightPolicyTemplateCreate, FlightPolicyTemplateUpdate } from "../types/FlightPolicy";
 
 export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
@@ -46,7 +47,7 @@ export function formatUserPolicy(raw: any): FlightUserPolicy {
 }
 
 export function useFlightInsurance() {
-  const { insurerContract } = useWeb3();
+  const { insurerContract, signer, flightPolicyContract } = useWeb3();
 
   // ====== Insurer Functions ======
   async function createFlightPolicyTemplate(
@@ -188,17 +189,76 @@ export function useFlightInsurance() {
     }
   }
 
-  async function claimFlightPayout(policyId: number): Promise<void> {
-    if (!insurerContract) throw new Error("Insurer contract not connected");
-
-    try {
-      const tx = await insurerContract.claimFlightPayout(policyId);
-      await tx.wait();
-      console.log(`Flight policy #${policyId} claimed successfully.`);
-    } catch (error) {
-      console.error(`Failed to claim flight policy #${policyId}:`, error);
-      throw error;
+  /**
+   * Claim a flight‑delay payout, retrying once the oracle data arrives.
+   */
+  async function claimFlightPayout(policyId: number, flightNumber: string, departureTime: number): Promise<void> {
+    if (!flightPolicyContract || !signer) {
+      throw new Error("Contract or signer not connected");
     }
+
+    // helper to actually call the solidity method
+    const doClaim = async () => {
+      const user = await signer.getAddress();
+      console.log("Before calling claimPayout");
+      const tx = await flightPolicyContract.claimPayout(policyId, user, {gasLimit: 200_000});
+      console.log("After calling claimPayout", tx);
+      await tx.wait();
+    };
+
+    // First attempt
+    try {
+      await doClaim();
+      return;
+    } catch (err: any) {
+      // look in every possible place for the ORACLE_PENDING revert
+      const msg =
+        err.data?.message ||
+        err.error?.message ||
+        err.reason ||
+        err.message ||
+        "";
+      console.log("Error claiming flight payout:", msg);
+      if (!msg.includes("ORACLE_PENDING")) {
+        // some other revert → bubble up
+        throw err;
+      }
+    }
+
+    // Oracle is pending → subscribe to FlightDataReceived, then retry
+    const oracleAddr = await flightPolicyContract.oracleConnector();
+    const oracle = new ethers.Contract(
+      oracleAddr,
+      OracleConnectorABI.abi,
+      signer
+    );
+
+    const depStr = departureTime.toString();
+    const filter = oracle.filters.FlightDataReceived(
+      null,          // any requestId
+      flightNumber,
+      depStr,
+      null,
+      null
+    );
+
+    console.log("Waiting for oracle data...");
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        oracle.off(filter, onData);
+        reject(new Error("Oracle response timed out"));
+      }, 120_000);
+
+      async function onData() {
+        clearTimeout(timeout);
+        oracle.off(filter, onData);
+        await doClaim();    // second attempt should now succeed
+        resolve();
+      }
+
+      oracle.once(filter, onData);
+    });
   }
 
   // ====== Utility Functions ======

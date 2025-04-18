@@ -34,11 +34,6 @@ contract Insurer {
         return flightPolicy.getAllPolicies();
     }
 
-    // TODO: Cron job to mark flight policies as expired
-    function markFlightPolicyAsExpired(uint256 policyId) external onlyInsurer {
-        flightPolicy.markPolicyAsExpired(policyId);
-    }
-
     // View all purchased baggage policies
     function getAllBaggagePolicies() external view onlyInsurer returns (BaggagePolicy.UserPolicy[] memory) {
         return baggagePolicy.getAllPolicies();
@@ -97,11 +92,11 @@ contract Insurer {
     }
 
     // Claim a flight policy and give payout based on flight delay
-    function claimFlightPayout(uint256 policyId) external {
-        flightPolicy.claimPayout(policyId, msg.sender);
+    // function claimFlightPayout(uint256 policyId) external {
+    //     flightPolicy.claimPayout(policyId, msg.sender);
 
-        emit FlightPolicyClaimed(msg.sender, policyId);
-    }
+    //     emit FlightPolicyClaimed(msg.sender, policyId);
+    // }
 
     // Purchase a baggage policy based on a template
     function purchaseBaggagePolicy(BaggagePolicy.PolicyTemplate memory template, string memory itemDescription) external payable {

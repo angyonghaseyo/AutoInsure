@@ -1,15 +1,40 @@
-import { Card, Modal, Spin, Tag, Button } from "antd";
+import { useState } from "react";
+import { Modal, Card, Tag, Button, message, Spin } from "antd";
 import { FlightPolicyStatus, FlightUserPolicy } from "../types/FlightPolicy";
 import { BaggagePolicyStatus, BaggageUserPolicy } from "../types/BaggagePolicy";
+import { useFlightInsurance } from "@/services/flightInsurance";
 
 type ViewPolicyModalProps = {
   type: "flight" | "baggage";
   policy: FlightUserPolicy | BaggageUserPolicy | undefined;
   onCancel: () => void;
-  onClaim: () => void;
 };
 
-const ViewPolicyModal = ({ type, policy, onCancel , onClaim }: ViewPolicyModalProps) => {
+const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps) => {
+  const { claimFlightPayout } = useFlightInsurance();
+  const [loading, setLoading] = useState(false);
+
+  if (!policy) return null;
+
+  const handleClaim = async () => {
+    setLoading(true);
+    try {
+      if (type === "flight") {
+        const p = policy as FlightUserPolicy;
+        await claimFlightPayout(p.policyId, p.flightNumber, p.departureTime);
+      } else {
+        // you can wire up baggage claims similarly
+        throw new Error("Baggage claims not implemented");
+      }
+      message.success("Payout successfully claimed!");
+      onCancel();
+    } catch (err: any) {
+      message.error(err.message || "Claim failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusTag = (status: FlightPolicyStatus | BaggagePolicyStatus) => {
     switch (status) {
       case FlightPolicyStatus.Active | BaggagePolicyStatus.Active:
@@ -80,10 +105,11 @@ const ViewPolicyModal = ({ type, policy, onCancel , onClaim }: ViewPolicyModalPr
         <div style={{ textAlign: "center" }}>
           <Button
             type="primary"
-            onClick={onClaim}
+            onClick={handleClaim}
+            loading={loading}
             style={{ marginTop: 16 }}
           >
-            Claim Policy
+            {loading ? "Processing…" : "Claim Policy"}
           </Button>
         </div>
       )}

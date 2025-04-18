@@ -74,6 +74,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
 
     event BaggageDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription);
     event BaggageDataRecieved(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription, uint256 retrievedBaggageStatus);
+
     
     constructor(address _linkToken) Ownable() {
         // Set Chainlink token address (for the relevant network)
@@ -88,7 +89,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
 
     function requestFlightData(string memory _flightNumber, string memory _departureTime) public onlyOwner returns (bytes32 requestId) 
     {
-        require(oracles.length > 0, "No oracles set");
+        // require(oracles.length > 0, "No oracles set");
 
         for (uint256 i = 0; i < oracles.length; i++) {
             // Set the URL to fetch flight data
