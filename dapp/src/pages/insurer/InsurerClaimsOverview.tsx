@@ -6,7 +6,7 @@ import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy } from "@/ty
 
 const { Title } = Typography;
 
-const InsurerClaimsOverview: React.FC = () => {
+const InsurerClaimsOverview = () => {
   const { getAllFlightPolicies, getAllFlightPolicyTemplates } = useFlightInsurance();
   const { insurerContract } = useWeb3();
 
