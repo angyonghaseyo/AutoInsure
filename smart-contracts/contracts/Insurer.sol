@@ -30,8 +30,8 @@ contract Insurer {
 
     // ====== Insurer Functions ======
     // View all purchased flight policies
-    function getAllFlightPolicies() external view onlyInsurer returns (FlightPolicy.UserPolicy[] memory) {
-        return flightPolicy.getAllPolicies();
+    function getAllFlightPolicies(uint256 currentTime) external view onlyInsurer returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getAllPolicies(currentTime);
     }
 
     // TODO: Cron job to mark flight policies as expired
@@ -40,8 +40,8 @@ contract Insurer {
     }
 
     // View all purchased baggage policies
-    function getAllBaggagePolicies() external view onlyInsurer returns (BaggagePolicy.UserPolicy[] memory) {
-        return baggagePolicy.getAllPolicies();
+    function getAllBaggagePolicies(uint256 currentTime) external view onlyInsurer returns (BaggagePolicy.UserPolicy[] memory) {
+        return baggagePolicy.getAllPolicies(currentTime);
     }
 
     // TODO: Cron job to mark baggage policies as expired
@@ -69,8 +69,8 @@ contract Insurer {
 
     // ====== User Functions ======
     // Purchase a flight policy based on a template
-    function purchaseFlightPolicy(FlightPolicy.PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime) external payable {
-        uint256 totalPossiblePayout = getMaxPossiblePayout();
+    function purchaseFlightPolicy(FlightPolicy.PolicyTemplate memory template, string memory flightNumber, string memory departureAirportCode, string memory arrivalAirportCode, uint256 departureTime, uint256 currentTime) external payable {
+        uint256 totalPossiblePayout = getMaxPossiblePayout(currentTime);
         totalPossiblePayout += template.maxTotalPayout;
         require(totalPossiblePayout <= address(this).balance, "Insufficient contract balance to cover potential payouts");
 
@@ -87,13 +87,13 @@ contract Insurer {
     }
 
     // Get all flight policies owned by a user
-    function getUserFlightPolicies(address user) external view returns (FlightPolicy.UserPolicy[] memory) {
-        return flightPolicy.getUserPolicies(user);
+    function getUserFlightPolicies(address user, uint256 currentTime) external view returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getUserPolicies(user, currentTime);
     }
 
     // Get all flight policies by template ID
-    function getUserFlightPoliciesByTemplate(string memory templateId) external view returns (FlightPolicy.UserPolicy[] memory) {
-        return flightPolicy.getUserPoliciesByTemplate(templateId);
+    function getUserFlightPoliciesByTemplate(string memory templateId, uint256 currentTime) external view returns (FlightPolicy.UserPolicy[] memory) {
+        return flightPolicy.getUserPoliciesByTemplate(templateId, currentTime);
     }
 
     // Claim a flight policy and give payout based on flight delay
@@ -104,8 +104,8 @@ contract Insurer {
     }
 
     // Purchase a baggage policy based on a template
-    function purchaseBaggagePolicy(BaggagePolicy.PolicyTemplate memory template, string memory itemDescription) external payable {
-        uint256 totalPossiblePayout = getMaxPossiblePayout();
+    function purchaseBaggagePolicy(BaggagePolicy.PolicyTemplate memory template, string memory itemDescription, uint256 currentTime) external payable {
+        uint256 totalPossiblePayout = getMaxPossiblePayout(currentTime);
         totalPossiblePayout += template.maxTotalPayout;
         require(totalPossiblePayout <= address(this).balance, "Insufficient contract balance to cover potential payouts");
 
@@ -119,13 +119,13 @@ contract Insurer {
     }
 
     // Get all baggage policies owned by a user
-    function getUserBaggagePolicies(address user) external view returns (BaggagePolicy.UserPolicy[] memory) {
-        return baggagePolicy.getUserPolicies(user);
+    function getUserBaggagePolicies(address user, uint256 currentTime) external view returns (BaggagePolicy.UserPolicy[] memory) {
+        return baggagePolicy.getUserPolicies(user, currentTime);
     }
 
     // Get all baggage policies by template ID
-    function getUserBaggagePoliciesByTemplate(string memory templateId) external view returns (BaggagePolicy.UserPolicy[] memory) {
-        return baggagePolicy.getUserPoliciesByTemplate(templateId);
+    function getUserBaggagePoliciesByTemplate(string memory templateId, uint256 currentTime) external view returns (BaggagePolicy.UserPolicy[] memory) {
+        return baggagePolicy.getUserPoliciesByTemplate(templateId, currentTime);
     }
 
     // ====== Utility Functions ======
@@ -135,10 +135,10 @@ contract Insurer {
     }
 
     // Get the maximum possible payout for all policies
-    function getMaxPossiblePayout() internal view returns (uint256) {
+    function getMaxPossiblePayout(uint256 currentTime) internal view returns (uint256) {
         uint256 totalPossiblePayout = 0;
-        FlightPolicy.UserPolicy[] memory flightPolicies = flightPolicy.getAllPolicies();
-        BaggagePolicy.UserPolicy[] memory baggagePolicies = baggagePolicy.getAllPolicies();
+        FlightPolicy.UserPolicy[] memory flightPolicies = flightPolicy.getAllPolicies(currentTime);
+        BaggagePolicy.UserPolicy[] memory baggagePolicies = baggagePolicy.getAllPolicies(currentTime);
         for (uint256 i = 0; i < flightPolicies.length; i++) {
             totalPossiblePayout += flightPolicies[i].template.maxTotalPayout;
         }
@@ -149,9 +149,9 @@ contract Insurer {
     }
 
     // Check if flight policies are allowed for purchase based on the contract balance
-    function isFlightPolicyAllowedForPurchase(FlightPolicy.PolicyTemplate[] memory templates) external view returns (bool[] memory) {
+    function isFlightPolicyAllowedForPurchase(FlightPolicy.PolicyTemplate[] memory templates, uint256 currentTime) external view returns (bool[] memory) {
         bool[] memory allowed = new bool[](templates.length);
-        uint256 currentTotalPossiblePayout = getMaxPossiblePayout();
+        uint256 currentTotalPossiblePayout = getMaxPossiblePayout(currentTime);
         for (uint256 i = 0; i < templates.length; i++) {
             uint256 totalPossiblePayout = currentTotalPossiblePayout + templates[i].maxTotalPayout;
             if (totalPossiblePayout * 1 ether > address(this).balance) {
@@ -164,9 +164,9 @@ contract Insurer {
     }
 
     // Check if baggage policies are allowed for purchase based on the contract balance
-    function isBaggagePolicyAllowedForPurchase(BaggagePolicy.PolicyTemplate[] memory templates) external view returns (bool[] memory) {
+    function isBaggagePolicyAllowedForPurchase(BaggagePolicy.PolicyTemplate[] memory templates, uint256 currentTime) external view returns (bool[] memory) {
         bool[] memory allowed = new bool[](templates.length);
-        uint256 currentTotalPossiblePayout = getMaxPossiblePayout();
+        uint256 currentTotalPossiblePayout = getMaxPossiblePayout(currentTime);
         for (uint256 i = 0; i < templates.length; i++) {
             uint256 totalPossiblePayout = currentTotalPossiblePayout + templates[i].maxTotalPayout;
             if (totalPossiblePayout * 1 ether > address(this).balance) {

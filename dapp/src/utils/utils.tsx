@@ -14,3 +14,13 @@ export const getStatusTag = (status: FlightPolicyStatus | BaggagePolicyStatus) =
       return <Tag color="gray">Unknown</Tag>;
   }
 };
+
+export const convertDaysToSeconds = (days: number) => {
+  const SECONDS_PER_DAY = 24 * 60 * 60;
+  return days * SECONDS_PER_DAY;
+};
+
+export const convertSecondsToDays = (seconds: number) => {
+  const SECONDS_PER_DAY = 24 * 60 * 60;
+  return seconds / SECONDS_PER_DAY;
+};

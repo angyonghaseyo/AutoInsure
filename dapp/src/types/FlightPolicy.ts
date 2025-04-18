@@ -19,7 +19,7 @@ export interface FlightPolicyTemplate {
   payoutPerHour: string;
   delayThresholdHours: number;
   maxTotalPayout: string;
-  coverageDurationDays: number;
+  coverageDurationSeconds: number;
   status: FlightPolicyTemplateStatus;
 }
 

@@ -7,6 +7,7 @@ import { useFlightInsurance } from "@/services/flightInsurance";
 import { FlightPolicyTemplate } from "@/types/FlightPolicy";
 import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
 import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { convertSecondsToDays } from "@/utils/utils";
 
 interface PurchasePolicyProps {
   type: "flight" | "baggage";
@@ -60,7 +61,7 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
 
       form.resetFields();
     } catch (err: any) {
-      console.error("❌ Purchase failed:", err);
+      console.error("Purchase failed:", err);
       setError(err?.message || "An error occurred while purchasing the policy.");
     } finally {
       setIsLoading(false);
@@ -110,8 +111,8 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
           <Input prefix={<DollarOutlined />} value={`${selectedTemplate.premium} ETH`} disabled />
         </Form.Item>
 
-        <Form.Item label="Delay Threshold">
-          <Input prefix={<ClockCircleOutlined />} value={`${selectedTemplate.coverageDurationDays} hrs`} disabled />
+        <Form.Item label="Coverage Duration">
+          <Input prefix={<ClockCircleOutlined />} value={`${convertSecondsToDays(selectedTemplate.coverageDurationSeconds).toPrecision(1)} days`} disabled />
         </Form.Item>
 
         {type === "baggage" && (

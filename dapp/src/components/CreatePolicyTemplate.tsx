@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
 import { useFlightInsurance } from "@/services/flightInsurance";
 import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { convertDaysToSeconds } from "@/utils/utils";
 /**
  * Props for CreatePolicyTemplate component.
  * onClose: callback to close modal or drawer
@@ -39,7 +40,7 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
           values.payoutPerHour,
           values.delayThresholdHours,
           values.maxTotalPayout,
-          values.coverageDurationDays
+          convertDaysToSeconds(values.coverageDurationDays)
         );
       }
 
@@ -51,7 +52,7 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
           values.payoutIfDelayed,
           values.payoutIfLost,
           values.maxTotalPayout,
-          values.coverageDurationDays
+          convertDaysToSeconds(values.coverageDurationDays)
         );
       }
 

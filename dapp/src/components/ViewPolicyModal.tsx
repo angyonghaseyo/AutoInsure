@@ -1,6 +1,6 @@
 import { BaggageUserPolicy } from "@/types/BaggagePolicy";
 import { FlightUserPolicy } from "@/types/FlightPolicy";
-import { getStatusTag } from "@/utils/utils";
+import { convertSecondsToDays, getStatusTag } from "@/utils/utils";
 import { Card, Modal, Spin } from "antd";
 
 type ViewPolicyModalProps = {
@@ -52,7 +52,7 @@ export const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps
                   <strong>Policy Delay Threshold:</strong> {(policy as FlightUserPolicy).template.delayThresholdHours} hours
                 </p>
                 <p>
-                  <strong>Policy Coverage Duration:</strong> {(policy as FlightUserPolicy).template.coverageDurationDays} hours
+                  <strong>Policy Coverage Duration:</strong> {convertSecondsToDays((policy as FlightUserPolicy).template.coverageDurationSeconds).toPrecision(1)} days
                 </p>
                 <p>
                   <strong>Status:</strong> {getStatusTag((policy as FlightUserPolicy).status)}
@@ -89,7 +89,7 @@ export const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps
                     <strong>Policy payout if lost:</strong> {(policy as BaggageUserPolicy).template.payoutIfLost} ETH
                   </p>
                   <p>
-                    <strong>Policy coverage duration:</strong> {(policy as BaggageUserPolicy).template.coverageDurationDays} days
+                    <strong>Policy coverage duration:</strong> {convertSecondsToDays((policy as BaggageUserPolicy).template.coverageDurationSeconds).toPrecision(1)} days
                   </p>
                   <p>
                     <strong>Status:</strong> {getStatusTag((policy as BaggageUserPolicy).status)}

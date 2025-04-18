@@ -4,6 +4,7 @@ import { useFlightInsurance } from "@/services/flightInsurance";
 import { FlightPolicyTemplate } from "@/types/FlightPolicy";
 import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
 import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { convertDaysToSeconds } from "@/utils/utils";
 
 /**
  * Props for CreatePolicyTemplate component.
@@ -44,7 +45,7 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreateP
           values.payoutIfDelayed,
           values.payoutIfLost,
           values.maxTotalPayout,
-          values.coverageDurationDays
+          convertDaysToSeconds(values.coverageDurationDays)
         );
       }
 
@@ -57,7 +58,7 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreateP
           values.payoutPerHour,
           values.delayThresholdHours,
           values.maxTotalPayout,
-          values.coverageDurationDays
+          convertDaysToSeconds(values.coverageDurationDays)
         );
       }
 

@@ -1,5 +1,6 @@
 import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
 import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
+import { convertSecondsToDays } from "@/utils/utils";
 import { DollarOutlined, ClockCircleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { Button, Card, Tag } from "antd";
 
@@ -49,7 +50,7 @@ export const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, on
             <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs
           </p>
           <p>
-            <strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
           </p>
         </div>
       );
@@ -71,7 +72,7 @@ export const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, on
             <strong>Max Total Payout:</strong> <ClockCircleOutlined /> {tpl.maxTotalPayout} ETH
           </p>
           <p>
-            <strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
           </p>
         </div>
       );
