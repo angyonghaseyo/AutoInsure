@@ -80,6 +80,20 @@ contract FlightPolicy is ReentrancyGuard {
         }
         return updateStatus(results);
     }
+    
+    // TODO: Cron job to mark policies as expired
+    function markPolicyAsExpired(uint256 policyId) external onlyInsurer {
+        require(policyId < nextUserPolicyId, "Invalid policyId");
+        
+        UserPolicy storage policy = userPolicies[policyId];
+        require(policy.status == PolicyStatus.Active, "Policy is not active");
+
+        uint256 expiryTime = policy.createdAt + (policy.template.coverageDurationDays * 1 days);
+
+        require(block.timestamp > expiryTime, "Policy has not expired yet");
+
+        policy.status = PolicyStatus.Expired;
+    }
 
     // ====== User Functions ======
     // Purchase a policy based on a template
