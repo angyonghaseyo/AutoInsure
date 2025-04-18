@@ -22,7 +22,7 @@ const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps) => {
     try {
       if (type === "flight") {
         const p = policy as FlightUserPolicy;
-        await claimFlightPayout(p.policyId, p.flightNumber, p.departureTime);
+        await claimFlightPayout(p.policyId);
       } else {
         // you can wire up baggage claims similarly
         throw new Error("Baggage claims not implemented");

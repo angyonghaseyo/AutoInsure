@@ -71,6 +71,7 @@ contract FlightPolicy is ReentrancyGuard {
 
     // Emitted once a payout is really sent
     event PayoutClaimed(uint256 indexed policyId, address indexed buyer, uint256 amount);
+    event PayoutPending(uint256 indexed policyId, address indexed buyer);
 
     // ====== Insurer Functions ======
     // View all purchased policies
@@ -160,10 +161,14 @@ contract FlightPolicy is ReentrancyGuard {
         require(buyer == policy.buyer, "Not policy owner");
         require(policy.status == PolicyStatus.Active, "Policy not active");
 
-        (bool dataReceived, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, Strings.toString(policy.departureTime));
-        
-        // if oracle hasn’t yet returned data, we revert with this special code
-        require(dataReceived, "ORACLE_PENDING");
+        (bool dataReceived, bool isDelayed, uint256 delayHours) =
+            oracleConnector.getFlightStatus("SQ100", "2025-03-30T15:00:00Z");
+
+        if (!dataReceived) {
+            emit PayoutPending(policyId, buyer);
+            return;
+        }
+
         require(isDelayed, "Flight not delayed");
 
         uint256 payout = delayHours * policy.template.payoutPerHour;

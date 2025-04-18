@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 
 async function main() {
   console.log("Deploying Flight Insurance contracts...");
@@ -29,6 +30,12 @@ async function main() {
   await mockOracle3.waitForDeployment();
   const mockOracle3Address = await mockOracle3.getAddress();
   console.log(`Third Mock Oracle deployed at: ${mockOracle3Address}`);
+
+  // Deploy Mock Oracle for Baggage
+  const mockOracleBag = await MockOracle.deploy(mockLinkTokenAddress);
+  await mockOracleBag.waitForDeployment();
+  const mockOracleBagAddress = await mockOracleBag.getAddress();
+  console.log(`Third Mock Oracle deployed at: ${mockOracleBagAddress}`);
 
   // 4. Deploy Oracle Connector
   const OracleConnector = await hre.ethers.getContractFactory("OracleConnector");
@@ -99,6 +106,17 @@ async function main() {
           description: "Oracle 3 - Alternative endpoint 2 (240 mins delay for SQ100)"
         }
       ]
+    },
+      // Baggage Oracle Provider
+    {
+      address: mockOracleBagAddress,
+      endpoints: [
+        {
+          url: "https://c5f06716-b81d-4e73-b825-1289c0745221.mock.pstmn.io/",
+          jobId: "oracleBaggage_primary",
+          description: "Oracle Baggage"
+        }
+      ]
     }
   ];
   
@@ -136,6 +154,70 @@ async function main() {
   console.log(`BaggagePolicy:    ${baggagePolicyAddress}`);
   console.log(`Insurer:          ${insurerAddress}`);
   console.log("-----------------------------");
+
+  console.log("Spawning Listeners")
+  // private keys are here to create signers for listeners
+  const privateKeys = [
+    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', // hardhat acc 0
+    '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d', // hardhat acc 1
+    '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a', // hardhat acc 2
+    '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6' // hardhat acc 3
+  ]
+
+  const oracleAddresses = [
+    mockOracleAddress, mockOracle2Address, mockOracle3Address, mockOracleBagAddress
+  ]
+
+  console.log(`Deployed oracles:`, oracleAddresses);
+
+  // Function to spawn listener for each oracle -------------------------------------------
+  async function spawnListener(index, contractAddress, privateKey) {
+    const listenerName = `Listener${index}`;
+    const listenerEnvPath = path.join(__dirname, `../listener/.env.${index}`);
+    const listenerPath = path.join(__dirname, "../listener/listener.js");
+
+    // Write a unique .env file for this listener
+    const envContent = `
+      RPC_URL=http://127.0.0.1:8545
+      PRIVATE_KEY=${privateKey}
+      ORACLE_CONTRACT_ADDRESS=${contractAddress}
+    `;
+    fs.writeFileSync(listenerEnvPath, envContent);
+
+    console.log(`${listenerName} connecting to contract: ${contractAddress}`);
+
+    const listenerProcess = spawn("node", [listenerPath], {
+      env: {
+        ...process.env,
+        RPC_URL: "http://127.0.0.1:8545",
+        PRIVATE_KEY: privateKey,
+        ORACLE_CONTRACT_ADDRESS: contractAddress,
+        DOTENV_CONFIG_PATH: listenerEnvPath
+      }
+    });
+
+    listenerProcess.stdout.on("data", (data) => {
+      console.log(`${listenerName}: ${data.toString()}`);
+    });
+
+    listenerProcess.stderr.on("data", (data) => {
+      console.error(`${listenerName} Error: ${data.toString()}`);
+    });
+
+    // Give the listener time to boot up
+    console.log(`Waiting for ${listenerName} to start...`);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log(`${listenerName} started`);
+
+    return listenerProcess;
+  }
+  // -----------------------------------------------------------------------------
+
+  const listenerProcesses = [];
+  for (let i = 0; i < oracleAddresses.length; i++) {
+    const proc = await spawnListener(i + 1, oracleAddresses[i], privateKeys[i]);
+    listenerProcesses.push(proc);
+  }
 
   // Save addresses and ABIs for frontend
   const outputDir = path.join(__dirname, "../../dapp/src/utils");
