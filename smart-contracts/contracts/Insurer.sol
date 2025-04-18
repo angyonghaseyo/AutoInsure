@@ -22,7 +22,6 @@ contract Insurer {
 
     // ==================== Events ====================
     event FlightPolicyPurchased(address indexed buyer, uint256 indexed policyId, string indexed templateId);
-    event FlightPolicyClaimed(address indexed buyer, uint256 indexed policyId);
     event BaggagePolicyPurchased(address indexed buyer, uint256 indexed policyId, string indexed templateId);
     event BaggagePolicyClaimed(address indexed buyer, uint256 indexed policyId);
     event FundsDeposited(address indexed insurer, uint256 amount);
@@ -92,11 +91,9 @@ contract Insurer {
     }
 
     // Claim a flight policy and give payout based on flight delay
-    // function claimFlightPayout(uint256 policyId) external {
-    //     flightPolicy.claimPayout(policyId, msg.sender);
-
-    //     emit FlightPolicyClaimed(msg.sender, policyId);
-    // }
+    function claimFlightPayout(uint256 policyId) external returns (bool) {
+        return flightPolicy.claimPayout(policyId, msg.sender);
+    }
 
     // Purchase a baggage policy based on a template
     function purchaseBaggagePolicy(BaggagePolicy.PolicyTemplate memory template, string memory itemDescription, uint256 currentTime) external payable {

@@ -154,16 +154,20 @@ contract FlightPolicy is ReentrancyGuard {
     }
 
     // Claim a policy and give payout based on flight delay
-    function claimPayout(uint256 policyId, address buyer) external nonReentrant {
+    function claimPayout(uint256 policyId, address buyer) external nonReentrant returns (bool) {
         require(policyId < nextUserPolicyId, "Invalid policyId");
         UserPolicy storage policy = userPolicies[policyId];   
         require(buyer == policy.buyer, "Not policy owner");
         require(policy.status == PolicyStatus.Active, "Policy not active");
 
-        (bool dataReceived, bool isDelayed, uint256 delayHours) = oracleConnector.getFlightStatus(policy.flightNumber, Strings.toString(policy.departureTime));
-        
-        // if oracle hasn’t yet returned data, we revert with this special code
-        require(dataReceived, "ORACLE_PENDING");
+        (bool dataReceived, bool isDelayed, uint256 delayHours) =
+            oracleConnector.getFlightStatus(policy.flightNumber, Strings.toString(policy.departureTime));
+
+        if (!dataReceived) {
+            // Oracle request will be auto-triggered internally
+            return false; // retry needed after event
+        }
+
         require(isDelayed, "Flight not delayed");
 
         uint256 payout = delayHours * policy.template.payoutPerHour;
@@ -180,7 +184,9 @@ contract FlightPolicy is ReentrancyGuard {
         payable(policy.buyer).transfer(payout);
 
         emit PayoutClaimed(policyId, policy.buyer, payout);
+        return true;
     }
+
 
     // Update the status of policies based on their expiry
     function updateStatus(UserPolicy[] memory policies, uint256 currentTime) internal pure returns (UserPolicy[] memory) {

@@ -188,61 +188,82 @@ export function useFlightInsurance() {
    * Claim a flight‑delay payout, retrying once the oracle data arrives.
    */
   async function claimFlightPayout(policyId: number, flightNumber: string, departureTime: number): Promise<void> {
-    if (!flightPolicyContract || !signer) {
+    if (!insurerContract || !signer || !flightPolicyContract) {
       throw new Error("Contract or signer not connected");
     }
-    // helper to actually call the solidity method
-    const doClaim = async () => {
-      const user = await signer.getAddress();
-      console.log("Before calling claimPayout");
-      const tx = await flightPolicyContract.claimPayout(policyId, user, { gasLimit: 200_000 });
-      console.log("After calling claimPayout", tx);
-      await tx.wait();
-    };
-
-    // First attempt
-    try {
-      await doClaim();
-      return;
-    } catch (err: any) {
-      // look in every possible place for the ORACLE_PENDING revert
-      const msg = err.data?.message || err.error?.message || err.reason || err.message || "";
-      console.log("Error claiming flight payout:", msg);
-      if (!msg.includes("ORACLE_PENDING")) {
-        // some other revert → bubble up
-        throw err;
-      }
-    }
-
-    // Oracle is pending → subscribe to FlightDataReceived, then retry
+  
+    const depStr = departureTime.toString();
     const oracleAddr = await flightPolicyContract.oracleConnector();
     const oracle = new ethers.Contract(oracleAddr, OracleConnectorABI.abi, signer);
-
-    const depStr = departureTime.toString();
-    const filter = oracle.filters.FlightDataReceived(
-      null, // any requestId
-      flightNumber,
-      depStr,
-      null,
-      null
-    );
-
-    console.log("Waiting for oracle data...");
-
+    const filter = oracle.filters.FlightDataReceived(null, flightNumber, depStr);
+  
+    // Helper to try claim
+    const attemptClaim = async (): Promise<boolean> => {
+      try {
+        const tx = await insurerContract.claimFlightPayout(policyId);
+        const receipt = await tx.wait();
+  
+        // Receipt logs may include FlightDataReceived or nothing if data was not ready
+        const returned = receipt?.logs?.length > 0;
+        console.log("TX receipt logs:", receipt.logs);
+  
+        return true; // Successful claim
+      } catch (err: any) {
+        const message =
+          err?.error?.message ||
+          err?.reason ||
+          err?.data?.message ||
+          err?.message ||
+          "";
+  
+        // Known reverts: not retryable
+        if (message.includes("Flight not delayed") || message.includes("Policy not active")) {
+          throw new Error(message);
+        }
+  
+        // If it's not a revert and didn't throw: might just be data not ready
+        return false; // Trigger retry
+      }
+    };
+  
+    console.log("🕒 Attempting to claim flight payout...");
+    const firstAttempt = await attemptClaim();
+  
+    if (firstAttempt) {
+      console.log("✅ Claim succeeded on first attempt");
+      return;
+    }
+  
+    console.log("📡 Oracle data not ready. Listening for FlightDataReceived...");
+  
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        oracle.off(filter, onData);
-        reject(new Error("Oracle response timed out"));
+        oracle.off(filter, onEvent);
+        reject(new Error("❌ Oracle did not respond in time (2 minutes)"));
       }, 120_000);
-
-      async function onData() {
+  
+      async function onEvent() {
+        if (!insurerContract || !signer || !flightPolicyContract) {
+          throw new Error("Contract or signer not connected");
+        }
+        
         clearTimeout(timeout);
-        oracle.off(filter, onData);
-        await doClaim(); // second attempt should now succeed
-        resolve();
+        oracle.off(filter, onEvent);
+  
+        console.log("📬 Oracle data received. Retrying claim...");
+  
+        try {
+          const tx = await insurerContract.claimFlightPayout(policyId);
+          await tx.wait();
+          console.log("✅ Claim succeeded on retry");
+          resolve();
+        } catch (retryErr: any) {
+          const msg = retryErr?.error?.message || retryErr?.message || "Claim failed after retry";
+          reject(new Error(msg));
+        }
       }
-
-      oracle.once(filter, onData);
+  
+      oracle.once(filter, onEvent);
     });
   }
 

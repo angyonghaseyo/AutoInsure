@@ -17,7 +17,7 @@ interface IMockOracle {
 }
 
 
-contract OracleConnector is ChainlinkClient, Ownable {
+contract OracleConnector is ChainlinkClient {
     using Chainlink for Chainlink.Request;
     
     // Oracle parameters
@@ -70,24 +70,24 @@ contract OracleConnector is ChainlinkClient, Ownable {
     
     // Events
     event FlightDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime);
-    event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
+    event FlightDataReceived(bytes32 indexed requestId, string indexed flightNumber, string indexed departureTime, bool isDelayed, uint256 delayMinutes);
 
     event BaggageDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription);
     event BaggageDataRecieved(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription, uint256 retrievedBaggageStatus);
 
     
-    constructor(address _linkToken) Ownable() {
+    constructor(address _linkToken) {
         // Set Chainlink token address (for the relevant network)
         setChainlinkToken(_linkToken);
         // 0.1 LINK
         fee = 0.1 * 10 ** 18;
     }
 
-    function addOracle(address _oracle, string memory _oracleAPIUrl, bytes32 _jobId) external onlyOwner {
+    function addOracle(address _oracle, string memory _oracleAPIUrl, bytes32 _jobId) external {
         oracles.push(OracleInfo({oracle: _oracle, oracleAPIUrl: _oracleAPIUrl, jobId: _jobId}));
     }
 
-    function requestFlightData(string memory _flightNumber, string memory _departureTime) public onlyOwner returns (bytes32 requestId) 
+    function requestFlightData(string memory _flightNumber, string memory _departureTime) public returns (bytes32 requestId) 
     {
         // require(oracles.length > 0, "No oracles set");
 
@@ -188,7 +188,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     }
     
     function requestBaggageData(string memory _flightNumber, string memory _departureTime, string memory _itemDescription) 
-    public onlyOwner returns (bytes32 requestId) 
+    public returns (bytes32 requestId) 
     {
         require(oracles.length > 0, "No oracles set");
 
@@ -271,7 +271,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
         return (data.dataReceived, data.baggageStatus);
     }
     
-    function withdrawLink() external onlyOwner {
+    function withdrawLink() external {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
