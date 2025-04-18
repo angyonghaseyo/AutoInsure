@@ -91,7 +91,7 @@ contract Insurer {
     }
 
     // Claim a flight policy and give payout based on flight delay
-    function claimFlightPayout(uint256 policyId) external returns (bool) {
+    function claimFlightPayout(uint256 policyId) external {
         return flightPolicy.claimPayout(policyId, msg.sender);
     }
 
