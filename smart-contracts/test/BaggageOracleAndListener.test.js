@@ -41,8 +41,23 @@ describe("OracleConnector + Listener.js Integration for Baggage", function () {
     // Fund the oracle connector with LINK tokens
     await mockLinkToken.transfer(await oracleConnector.getAddress(), ethers.parseEther("100"));
     
-    // Register mock oracle with connector
+    // Register mock oracle with connector (add 4 cuz hardcoded 3 in oracle connector cuz first 3 oracles are for flight)
     const jobId = ethers.encodeBytes32String("baggagedelay");
+    await oracleConnector.addOracle(
+      await mockOracle.getAddress(),
+      MOCK_API_URL,
+      jobId
+    );
+    await oracleConnector.addOracle(
+      await mockOracle.getAddress(),
+      MOCK_API_URL,
+      jobId
+    );
+    await oracleConnector.addOracle(
+      await mockOracle.getAddress(),
+      MOCK_API_URL,
+      jobId
+    );
     await oracleConnector.addOracle(
       await mockOracle.getAddress(),
       MOCK_API_URL,
