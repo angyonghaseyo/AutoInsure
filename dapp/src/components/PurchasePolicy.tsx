@@ -50,6 +50,7 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
           return;
         }
         const departureTimestamp = getDepartureTimestamp(departureDate, departureTime);
+        console.log("Departure Timestamp:", departureTimestamp);
         const flightTemplate = selectedTemplate as FlightPolicyTemplate;
         await purchaseFlightPolicy(flightTemplate, flightNumber, fromAirport, toAirport, departureTimestamp, selectedTemplate.premium);
 

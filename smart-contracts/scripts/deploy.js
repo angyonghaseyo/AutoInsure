@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 
 async function main() {
   console.log("Deploying Flight Insurance contracts...");
@@ -136,6 +137,43 @@ async function main() {
   console.log(`BaggagePolicy:    ${baggagePolicyAddress}`);
   console.log(`Insurer:          ${insurerAddress}`);
   console.log("-----------------------------");
+
+  const listenerEnvPath = path.join(__dirname, "../listener/.env");
+  const envContent = `
+    RPC_URL=http://127.0.0.1:8545
+    PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    ORACLE_CONTRACT_ADDRESS=${await mockOracle.getAddress()}
+  `;
+  fs.writeFileSync(listenerEnvPath, envContent);
+
+  console.log(`Test ${await mockOracle.getAddress()}`)
+
+  const hardhatPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+  const listenerPath = path.join(__dirname, "../listener/listener.js");
+  listenerProcess = spawn("node", [listenerPath], {
+    env: {
+      ...process.env,
+      RPC_URL: "http://127.0.0.1:8545",
+      PRIVATE_KEY: hardhatPrivateKey, // Use the hardhat test account private key
+      ORACLE_CONTRACT_ADDRESS: await mockOracle.getAddress(),
+      // Point to our temporary env file
+      DOTENV_CONFIG_PATH: listenerEnvPath
+    }
+  });
+
+  // Log listener output
+  listenerProcess.stdout.on("data", (data) => {
+    console.log(`Listener: ${data}`);
+  });
+
+  listenerProcess.stderr.on("data", (data) => {
+    console.error(`Listener Error: ${data}`);
+  });
+
+  // Wait for listener to boot up
+  console.log("Waiting for listener to start...");
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  console.log('Listener Started')
 
   // Save addresses and ABIs for frontend
   const outputDir = path.join(__dirname, "../../dapp/src/utils");

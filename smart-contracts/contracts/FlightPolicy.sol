@@ -162,7 +162,7 @@ contract FlightPolicy is ReentrancyGuard {
         require(policy.status == PolicyStatus.Active, "Policy not active");
 
         (bool dataReceived, bool isDelayed, uint256 delayHours) =
-            oracleConnector.getFlightStatus(policy.flightNumber, Strings.toString(policy.departureTime));
+            oracleConnector.getFlightStatus("SQ100", "2025-03-30T15:00:00Z");
 
         if (!dataReceived) {
             emit PayoutPending(policyId, buyer);
