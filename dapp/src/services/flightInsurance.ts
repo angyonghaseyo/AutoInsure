@@ -192,22 +192,24 @@ export function useFlightInsurance() {
       throw new Error("Contract or signer not connected");
     }
   
-    const depStr = departureTime.toString();
     const oracleAddr = await flightPolicyContract.oracleConnector();
     const oracle = new ethers.Contract(oracleAddr, OracleConnectorABI.abi, signer);
-    const filter = oracle.filters.FlightDataReceived(null, flightNumber, depStr);
+    const filter = oracle.filters.FlightDataReceived();
   
     // Helper to try claim
     const attemptClaim = async (): Promise<boolean> => {
       try {
         const tx = await insurerContract.claimFlightPayout(policyId);
         const receipt = await tx.wait();
-  
-        // Receipt logs may include FlightDataReceived or nothing if data was not ready
-        const returned = receipt?.logs?.length > 0;
-        console.log("TX receipt logs:", receipt.logs);
-  
-        return true; // Successful claim
+    
+        // Parse return value from logs
+        const result = await insurerContract.provider.call(
+          insurerContract.claimFlightPayout(policyId), // static call for return value
+          tx.blockNumber
+        );
+    
+        const success = ethers.AbiCoder.defaultAbiCoder().decode(["bool"], result)[0];
+        return success;
       } catch (err: any) {
         const message =
           err?.error?.message ||
@@ -215,14 +217,12 @@ export function useFlightInsurance() {
           err?.data?.message ||
           err?.message ||
           "";
-  
-        // Known reverts: not retryable
+    
         if (message.includes("Flight not delayed") || message.includes("Policy not active")) {
           throw new Error(message);
         }
-  
-        // If it's not a revert and didn't throw: might just be data not ready
-        return false; // Trigger retry
+    
+        return false; // treat all other issues as retryable
       }
     };
   
@@ -243,23 +243,35 @@ export function useFlightInsurance() {
       }, 120_000);
   
       async function onEvent() {
-        if (!insurerContract || !signer || !flightPolicyContract) {
-          throw new Error("Contract or signer not connected");
+        if (!insurerContract) {
+          clearTimeout(timeout);
+          reject(new Error("Insurer contract not connected"));
+          return;
         }
-        
+  
         clearTimeout(timeout);
         oracle.off(filter, onEvent);
-  
         console.log("📬 Oracle data received. Retrying claim...");
   
         try {
-          const tx = await insurerContract.claimFlightPayout(policyId);
-          await tx.wait();
-          console.log("✅ Claim succeeded on retry");
-          resolve();
-        } catch (retryErr: any) {
-          const msg = retryErr?.error?.message || retryErr?.message || "Claim failed after retry";
-          reject(new Error(msg));
+          insurerContract
+            .claimFlightPayout(policyId)
+            .then(tx => tx.wait())
+            .then(() => {
+              console.log("✅ Claim succeeded on retry");
+              resolve();
+            })
+            .catch((retryErr: any) => {
+              const msg =
+                retryErr?.error?.message ||
+                retryErr?.message ||
+                "Claim failed after retry";
+              reject(new Error(msg));
+            });
+        } catch (retryCatchErr: any) {
+          reject(
+            new Error(retryCatchErr?.message || "Unexpected error during retry")
+          );
         }
       }
   
