@@ -12,7 +12,7 @@ describe("OracleConnector + Listener.js Integration for Baggage", function () {
   let owner;
   
   const FLIGHT_NUMBER = "SQ100";
-  const DEPARTURE_TIME = "2025-03-30T15:00:00Z";
+  const DEPARTURE_TIME = "1744992558";
   const BAGGAGE_DES = "GreenLuggage"
   const MOCK_API_URL = "https://c5f06716-b81d-4e73-b825-1289c0745221.mock.pstmn.io/";
 
