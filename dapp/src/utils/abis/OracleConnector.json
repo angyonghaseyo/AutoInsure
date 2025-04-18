@@ -131,13 +131,13 @@
           "type": "bytes32"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "string",
           "name": "flightNumber",
           "type": "string"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "string",
           "name": "departureTime",
           "type": "string"
@@ -405,35 +405,6 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "_flightNumber",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "_departureTime",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "_itemDescription",
-          "type": "string"
-        }
-      ],
-      "name": "requestBaggageData",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "requestId",
-          "type": "bytes32"
-        }
-      ],
-      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

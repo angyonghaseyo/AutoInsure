@@ -187,84 +187,80 @@ export function useFlightInsurance() {
   /**
    * Claim a flight‑delay payout, retrying once the oracle data arrives.
    */
-  async function claimFlightPayout(policyId: number, flightNumber: string, departureTime: number): Promise<void> {
+  async function claimFlightPayout(policyId: number): Promise<void> {
     if (!insurerContract || !signer || !flightPolicyContract) {
       throw new Error("Contract or signer not connected");
     }
   
-    const depStr = departureTime.toString();
     const oracleAddr = await flightPolicyContract.oracleConnector();
     const oracle = new ethers.Contract(oracleAddr, OracleConnectorABI.abi, signer);
-    const filter = oracle.filters.FlightDataReceived(null, flightNumber, depStr);
   
-    // Helper to try claim
-    const attemptClaim = async (): Promise<boolean> => {
+    const flightPolicyAddr = flightPolicyContract.target?.toString() || await flightPolicyContract.getAddress();
+    const flightPolicy = new ethers.Contract(flightPolicyAddr, flightPolicyContract.interface, signer);
+  
+    let resolved = false;
+  
+    console.log("🔌 Connected to contracts:");
+    console.log("📡 OracleConnector at", oracleAddr);
+    console.log("📑 FlightPolicy at", flightPolicyAddr);
+  
+    // 🎯 Listen for final success
+    flightPolicy.on("PayoutClaimed", (policyIdEmitted, buyer, amount, event) => {
+      if (resolved) return;
+      resolved = true;
+      console.log("✅ PayoutClaimed received:", { policyId: policyIdEmitted.toString(), buyer, amount: ethers.formatEther(amount) });
+      cleanup();
+    });
+  
+    // ⏳ Listen for pending status
+    flightPolicy.on("PayoutPending", (policyIdEmitted, buyer, event) => {
+      console.log("🕓 PayoutPending received. Waiting for oracle data...");
+    });
+  
+    // 📡 Listen for oracle data arriving
+    oracle.on("FlightDataReceived", async (requestId, flightNumber, departureTime, isDelayed, delayMinutes, event) => {
+      if (resolved) return;
+      console.log("📬 FlightDataReceived received from oracle");
       try {
-        const tx = await insurerContract.claimFlightPayout(policyId);
-        const receipt = await tx.wait();
-  
-        // Receipt logs may include FlightDataReceived or nothing if data was not ready
-        const returned = receipt?.logs?.length > 0;
-        console.log("TX receipt logs:", receipt.logs);
-  
-        return true; // Successful claim
-      } catch (err: any) {
-        const message =
-          err?.error?.message ||
-          err?.reason ||
-          err?.data?.message ||
-          err?.message ||
-          "";
-  
-        // Known reverts: not retryable
-        if (message.includes("Flight not delayed") || message.includes("Policy not active")) {
-          throw new Error(message);
-        }
-  
-        // If it's not a revert and didn't throw: might just be data not ready
-        return false; // Trigger retry
+        const retryTx = await insurerContract.claimFlightPayout(policyId);
+        // checkFlightStatus (flightNumber, departureTime)
+        await retryTx.wait();
+        console.log("🔁 Retried claimFlightPayout sent");
+      } catch (retryErr: any) {
+        const msg = retryErr?.error?.message || retryErr?.message || "Retry failed";
+        console.error("❌ Retry failed:", msg);
       }
-    };
+    });
   
-    console.log("🕒 Attempting to claim flight payout...");
-    const firstAttempt = await attemptClaim();
-  
-    if (firstAttempt) {
-      console.log("✅ Claim succeeded on first attempt");
-      return;
+    // ⛳ Clean up all listeners
+    function cleanup() {
+      flightPolicy.removeAllListeners("PayoutClaimed");
+      flightPolicy.removeAllListeners("PayoutPending");
+      oracle.removeAllListeners("FlightDataReceived");
     }
   
-    console.log("📡 Oracle data not ready. Listening for FlightDataReceived...");
+    try {
+      console.log("🚀 Sending initial claimFlightPayout...");
+      const tx = await insurerContract.claimFlightPayout(policyId);
+      await tx.wait();
+    } catch (err: any) {
+      cleanup();
+      const message =
+        err?.error?.message ||
+        err?.reason ||
+        err?.data?.message ||
+        err?.message ||
+        "Initial claim attempt failed";
+      throw new Error(`❌ ${message}`);
+    }
   
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        oracle.off(filter, onEvent);
-        reject(new Error("❌ Oracle did not respond in time (2 minutes)"));
-      }, 120_000);
-  
-      async function onEvent() {
-        if (!insurerContract || !signer || !flightPolicyContract) {
-          throw new Error("Contract or signer not connected");
-        }
-        
-        clearTimeout(timeout);
-        oracle.off(filter, onEvent);
-  
-        console.log("📬 Oracle data received. Retrying claim...");
-  
-        try {
-          const tx = await insurerContract.claimFlightPayout(policyId);
-          await tx.wait();
-          console.log("✅ Claim succeeded on retry");
-          resolve();
-        } catch (retryErr: any) {
-          const msg = retryErr?.error?.message || retryErr?.message || "Claim failed after retry";
-          reject(new Error(msg));
-        }
+    // Optional: timeout safeguard
+    setTimeout(() => {
+      if (!resolved) {
+        cleanup();
+        console.warn("⏱️ Timeout: No final claim result after 2 minutes");
       }
-  
-      oracle.once(filter, onEvent);
-    });
+    }, 120_000);
   }
 
   // ====== Utility Functions ======
