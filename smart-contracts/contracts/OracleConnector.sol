@@ -17,7 +17,7 @@ interface IMockOracle {
 }
 
 
-contract OracleConnector is ChainlinkClient {
+contract OracleConnector is ChainlinkClient, Ownable {
     using Chainlink for Chainlink.Request;
     
     // Oracle parameters
@@ -70,24 +70,24 @@ contract OracleConnector is ChainlinkClient {
     
     // Events
     event FlightDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime);
-    event FlightDataReceived(bytes32 indexed requestId, string indexed flightNumber, string indexed departureTime, bool isDelayed, uint256 delayMinutes);
+    event FlightDataReceived(bytes32 indexed requestId, string flightNumber, string departureTime, bool isDelayed, uint256 delayMinutes);
 
     event BaggageDataRequested(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription);
     event BaggageDataRecieved(bytes32 indexed requestId, string flightNumber, string departureTime, string itemDescription, uint256 retrievedBaggageStatus);
 
     
-    constructor(address _linkToken) {
+    constructor(address _linkToken) Ownable() {
         // Set Chainlink token address (for the relevant network)
         setChainlinkToken(_linkToken);
         // 0.1 LINK
         fee = 0.1 * 10 ** 18;
     }
 
-    function addOracle(address _oracle, string memory _oracleAPIUrl, bytes32 _jobId) external {
+    function addOracle(address _oracle, string memory _oracleAPIUrl, bytes32 _jobId) external onlyOwner {
         oracles.push(OracleInfo({oracle: _oracle, oracleAPIUrl: _oracleAPIUrl, jobId: _jobId}));
     }
 
-    function requestFlightData(string memory _flightNumber, string memory _departureTime) public returns (bytes32 requestId) 
+    function requestFlightData(string memory _flightNumber, string memory _departureTime) public onlyOwner returns (bytes32 requestId) 
     {
         // require(oracles.length > 0, "No oracles set");
 
@@ -188,45 +188,42 @@ contract OracleConnector is ChainlinkClient {
     }
     
     function requestBaggageData(string memory _flightNumber, string memory _departureTime, string memory _itemDescription) 
-    public returns (bytes32 requestId) 
+    public onlyOwner returns (bytes32 requestId) 
     {
         require(oracles.length > 0, "No oracles set");
 
-        for (uint256 i = 0; i < oracles.length; i++) {
 
-            // Set the URL to fetch baggage data
-            //This URL called from each indiv oracle api 
-            string memory fullUrl = string(abi.encodePacked(
-                oracles[i].oracleAPIUrl,
-                _flightNumber,
-                "?departure=",
-                _departureTime,
-                "/",
-                _itemDescription
-            ));
+        // Set the URL to fetch baggage data
+        //This URL called from each indiv oracle api 
+        string memory fullUrl = string(abi.encodePacked(
+            oracles[3].oracleAPIUrl,
+            _flightNumber,
+            "?departure=",
+            _departureTime,
+            "/",
+            _itemDescription
+        ));
 
-            // Call Mock Oracle Function instead to simulate chainlink sending a request
-            requestId = IMockOracle(oracles[i].oracle).mockChainlinkRequest(
-                address(this),
-                this.fulfillBaggageData.selector,
-                fee,
-                oracles[i].jobId, // example jobId
-                fullUrl,
-                "baggageStatus"
-            );
+        // Call Mock Oracle Function instead to simulate chainlink sending a request
+        requestId = IMockOracle(oracles[3].oracle).mockChainlinkRequest(
+            address(this),
+            this.fulfillBaggageData.selector,
+            fee,
+            oracles[3].jobId, // example jobId
+            fullUrl,
+            "baggageStatus"
+        );
             
-            // Store request mapping
-            requestIDToBaggageRequest[requestId] = BaggageRequest(_flightNumber, _departureTime, _itemDescription);
+        // Store request mapping
+        requestIDToBaggageRequest[requestId] = BaggageRequest(_flightNumber, _departureTime, _itemDescription);
             
-            // Initialize the flight data structure if it doesn't exist
-            if (flightDataStore[_flightNumber][_departureTime].responseCount == 0) {
-                flightDataStore[_flightNumber][_departureTime].flightNumber = _flightNumber;
-                flightDataStore[_flightNumber][_departureTime].departureTime = _departureTime;
-            }
-            
-            emit BaggageDataRequested(requestId, _flightNumber, _departureTime, _itemDescription);
+        // Initialize the flight data structure if it doesn't exist
+        if (flightDataStore[_flightNumber][_departureTime].responseCount == 0) {
+            flightDataStore[_flightNumber][_departureTime].flightNumber = _flightNumber;
+            flightDataStore[_flightNumber][_departureTime].departureTime = _departureTime;
         }
-        
+            
+        emit BaggageDataRequested(requestId, _flightNumber, _departureTime, _itemDescription);
         return requestId;
     }
 
@@ -271,7 +268,7 @@ contract OracleConnector is ChainlinkClient {
         return (data.dataReceived, data.baggageStatus);
     }
     
-    function withdrawLink() external {
+    function withdrawLink() external onlyOwner {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
