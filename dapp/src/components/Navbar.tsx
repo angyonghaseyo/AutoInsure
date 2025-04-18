@@ -1,7 +1,7 @@
 import { Layout, Menu } from "antd";
-import { useRouter } from "next/router";
-import WalletConnect from "../components/WalletConnect";
 import Link from "next/link";
+import { useRouter } from "next/router";
+import WalletConnect from "./WalletConnect";
 import { useWeb3, Role } from "./Web3Provider";
 
 const { Header } = Layout;
@@ -10,25 +10,33 @@ const Navbar = () => {
   const router = useRouter();
   const { role } = useWeb3();
 
-  // Menu items for regular users
-  const userMenuItems = [
+  // Common menu items
+  const commonMenuItems = [
     { key: "/", label: <Link href="/">Home</Link> },
-    { key: "/user/BrowsePolicyTemplates", label: <Link href="/user/BrowsePolicyTemplates">Browse Policies</Link> },
-    { key: "/user/MyPolicies", label: <Link href="/user/MyPolicies">My Policies</Link> },
-    { key: "/claims", label: <Link href="/claims">Claims & Payouts</Link> },
   ];
 
-  // Menu items for the insurer
+  // Menu items for users and insurers
+  const userMenuItems = [
+    ...commonMenuItems,
+    { key: "/user/BrowsePolicyTemplates", label: <Link href="/user/BrowsePolicyTemplates">Browse Policies</Link> },
+    { key: "/user/MyPolicies", label: <Link href="/user/MyPolicies">My Policies</Link> },
+    { key: "/user/MyClaims", label: <Link href="/user/MyClaims">Claims & Payouts</Link> },
+  ];
+
   const insurerMenuItems = [
-    { key: "/", label: <Link href="/">Home</Link> },
+    ...commonMenuItems,
     { key: "/insurer/InsurerPolicyTemplates", label: <Link href="/insurer/InsurerPolicyTemplates">Policy Templates</Link> },
     { key: "/insurer/InsurerClaimsOverview", label: <Link href="/insurer/InsurerClaimsOverview">Claims & Payouts</Link> },
   ];
 
+  // Get selected key for the current route
+  const getSelectedKey = () => router.pathname;
+
+  // Fallback to an empty menu if no role is found
+  const roleMenuItems = role === Role.User ? userMenuItems : role === Role.Insurer ? insurerMenuItems : [];
+
   return (
-    <Header
-      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "white", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}
-    >
+    <Header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "white", boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)" }}>
       {/* Logo and brand */}
       <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
         <svg
@@ -47,23 +55,13 @@ const Navbar = () => {
         <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "1.25rem", marginLeft: "0.5rem" }}>AutoInsure</span>
       </Link>
 
-      {/* Display tab menu based on role */}
-      {role == Role.Insurer && (
+      {/* Render menu based on role */}
+      {role && (
         <Menu
           theme="light"
           mode="horizontal"
-          selectedKeys={[router.pathname]}
-          items={insurerMenuItems}
-          style={{ flex: 1, display: "flex", justifyContent: "center", background: "transparent" }}
-        />
-      )}
-
-      {role == Role.User && (
-        <Menu
-          theme="light"
-          mode="horizontal"
-          selectedKeys={[router.pathname]}
-          items={userMenuItems}
+          selectedKeys={[getSelectedKey()]}
+          items={roleMenuItems}
           style={{ flex: 1, display: "flex", justifyContent: "center", background: "transparent" }}
         />
       )}

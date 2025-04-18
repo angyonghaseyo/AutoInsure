@@ -1,7 +1,8 @@
-import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
-import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
-import { DollarOutlined, ClockCircleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
-import { Button, Card, Tag } from "antd";
+import { Button, Card } from "antd";
+import { DollarOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { FlightPolicyTemplate } from "../types/FlightPolicy";
+import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
+import { convertSecondsToDays } from "@/utils/utils";
 
 type TemplateCardProps = {
   template: FlightPolicyTemplate | BaggagePolicyTemplate;
@@ -9,7 +10,7 @@ type TemplateCardProps = {
   onPurchase: () => void;
 };
 
-export const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProps) => {
+const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProps) => {
   const showTemplate = (template: FlightPolicyTemplate | BaggagePolicyTemplate) => {
     if (type === "flight") {
       const tpl = template as FlightPolicyTemplate;
@@ -29,7 +30,7 @@ export const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateC
             <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs
           </p>
           <p>
-            <strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
           </p>
         </div>
       );
@@ -51,7 +52,7 @@ export const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateC
             <strong>Max Total Payout:</strong> <ClockCircleOutlined /> {tpl.maxTotalPayout} ETH
           </p>
           <p>
-            <strong>Coverage Duration:</strong> {tpl.coverageDurationDays} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
           </p>
         </div>
       );
@@ -70,10 +71,12 @@ export const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateC
     >
       {showTemplate(template)}
       <div style={{ marginTop: "auto" }}>
-        <Button type="primary" block onClick={() => onPurchase()}>
+        <Button type="primary" block onClick={onPurchase}>
           Purchase Policy
         </Button>
       </div>
     </Card>
   );
 };
+
+export default UserPolicyTemplateCard;

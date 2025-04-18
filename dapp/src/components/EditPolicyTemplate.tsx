@@ -4,20 +4,16 @@ import { useFlightInsurance } from "@/services/flightInsurance";
 import { FlightPolicyTemplate } from "@/types/FlightPolicy";
 import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
 import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { convertDaysToSeconds, convertSecondsToDays } from "@/utils/utils";
 
-/**
- * Props for CreatePolicyTemplate component.
- * onClose: callback to close modal or drawer
- * onUpdate: callback to refresh the template list after creation
- */
-interface CreatePolicyTemplateProps {
+interface EditPolicyTemplateProps {
   policyTemplate: FlightPolicyTemplate | BaggagePolicyTemplate;
   type: "flight" | "baggage";
   onClose: () => void;
   onUpdate: () => void;
 }
 
-const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreatePolicyTemplateProps) => {
+const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: EditPolicyTemplateProps) => {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +23,7 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreateP
   const { editBaggagePolicyTemplate } = useBaggageInsurance();
 
   /**
-   * Submits the policy template form and creates a new policy template on-chain.
+   * Submits the policy template form and updates the existing policy template on-chain.
    */
   const handleSubmit = async (values: any) => {
     setIsLoading(true);
@@ -35,7 +31,18 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreateP
     setSuccess(null);
 
     try {
-      if (type === "baggage") {
+      if (type === "flight") {
+        await editFlightPolicyTemplate(
+          policyTemplate.templateId,
+          values.name,
+          values.description,
+          values.premium,
+          values.payoutPerHour,
+          values.maxTotalPayout,
+          values.delayThresholdHours,
+          convertDaysToSeconds(values.coverageDurationDays)
+        );
+      } else if (type === "baggage") {
         await editBaggagePolicyTemplate(
           policyTemplate.templateId,
           values.name,
@@ -44,34 +51,45 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreateP
           values.payoutIfDelayed,
           values.payoutIfLost,
           values.maxTotalPayout,
-          values.coverageDurationDays
+          convertDaysToSeconds(values.coverageDurationDays)
         );
       }
-
-      if (type === "flight") {
-        await editFlightPolicyTemplate(
-          policyTemplate.templateId,
-          values.name,
-          values.description,
-          values.premium,
-          values.payoutPerHour,
-          values.delayThresholdHours,
-          values.maxTotalPayout,
-          values.coverageDurationDays
-        );
-      }
-
-      setSuccess("Template successfully edited!");
+      setSuccess(`${type === "flight" ? "Flight" : "Baggage"} template successfully edited!`);
       onClose();
       onUpdate();
       form.resetFields();
     } catch (err) {
       console.error("Error editing template:", err);
-      setError("An error occurred while editing the policy template.");
+      setError(`An error occurred while editing the ${type} policy template.`);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Conditional fields for flight or baggage templates
+  const flightFields = (
+    <>
+      <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="ETH/hr" style={{ width: "100%" }} />
+      </Form.Item>
+
+      <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
+      </Form.Item>
+    </>
+  );
+
+  const baggageFields = (
+    <>
+      <Form.Item name="payoutIfDelayed" label="Payout If Delayed" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
+      </Form.Item>
+
+      <Form.Item name="payoutIfLost" label="Payout If Lost" rules={[{ required: true }]}>
+        <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
+      </Form.Item>
+    </>
+  );
 
   return (
     <Card title={`Edit ${policyTemplate.name}`}>
@@ -91,35 +109,19 @@ const EditPolicyTemplate = ({ policyTemplate, type, onClose, onUpdate }: CreateP
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
         </Form.Item>
 
-        {type === "flight" && (
-          <>
-            <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="ETH/hr" style={{ width: "100%" }} />
-            </Form.Item>
-          </>
-        )}
-
-        {type === "baggage" && (
-          <>
-            <Form.Item name="payoutIfDelayed" label="Payout If Delayed" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item name="payoutIfLost" label="Payout If Lost" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
-            </Form.Item>
-          </>
-        )}
+        {/* Conditional Fields Based on Policy Type */}
+        {type === "flight" ? flightFields : baggageFields}
 
         <Form.Item name="maxTotalPayout" label="Maximum Total Payout" rules={[{ required: true }]}>
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item name="coverageDurationDays" label="Coverage Duration" rules={[{ required: true }]}>
+        <Form.Item
+          name="coverageDurationDays"
+          label="Coverage Duration"
+          rules={[{ required: true }]}
+          initialValue={convertSecondsToDays(policyTemplate.coverageDurationSeconds).toPrecision(1)}
+        >
           <InputNumber min={0} addonAfter="days" style={{ width: "100%" }} />
         </Form.Item>
 

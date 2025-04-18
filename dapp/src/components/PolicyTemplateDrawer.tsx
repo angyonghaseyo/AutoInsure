@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Drawer, Statistic, Row, Col, Table } from "antd";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy } from "@/types/FlightPolicy";
-import { BaggagePolicyStatus, BaggagePolicyTemplate, BaggageUserPolicy } from "@/types/BaggagePolicy";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
+import { useFlightInsurance } from "../services/flightInsurance";
+import { useBaggageInsurance } from "../services/baggageInsurance";
+import { FlightPolicyStatus, FlightPolicyTemplate, FlightUserPolicy } from "../types/FlightPolicy";
+import { BaggagePolicyStatus, BaggagePolicyTemplate, BaggageUserPolicy } from "../types/BaggagePolicy";
 
 interface PolicyTemplateDrawerProps {
   policyTemplate: FlightPolicyTemplate | BaggagePolicyTemplate;
@@ -14,7 +14,7 @@ interface PolicyTemplateDrawerProps {
 
 const PolicyTemplateDrawer: React.FC<PolicyTemplateDrawerProps> = ({ policyTemplate, type, setDrawerVisible, visible }) => {
   const [userFlightPolicies, setUserFlightPolicies] = useState<FlightUserPolicy[]>([]);
-  const [userBaggagePolicies, setUserBagggagePolicies] = useState<BaggageUserPolicy[]>([]);
+  const [userBaggagePolicies, setUserBaggagePolicies] = useState<BaggageUserPolicy[]>([]);
   const { getUserFlightPoliciesByTemplate } = useFlightInsurance();
   const { getUserBaggagePoliciesByTemplate } = useBaggageInsurance();
 
@@ -23,7 +23,7 @@ const PolicyTemplateDrawer: React.FC<PolicyTemplateDrawerProps> = ({ policyTempl
       const flightPolicies = await getUserFlightPoliciesByTemplate(policyTemplate.templateId);
       setUserFlightPolicies(flightPolicies);
       const baggagePolicies = await getUserBaggagePoliciesByTemplate(policyTemplate.templateId);
-      setUserBagggagePolicies(baggagePolicies);
+      setUserBaggagePolicies(baggagePolicies);
     };
 
     fetchUserPolicies();
@@ -58,9 +58,7 @@ const PolicyTemplateDrawer: React.FC<PolicyTemplateDrawerProps> = ({ policyTempl
       title: "Payout To Date",
       dataIndex: "payoutToDate",
       key: "payoutToDate",
-      render: (payout: number) => {
-        return `${payout} ETH`;
-      },
+      render: (payout: number) => `${payout} ETH`,
     },
   ];
 
@@ -83,11 +81,23 @@ const PolicyTemplateDrawer: React.FC<PolicyTemplateDrawerProps> = ({ policyTempl
       title: "Payout To Date",
       dataIndex: "payoutToDate",
       key: "payoutToDate",
-      render: (payout: number) => {
-        return `${payout} ETH`;
-      },
+      render: (payout: number) => `${payout} ETH`,
     },
   ];
+
+  // Statistics Calculation
+  const totalPolicies = userBaggagePolicies.length + userFlightPolicies.length;
+  const activePolicies =
+    userFlightPolicies.filter((policy) => policy.status === FlightPolicyStatus.Active).length +
+    userBaggagePolicies.filter((policy) => policy.status === BaggagePolicyStatus.Active).length;
+
+  const expiredPolicies =
+    userFlightPolicies.filter((policy) => policy.status === FlightPolicyStatus.Expired).length +
+    userBaggagePolicies.filter((policy) => policy.status === BaggagePolicyStatus.Expired).length;
+
+  const claimedPolicies =
+    userFlightPolicies.filter((policy) => policy.status === FlightPolicyStatus.Claimed).length +
+    userBaggagePolicies.filter((policy) => policy.status === BaggagePolicyStatus.Claimed).length;
 
   return (
     <Drawer
@@ -99,38 +109,31 @@ const PolicyTemplateDrawer: React.FC<PolicyTemplateDrawerProps> = ({ policyTempl
     >
       <Row gutter={16} style={{ marginBottom: "20px" }}>
         <Col span={6}>
-          <Statistic title="Total" value={userBaggagePolicies.length + userFlightPolicies.length} />
+          <Statistic title="Total" value={totalPolicies} />
         </Col>
         <Col span={6}>
-          <Statistic
-            title="Active"
-            value={
-              userFlightPolicies.filter((policy) => policy.status === FlightPolicyStatus.Active).length +
-              userBaggagePolicies.filter((policy) => policy.status === BaggagePolicyStatus.Active).length
-            }
-          />
+          <Statistic title="Active" value={activePolicies} />
         </Col>
         <Col span={6}>
-          <Statistic
-            title="Expired"
-            value={
-              userFlightPolicies.filter((policy) => policy.status === FlightPolicyStatus.Expired).length +
-              userBaggagePolicies.filter((policy) => policy.status === BaggagePolicyStatus.Active).length
-            }
-          />
+          <Statistic title="Expired" value={expiredPolicies} />
         </Col>
         <Col span={6}>
-          <Statistic
-            title="Claimed"
-            value={
-              userFlightPolicies.filter((policy) => policy.status === FlightPolicyStatus.Claimed).length +
-              userBaggagePolicies.filter((policy) => policy.status === BaggagePolicyStatus.Active).length
-            }
-          />
+          <Statistic title="Claimed" value={claimedPolicies} />
         </Col>
       </Row>
-      <Table dataSource={userBaggagePolicies} columns={baggageColumns} rowKey={(policy) => `${policy.policyId}`} pagination={{ pageSize: 5 }} />
-      <Table dataSource={userFlightPolicies} columns={flightColumns} rowKey={(policy) => `${policy.policyId}`} pagination={{ pageSize: 5 }} />
+
+      <Table
+        dataSource={userBaggagePolicies}
+        columns={baggageColumns}
+        rowKey={(policy) => `${policy.policyId}`}
+        pagination={{ pageSize: 5 }}
+      />
+      <Table
+        dataSource={userFlightPolicies}
+        columns={flightColumns}
+        rowKey={(policy) => `${policy.policyId}`}
+        pagination={{ pageSize: 5 }}
+      />
     </Drawer>
   );
 };

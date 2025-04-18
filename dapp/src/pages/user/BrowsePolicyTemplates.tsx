@@ -1,19 +1,15 @@
 import { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Button, Modal, Spin, Alert } from "antd";
-import { DollarOutlined, ClockCircleOutlined } from "@ant-design/icons";
-import PurchasePolicy from "@/components/PurchasePolicy";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { FlightPolicyTemplate } from "@/types/FlightPolicy";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { BaggagePolicyTemplate } from "@/types/BaggagePolicy";
-import { UserPolicyTemplateCard } from "@/components/UserPolicyTemplateCard";
+import { Row, Col, Typography, Modal, Spin, Alert } from "antd";
+import PurchasePolicy from "../../components/PurchasePolicy";
+import UserPolicyTemplateCard from "../../components/UserPolicyTemplateCard";
+import { useFlightInsurance } from "../../services/flightInsurance";
+import { useBaggageInsurance } from "../../services/baggageInsurance";
+import { FlightPolicyTemplate } from "../../types/FlightPolicy";
+import { BaggagePolicyTemplate } from "../../types/BaggagePolicy";
 
 const { Title, Paragraph } = Typography;
 
 const BrowseFlightPolicyTemplates = () => {
-  const { getActiveFlightPolicyTemplates, isFlightPolicyTemplateAllowedForPurchase } = useFlightInsurance();
-  const { getActiveBaggagePolicyTemplates, isBaggagePolicyTemplateAllowedForPurchase } = useBaggageInsurance();
-
   const [flightTemplates, setFlightTemplates] = useState<FlightPolicyTemplate[]>([]);
   const [baggageTemplates, setBaggageTemplates] = useState<BaggagePolicyTemplate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -21,31 +17,41 @@ const BrowseFlightPolicyTemplates = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<FlightPolicyTemplate | BaggagePolicyTemplate | null>(null);
   const [type, setType] = useState<"flight" | "baggage">("flight");
 
+  const { getActiveFlightPolicyTemplates, isFlightPolicyTemplateAllowedForPurchase } = useFlightInsurance();
+  const { getActiveBaggagePolicyTemplates, isBaggagePolicyTemplateAllowedForPurchase } = useBaggageInsurance();
+
   /**
-   * Fetch all active flight policy templates on mount.
+   * Fetch active policy templates for flight and baggage, and filter by purchase eligibility.
    */
+  const fetchTemplates = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [flightTemplatesData, baggageTemplatesData] = await Promise.all([
+        getActiveFlightPolicyTemplates(),
+        getActiveBaggagePolicyTemplates()
+      ]);
+
+      // Filter flight and baggage templates by eligibility
+      const flightIsAllowed = await isFlightPolicyTemplateAllowedForPurchase(flightTemplatesData);
+      const allowedFlightTemplates = flightTemplatesData.filter((tpl, index) => flightIsAllowed[index]);
+
+      const baggageIsAllowed = await isBaggagePolicyTemplateAllowedForPurchase(baggageTemplatesData);
+      const allowedBaggageTemplates = baggageTemplatesData.filter((tpl, index) => baggageIsAllowed[index]);
+
+      setFlightTemplates(allowedFlightTemplates);
+      setBaggageTemplates(allowedBaggageTemplates);
+
+    } catch (err) {
+      console.error("Error fetching templates:", err);
+      setError("Unable to load policy templates. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchTemplates = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const flightTemplates = await getActiveFlightPolicyTemplates();
-        const isFlightTemplateAllowed = await isFlightPolicyTemplateAllowedForPurchase(flightTemplates);
-        const allowedFlightTemplates = flightTemplates.filter((tpl, index) => isFlightTemplateAllowed[index]);
-        setFlightTemplates(allowedFlightTemplates);
-
-        const baggageTemplates = await getActiveBaggagePolicyTemplates();
-        const isBaggageTemplateAllowed = await isBaggagePolicyTemplateAllowedForPurchase(baggageTemplates);
-        const allowedBaggageTemplates = baggageTemplates.filter((tpl, index) => isBaggageTemplateAllowed[index]);
-        setBaggageTemplates(allowedBaggageTemplates);
-      } catch (err) {
-        console.error("Error fetching active templates:", err);
-        setError("Unable to load policy templates. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTemplates();
   }, []);
 
@@ -66,7 +72,7 @@ const BrowseFlightPolicyTemplates = () => {
       ) : error ? (
         <Alert message="Error" description={error} type="error" showIcon />
       ) : flightTemplates.length + baggageTemplates.length === 0 ? (
-        <Alert message="No Policies Available" description="Currently there are no active flight policy templates available for purchase." type="info" showIcon />
+        <Alert message="No Policies Available" description="Currently there are no active flight or baggage policy templates available for purchase." type="info" showIcon />
       ) : (
         <>
           {/* Flight Templates */}

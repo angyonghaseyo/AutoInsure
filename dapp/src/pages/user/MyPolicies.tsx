@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { Card, Row, Col, Typography, Alert, Modal, Select, message, Spin } from "antd";
+import { Card, Row, Col, Typography, Alert, Tag, Select, message, Spin } from "antd";
 import { WalletOutlined } from "@ant-design/icons";
 
-import { useWeb3 } from "@/components/Web3Provider";
-import { useFlightInsurance } from "@/services/flightInsurance";
-import { FlightPolicyStatus, FlightUserPolicy } from "@/types/FlightPolicy";
-import { useBaggageInsurance } from "@/services/baggageInsurance";
-import { BaggageUserPolicy } from "@/types/BaggagePolicy";
+import { useWeb3 } from "../../components/Web3Provider";
+import ViewPolicyModal from "../../components/ViewPolicyModal";
+import { useFlightInsurance } from "../../services/flightInsurance";
+import { useBaggageInsurance } from "../../services/baggageInsurance";
+import { FlightPolicyStatus, FlightUserPolicy } from "../../types/FlightPolicy";
+import { BaggagePolicyStatus, BaggageUserPolicy } from "../../types/BaggagePolicy";
 import { getStatusTag } from "@/utils/utils";
-import { ViewPolicyModal } from "@/components/ViewPolicyModal";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -32,8 +32,8 @@ const MyFlightPolicies = () => {
    */
   const fetchPolicies = async () => {
     if (!account) return;
+    setLoading(true);
     try {
-      setLoading(true);
       const flightPolicies = await getUserFlightPolicies(account);
       setFlightPolicies(flightPolicies);
       setFlightFiltered(flightPolicies);
