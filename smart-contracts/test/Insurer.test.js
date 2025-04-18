@@ -18,7 +18,7 @@ describe("Insurer Contract - Full Flow", function () {
     payoutPerHour: ethers.parseEther("1"),
     delayThresholdHours: 1,
     maxTotalPayout: ethers.parseEther("3"),
-    coverageDurationDays: 1,
+    coverageDurationSeconds: 1 * 24 * 60 * 60,
     status: 1, // 0: Active, 1: Inactive
   };
 
@@ -32,7 +32,7 @@ describe("Insurer Contract - Full Flow", function () {
     payoutPerHour: ethers.parseEther("2"),
     delayThresholdHours: 2,
     maxTotalPayout: ethers.parseEther("4"),
-    coverageDurationDays: 3,
+    coverageDurationSeconds: 3 * 24 * 60 * 60,
     status: 0, // 0: Active, 1: Inactive
   };
 
@@ -46,7 +46,7 @@ describe("Insurer Contract - Full Flow", function () {
     payoutPerHour: ethers.parseEther("2"),
     delayThresholdHours: 2,
     maxTotalPayout: ethers.parseEther("1000"),
-    coverageDurationDays: 3,
+    coverageDurationSeconds: 3 * 24 * 60 * 60,
     status: 0, // 0: Active, 1: Inactive
   };
 
@@ -94,14 +94,18 @@ describe("Insurer Contract - Full Flow", function () {
     const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
 
     await expect(
-      insurerContract.connect(user).purchaseFlightPolicy(deactivatedTemplate, "SQ001", "SIN", "NRT", futureDepartureTime, { value: ethers.parseEther("1") })
+      insurerContract
+        .connect(user)
+        .purchaseFlightPolicy(deactivatedTemplate, "SQ001", "SIN", "NRT", futureDepartureTime, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") })
     ).to.be.revertedWith("Policy template is not active");
   });
 
   // 3. Attempt to purchase a policy that exceeds total possible payout
   it("should revert purchase for policy that exceed total possible payout", async () => {
     await expect(
-      insurerContract.connect(user).purchaseFlightPolicy(expensiveTemplate, "SQ222", "SIN", "ICN", Math.floor(Date.now() / 1000) + 86400, { value: ethers.parseEther("1") })
+      insurerContract
+        .connect(user)
+        .purchaseFlightPolicy(expensiveTemplate, "SQ222", "SIN", "ICN", Math.floor(Date.now() / 1000) + 86400, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") })
     ).to.be.revertedWith("Insufficient contract balance to cover potential payouts");
   });
 
@@ -110,24 +114,26 @@ describe("Insurer Contract - Full Flow", function () {
     // Use the blockchain timestamp + future offset
     const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
 
-    const tx = await insurerContract.connect(user).purchaseFlightPolicy(activeTemplate, "SQ222", "SIN", "ICN", futureDepartureTime, { value: ethers.parseEther("1") });
+    const tx = await insurerContract
+      .connect(user)
+      .purchaseFlightPolicy(activeTemplate, "SQ222", "SIN", "ICN", futureDepartureTime, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") });
     await tx.wait();
   });
 
   // 4. Get user policies by template
   it("should return only policies for a given template", async function () {
-    const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(activeTemplate.templateId);
+    const policiesTemplate1 = await flightPolicy.getUserPoliciesByTemplate(activeTemplate.templateId, Math.floor(Date.now() / 1000));
     expect(policiesTemplate1.length).to.equal(1);
     const flightNumbersTemplate1 = policiesTemplate1.map((policy) => policy.flightNumber);
     expect(flightNumbersTemplate1).to.include("SQ222");
 
-    const policiesTemplate2 = await flightPolicy.getUserPoliciesByTemplate(deactivatedTemplate.templateId);
+    const policiesTemplate2 = await flightPolicy.getUserPoliciesByTemplate(deactivatedTemplate.templateId, Math.floor(Date.now() / 1000));
     expect(policiesTemplate2.length).to.equal(0);
   });
 
   // 5. Get user policies
   it("should return user's purchased policies", async () => {
-    const userPolicies = await insurerContract.getUserFlightPolicies(user.address);
+    const userPolicies = await insurerContract.getUserFlightPolicies(user.address, Math.floor(Date.now() / 1000));
     expect(userPolicies.length).to.equal(1);
     expect(userPolicies[0].flightNumber).to.equal("SQ222");
 

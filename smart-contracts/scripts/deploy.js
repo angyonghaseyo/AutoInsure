@@ -192,7 +192,7 @@ async function main() {
   fs.writeFileSync(path.join(abisDir, "Insurer.json"), JSON.stringify(await hre.artifacts.readArtifact("Insurer"), null, 2));
   fs.writeFileSync(path.join(abisDir, "MockOracle.json"), JSON.stringify(await hre.artifacts.readArtifact("MockOracle"), null, 2));
 
-  console.log("✅ ABIs and addresses exported for dapp.");
+  console.log("ABIs and addresses exported for dapp.");
 }
 
 main().catch((error) => {

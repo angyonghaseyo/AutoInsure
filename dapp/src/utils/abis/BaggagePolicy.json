@@ -15,7 +15,13 @@
       "type": "constructor"
     },
     {
-      "inputs": [],
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "currentTime",
+          "type": "uint256"
+        }
+      ],
       "name": "getAllPolicies",
       "outputs": [
         {
@@ -74,7 +80,7 @@
                 },
                 {
                   "internalType": "uint256",
-                  "name": "coverageDurationDays",
+                  "name": "coverageDurationSeconds",
                   "type": "uint256"
                 },
                 {
@@ -127,6 +133,11 @@
           "internalType": "address",
           "name": "user",
           "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "currentTime",
+          "type": "uint256"
         }
       ],
       "name": "getUserPolicies",
@@ -187,7 +198,7 @@
                 },
                 {
                   "internalType": "uint256",
-                  "name": "coverageDurationDays",
+                  "name": "coverageDurationSeconds",
                   "type": "uint256"
                 },
                 {
@@ -240,6 +251,11 @@
           "internalType": "string",
           "name": "templateId",
           "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "currentTime",
+          "type": "uint256"
         }
       ],
       "name": "getUserPoliciesByTemplate",
@@ -300,7 +316,7 @@
                 },
                 {
                   "internalType": "uint256",
-                  "name": "coverageDurationDays",
+                  "name": "coverageDurationSeconds",
                   "type": "uint256"
                 },
                 {
@@ -450,7 +466,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "coverageDurationDays",
+              "name": "coverageDurationSeconds",
               "type": "uint256"
             },
             {
@@ -549,7 +565,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "coverageDurationDays",
+              "name": "coverageDurationSeconds",
               "type": "uint256"
             },
             {

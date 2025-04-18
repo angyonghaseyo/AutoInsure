@@ -14,7 +14,7 @@ export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
     payoutPerHour: ethers.formatEther(raw.payoutPerHour),
     delayThresholdHours: Number(raw.delayThresholdHours),
     maxTotalPayout: ethers.formatEther(raw.maxTotalPayout),
-    coverageDurationDays: Number(raw.coverageDurationDays),
+    coverageDurationSeconds: Number(raw.coverageDurationSeconds),
     status: Number(raw.status),
   };
 }
@@ -32,7 +32,7 @@ export function formatUserPolicy(raw: any): FlightUserPolicy {
       payoutPerHour: String(raw.template.payoutPerHour),
       delayThresholdHours: Number(raw.template.delayThresholdHours),
       maxTotalPayout: String(raw.template.maxTotalPayout),
-      coverageDurationDays: Number(raw.template.coverageDurationDays),
+      coverageDurationSeconds: Number(raw.template.coverageDurationSeconds),
       status: Number(raw.template.status),
     },
     flightNumber: raw.flightNumber,
@@ -57,7 +57,7 @@ export function useFlightInsurance() {
     payoutPerHour: number,
     delayThresholdHours: number,
     maxTotalPayout: number,
-    coverageDurationDays: number
+    coverageDurationSeconds: number
   ): Promise<FlightPolicyTemplate> {
     const template: FlightPolicyTemplateCreate = {
       name,
@@ -66,7 +66,7 @@ export function useFlightInsurance() {
       payoutPerHour: payoutPerHour.toString(),
       delayThresholdHours,
       maxTotalPayout: maxTotalPayout.toString(),
-      coverageDurationDays,
+      coverageDurationSeconds: coverageDurationSeconds,
     };
 
     const res = await fetch("/api/flightTemplates", {
@@ -86,7 +86,7 @@ export function useFlightInsurance() {
     payoutPerHour: number,
     delayThresholdHours: number,
     maxTotalPayout: number,
-    coverageDurationDays: number
+    coverageDurationSeconds: number
   ): Promise<FlightPolicyTemplate> {
     const template: FlightPolicyTemplateUpdate = {
       name,
@@ -95,7 +95,7 @@ export function useFlightInsurance() {
       payoutPerHour: payoutPerHour.toString(),
       delayThresholdHours,
       maxTotalPayout: maxTotalPayout.toString(),
-      coverageDurationDays,
+      coverageDurationSeconds: coverageDurationSeconds,
     };
 
     const res = await fetch(`/api/flightTemplates/${templateId}`, {
@@ -140,7 +140,7 @@ export function useFlightInsurance() {
 
   async function getAllFlightPolicies(): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
-    const rawPolicies = await insurerContract.getAllFlightPolicies();
+    const rawPolicies = await insurerContract.getAllFlightPolicies(Math.floor(Date.now() / 1000));
     return rawPolicies.map(formatUserPolicy);
   }
 
@@ -155,14 +155,9 @@ export function useFlightInsurance() {
   ): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
 
-    const tx = await insurerContract.purchaseFlightPolicy(
-      template,
-      flightNumber,
-      departureAirportCode,
-      arrivalAirportCode,
-      departureTime,
-      { value: ethers.parseEther(premium) }
-    );
+    const tx = await insurerContract.purchaseFlightPolicy(template, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, Math.floor(Date.now() / 1000), {
+      value: ethers.parseEther(premium),
+    });
     await tx.wait();
     return tx.hash;
   }
@@ -170,7 +165,7 @@ export function useFlightInsurance() {
   async function getUserFlightPolicies(userAddress: string): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
     try {
-      const raw = await insurerContract.getUserFlightPolicies(userAddress);
+      const raw = await insurerContract.getUserFlightPolicies(userAddress, Math.floor(Date.now() / 1000));
       return raw.map(formatUserPolicy);
     } catch (error) {
       console.error("Error fetching user flight policies:", error);
@@ -181,7 +176,7 @@ export function useFlightInsurance() {
   async function getUserFlightPoliciesByTemplate(templatedId: string): Promise<FlightUserPolicy[]> {
     if (!insurerContract) return [];
     try {
-      const raw = await insurerContract.getUserFlightPoliciesByTemplate(templatedId);
+      const raw = await insurerContract.getUserFlightPoliciesByTemplate(templatedId, Math.floor(Date.now() / 1000));
       return raw.map(formatUserPolicy);
     } catch (error) {
       console.error(`Error fetching user flight policies for templateId ${templatedId}:`, error);
@@ -280,7 +275,7 @@ export function useFlightInsurance() {
 
   async function isFlightPolicyTemplateAllowedForPurchase(templates: FlightPolicyTemplate[]): Promise<boolean[]> {
     if (!insurerContract) return [];
-    return await insurerContract.isFlightPolicyAllowedForPurchase(templates);
+    return await insurerContract.isFlightPolicyAllowedForPurchase(templates, Math.floor(Date.now() / 1000));
   }
 
   return {

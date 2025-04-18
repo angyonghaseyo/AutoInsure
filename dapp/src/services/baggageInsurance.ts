@@ -13,7 +13,7 @@ export function formatPolicyTemplate(raw: any): BaggagePolicyTemplate {
     payoutIfDelayed: ethers.formatEther(raw.payoutIfDelayed),
     payoutIfLost: ethers.formatEther(raw.payoutIfLost),
     maxTotalPayout: ethers.formatEther(raw.maxTotalPayout),
-    coverageDurationDays: Number(raw.coverageDurationDays),
+    coverageDurationSeconds: Number(raw.template.coverageDurationSeconds),
     status: Number(raw.status),
   };
 }
@@ -31,7 +31,7 @@ export function formatUserPolicy(raw: any): BaggageUserPolicy {
       payoutIfDelayed: String(raw.template.payoutIfDelayed),
       payoutIfLost: String(raw.template.payoutIfLost),
       maxTotalPayout: String(raw.template.maxTotalPayout),
-      coverageDurationDays: Number(raw.template.coverageDurationDays),
+      coverageDurationSeconds: Number(raw.template.coverageDurationSeconds),
       status: Number(raw.template.status),
     },
     itemDescription: raw.itemDescription,
@@ -53,7 +53,7 @@ export function useBaggageInsurance() {
     payoutIfDelayed: number,
     payoutIfLost: number,
     maxTotalPayout: number,
-    coverageDurationDays: number
+    coverageDurationSeconds: number
   ): Promise<BaggagePolicyTemplate> {
     const template: BaggagePolicyTemplateCreate = {
       name: name,
@@ -62,7 +62,7 @@ export function useBaggageInsurance() {
       payoutIfDelayed: payoutIfDelayed.toString(),
       payoutIfLost: payoutIfLost.toString(),
       maxTotalPayout: maxTotalPayout.toString(),
-      coverageDurationDays: coverageDurationDays,
+      coverageDurationSeconds: coverageDurationSeconds,
     };
     const res = await fetch("/api/baggageTemplates", {
       method: "POST",
@@ -83,7 +83,7 @@ export function useBaggageInsurance() {
     payoutIfDelayed: number,
     payoutIfLost: number,
     maxTotalPayout: number,
-    coverageDurationDays: number
+    coverageDurationSeconds: number
   ): Promise<BaggagePolicyTemplate> {
     const template: BaggagePolicyTemplateUpdate = {
       name: name,
@@ -92,7 +92,7 @@ export function useBaggageInsurance() {
       payoutIfDelayed: payoutIfDelayed.toString(),
       payoutIfLost: payoutIfLost.toString(),
       maxTotalPayout: maxTotalPayout.toString(),
-      coverageDurationDays: coverageDurationDays,
+      coverageDurationSeconds: coverageDurationSeconds,
     };
     const res = await fetch(`/api/baggageTemplates/${templateId}`, {
       method: "PUT",
@@ -136,7 +136,7 @@ export function useBaggageInsurance() {
 
   async function getAllBaggagePolicies(): Promise<BaggageUserPolicy[]> {
     if (!insurerContract) return [];
-    const rawPolicies = await insurerContract.getAllBaggagePolicies();
+    const rawPolicies = await insurerContract.getAllBaggagePolicies(Math.floor(Date.now() / 1000));
     return rawPolicies.map(formatUserPolicy);
   }
 
@@ -144,7 +144,7 @@ export function useBaggageInsurance() {
   async function purchaseBaggagePolicy(template: BaggagePolicyTemplate, itemDescription: string, premium: string): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
 
-    const tx = await insurerContract.purchaseBaggagePolicy(template, itemDescription, {
+    const tx = await insurerContract.purchaseBaggagePolicy(template, itemDescription, Math.floor(Date.now() / 1000), {
       value: ethers.parseEther(premium),
     });
 
@@ -155,7 +155,7 @@ export function useBaggageInsurance() {
   async function getUserBaggagePolicies(userAddress: string): Promise<BaggageUserPolicy[]> {
     if (!insurerContract) return [];
     try {
-      const raw = await insurerContract.getUserBaggagePolicies(userAddress);
+      const raw = await insurerContract.getUserBaggagePolicies(userAddress, Math.floor(Date.now() / 1000));
       return raw.map(formatUserPolicy);
     } catch (error) {
       console.error("Error fetching user baggage policies:", error);
@@ -166,7 +166,7 @@ export function useBaggageInsurance() {
   async function getUserBaggagePoliciesByTemplate(templatedId: string): Promise<BaggageUserPolicy[]> {
     if (!insurerContract) return [];
     try {
-      const raw = await insurerContract.getUserBaggagePoliciesByTemplate(templatedId);
+      const raw = await insurerContract.getUserBaggagePoliciesByTemplate(templatedId, Math.floor(Date.now() / 1000));
       return raw.map(formatUserPolicy);
     } catch (error) {
       console.error(`Error fetching user baggage policies for templateId ${templatedId}:`, error);
@@ -189,7 +189,7 @@ export function useBaggageInsurance() {
 
   async function isBaggagePolicyTemplateAllowedForPurchase(templates: BaggagePolicyTemplate[]): Promise<boolean[]> {
     if (!insurerContract) return [];
-    const isAllowed = await insurerContract.isBaggagePolicyAllowedForPurchase(templates);
+    const isAllowed = await insurerContract.isBaggagePolicyAllowedForPurchase(templates, Math.floor(Date.now() / 1000));
     return isAllowed;
   }
 
