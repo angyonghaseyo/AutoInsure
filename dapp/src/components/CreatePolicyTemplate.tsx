@@ -3,13 +3,14 @@ import { Card, Form, Input, InputNumber, Button, Alert } from "antd";
 import { useFlightInsurance } from "@/services/flightInsurance";
 import { useBaggageInsurance } from "@/services/baggageInsurance";
 import { convertDaysToSeconds } from "@/utils/utils";
+
 interface CreatePolicyTemplateProps {
   onClose: () => void;
   onUpdate: () => void;
   type: "flight" | "baggage";
 }
 
-const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateProps) => {
+const CreatePolicyTemplate = ({ onClose, onUpdate, type }: CreatePolicyTemplateProps) => {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,14 +26,15 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
 
     try {
       const { name, description, premium, maxTotalPayout, coverageDurationDays } = values;
+      const durationSeconds = convertDaysToSeconds(coverageDurationDays);
+
       if (type === "flight") {
         const { payoutPerHour, delayThresholdHours } = values;
-        await createFlightPolicyTemplate(name, description, premium, payoutPerHour, delayThresholdHours, maxTotalPayout, convertDaysToSeconds(coverageDurationDays));
+        await createFlightPolicyTemplate(name, description, premium, payoutPerHour, maxTotalPayout, delayThresholdHours, durationSeconds);
       }
 
       if (type === "baggage") {
-        const { payoutIfDelayed, payoutIfLost } = values;
-        await createBaggagePolicyTemplate(name, description, premium, payoutIfDelayed, payoutIfLost, maxTotalPayout, convertDaysToSeconds(coverageDurationDays));
+        await createBaggagePolicyTemplate(name, description, premium, maxTotalPayout, durationSeconds);
       }
 
       setSuccess("Template successfully added!");
@@ -47,7 +49,6 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
     }
   };
 
-  // Fields specific to each type
   const flightFields = (
     <>
       <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
@@ -56,18 +57,6 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
 
       <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
         <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
-      </Form.Item>
-    </>
-  );
-
-  const baggageFields = (
-    <>
-      <Form.Item name="payoutIfDelayed" label="Payout If Delayed" rules={[{ required: true }]}>
-        <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
-      </Form.Item>
-
-      <Form.Item name="payoutIfLost" label="Payout If Lost" rules={[{ required: true }]}>
-        <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
       </Form.Item>
     </>
   );
@@ -90,12 +79,21 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
         </Form.Item>
 
-        {/* Conditional Fields Based on Policy Type */}
-        {type === "flight" ? flightFields : baggageFields}
+        {type === "flight" && (
+          <Form.Item name="payoutPerHour" label="Payout Per Hour of Delay" rules={[{ required: true }]}>
+            <InputNumber min={0} addonAfter="ETH/hr" style={{ width: "100%" }} />
+          </Form.Item>
+        )}
 
         <Form.Item name="maxTotalPayout" label="Maximum Total Payout" rules={[{ required: true }]}>
           <InputNumber min={0} addonAfter="ETH" style={{ width: "100%" }} />
         </Form.Item>
+
+        {type === "flight" && (
+          <Form.Item name="delayThresholdHours" label="Delay Threshold" rules={[{ required: true }]}>
+            <InputNumber min={0} addonAfter="hrs" style={{ width: "100%" }} />
+          </Form.Item>
+        )}
 
         <Form.Item name="coverageDurationDays" label="Coverage Duration" rules={[{ required: true }]}>
           <InputNumber min={0} addonAfter="days" style={{ width: "100%" }} />

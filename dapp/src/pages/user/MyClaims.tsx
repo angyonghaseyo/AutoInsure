@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Table, Typography, Spin, message, Tag } from "antd";
 import { useWeb3 } from "@/components/Web3Provider";
 import { useFlightInsurance } from "@/services/flightInsurance";
@@ -46,16 +46,6 @@ const MyClaims = () => {
       dataIndex: "departureTime",
       key: "departureTime",
       render: (value: number) => new Date(value * 1000).toLocaleString(),
-    },
-    {
-      title: "From",
-      dataIndex: "departureAirportCode",
-      key: "departureAirportCode",
-    },
-    {
-      title: "To",
-      dataIndex: "arrivalAirportCode",
-      key: "arrivalAirportCode",
     },
     {
       title: "Payout (ETH)",

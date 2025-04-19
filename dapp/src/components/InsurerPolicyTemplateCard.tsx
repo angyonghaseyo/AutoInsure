@@ -1,7 +1,7 @@
 import { BaggagePolicyTemplate, BaggagePolicyTemplateStatus } from "@/types/BaggagePolicy";
 import { FlightPolicyTemplate, FlightPolicyTemplateStatus } from "@/types/FlightPolicy";
 import { convertSecondsToDays } from "@/utils/utils";
-import { DollarOutlined, ClockCircleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { Button, Card, Tag } from "antd";
 
 type TemplateCardProps = {
@@ -38,43 +38,37 @@ const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, onEdit }:
       const tpl = template as FlightPolicyTemplate;
       return (
         <div>
-          <p>{template.description}</p>
+          <p>{tpl.description}</p>
           <p>
-            <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
+            <strong>Premium:</strong> {tpl.premium} ETH
           </p>
           <p>
-            <strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH
+            <strong>Payout/Hour:</strong> {tpl.payoutPerHour} ETH / hr
           </p>
           <p>
             <strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH
           </p>
           <p>
-            <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs
+            <strong>Delay Threshold:</strong> {tpl.delayThresholdHours} hrs
           </p>
           <p>
-            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds)} days
           </p>
         </div>
       );
-    } else if (type === "baggage") {
+    } else {
       const tpl = template as BaggagePolicyTemplate;
       return (
         <div>
           <p>{tpl.description}</p>
           <p>
-            <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
+            <strong>Premium:</strong> {tpl.premium} ETH
           </p>
           <p>
-            <strong>Payout If Delayed:</strong> <DollarOutlined /> {tpl.payoutIfDelayed} ETH
+            <strong>Max Total Payout:</strong> {tpl.maxTotalPayout} ETH
           </p>
           <p>
-            <strong>Payout If Lost:</strong> {tpl.payoutIfLost} ETH
-          </p>
-          <p>
-            <strong>Max Total Payout:</strong> <ClockCircleOutlined /> {tpl.maxTotalPayout} ETH
-          </p>
-          <p>
-            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds)} days
           </p>
         </div>
       );
