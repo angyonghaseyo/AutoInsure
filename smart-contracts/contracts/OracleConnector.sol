@@ -89,7 +89,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
         oracles.push(OracleInfo({oracle: _oracle, oracleAPIUrl: _oracleAPIUrl, jobId: _jobId}));
     }
 
-    function requestFlightData(string memory _flightNumber, string memory _departureTime) public onlyOwner returns (bytes32 requestId) 
+    function requestFlightData(string memory _flightNumber, string memory _departureTime) public returns (bytes32 requestId) 
     {
         // require(oracles.length > 0, "No oracles set");
 
@@ -194,7 +194,7 @@ contract OracleConnector is ChainlinkClient, Ownable {
     }
     
     function requestBaggageData(string memory _flightNumber, string memory _departureTime, string memory _itemDescription) 
-    public onlyOwner returns (bytes32 requestId) 
+    public returns (bytes32 requestId) 
     {
         require(oracles.length > 0, "No oracles set");
 

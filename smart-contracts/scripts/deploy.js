@@ -225,6 +225,17 @@ async function main() {
 
   if (!fs.existsSync(abisDir)) fs.mkdirSync(abisDir, { recursive: true });
 
+  const addresses = {
+    MockLinkToken: mockLinkTokenAddress,
+    MockOracle: mockOracleAddress,
+    MockOracle2: mockOracle2Address,
+    MockOracle3: mockOracle3Address,
+    OracleConnector: oracleConnectorAddress,
+    FlightPolicy: flightPolicyAddress,
+    BaggagePolicy: baggagePolicyAddress,
+    Insurer: insurerAddress,
+  };
+
   const contractAddressesPath = path.join(__dirname, "../../dapp/src/utils/contractAddresses.json");
   let existingData = {};
 
