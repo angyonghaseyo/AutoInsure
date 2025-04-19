@@ -184,16 +184,13 @@ export function useFlightInsurance() {
     if (!insurerContract || !flightPolicyContract || !oracleConnectorContract) {
       throw new Error("Contracts not connected");
     }
-
-    let resolved = false;
-
-    // Cleanup helper
+  
     const cleanup = () => {
       insurerContract.removeAllListeners("PayoutClaimed");
       flightPolicyContract.removeAllListeners("PayoutEvaluated");
       oracleConnectorContract.removeAllListeners("FlightDataReceived");
     };
-
+  
     const [oracleAddr, flightPolicyAddr, insurerAddr] = await Promise.all([
       oracleConnectorContract.getAddress(),
       flightPolicyContract.getAddress(),
@@ -204,86 +201,102 @@ export function useFlightInsurance() {
     console.log("OracleConnector at", oracleAddr);
     console.log("FlightPolicy at", flightPolicyAddr);
     console.log("Insurer at", insurerAddr);
-
-    // Listen for final payout result
-    flightPolicyContract.on("PayoutEvaluated", async (policyIdEmitted, buyer, outcome) => {
-      if (resolved || policyIdEmitted.toString() !== policyId.toString()) return;
   
-      switch (outcome.toString()) {
-        case "0": // Pending
-          alert("Payout pending - waiting for oracle data...");
-          console.log("Payout pending - waiting for oracle data...");
-          break;
-        case "1": // Not delayed
-          alert("No payout: Flight was not delayed.");
-          resolved = true;
-          cleanup();
-          break;
-        case "2": // No payout due
-          alert("No payout: Delay not enough for payout.");
-          resolved = true;
-          cleanup();
-          break;
-        case "3": // Approved
-          console.log("Payout approved. Awaiting transfer...");
-          break;
-        default:
-          console.warn("Unknown payout result:", outcome.toString());
-          cleanup();
-      }
-    });
-
-    // Listen for PayoutClaimed event
-    insurerContract.on("PayoutClaimed", (policyIdEmitted, buyer, amount) => {
-      if (resolved || policyIdEmitted.toString() !== policyId.toString()) return;
+    return new Promise<void>(async (resolve, reject) => {
+      let resolved = false;
   
-      console.log("PayoutClaimed:", {
-        policyId: policyIdEmitted.toString(),
-        buyer,
-        amount: ethers.formatEther(amount),
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          cleanup();
+          console.warn("Timeout: No final claim result after 2 minutes");
+          reject(new Error("Claim process timed out. Please try again later."));
+        }
+      }, 120_000);
+  
+      // Event: Payout result evaluated
+      flightPolicyContract.on("PayoutEvaluated", async (policyIdEmitted, buyer, payout, outcome) => {
+        console.log("PayoutEvaluated event received");
+        if (policyIdEmitted.toString() !== policyId.toString()) return;
+  
+        switch (outcome.toString()) {
+          case "0":
+            console.log("Payout pending - waiting for oracle data...");
+            break;
+          case "1":
+            cleanup();
+            clearTimeout(timeout);
+            resolved = true;
+            reject(new Error("No payout: Flight was not delayed."));
+            resolve();
+            break;
+          case "2":
+            cleanup();
+            clearTimeout(timeout);
+            resolved = true;
+            reject(new Error("No payout: Delay not enough for payout."));
+            resolve();
+            break;
+          case "3":
+            console.log("Payout approved. Awaiting transfer...");
+            break;
+          default:
+            cleanup();
+            clearTimeout(timeout);
+            resolved = true;
+            reject(new Error("Unknown payout result."));
+            console.log("Unknown payout result:", outcome.toString());
+        }
       });
   
-      resolved = true;
-      cleanup();
-    });
-
-    // Listen for FlightDataReceived event
-    oracleConnectorContract.on("FlightDataReceived", async () => {
-      if (resolved) return;
+      // Event: Final payout sent
+      insurerContract.once("PayoutClaimed", (policyIdEmitted, buyer, amount) => {
+        if (policyIdEmitted.toString() !== policyId.toString()) return;
   
+        console.log("PayoutClaimed:", {
+          policyId: policyIdEmitted.toString(),
+          buyer,
+          amount: ethers.formatEther(amount),
+        });
+  
+        cleanup();
+        clearTimeout(timeout);
+        resolved = true;
+        resolve();
+      });
+  
+      // Event: Oracle responded with data
+      oracleConnectorContract.once("FlightDataReceived", async () => {
+        console.log("FlightDataReceived event received");
+        try {
+          const retryTx = await insurerContract.claimFlightPayout(policyId);
+          await retryTx.wait();
+          console.log("Retry claimFlightPayout submitted.");
+        } catch (retryErr: any) {
+          console.error("Retry failed:", retryErr?.message || retryErr);
+        }
+      });
+  
+      // Initial trigger
       try {
-        const retryTx = await insurerContract.claimFlightPayout(policyId);
-        await retryTx.wait();
-        console.log("Retry claimFlightPayout submitted.");
-      } catch (retryErr: any) {
-        console.error("Retry failed:", retryErr?.message || retryErr);
+        console.log("Sending initial claimFlightPayout...");
+        const tx = await insurerContract.claimFlightPayout(policyId);
+        await tx.wait();
+        console.log("Initial claim transaction confirmed.");
+      } catch (err: any) {
+        cleanup();
+        clearTimeout(timeout);
+        reject(
+          new Error(
+            err?.error?.message ||
+            err?.reason ||
+            err?.data?.message ||
+            err?.message ||
+            "Initial claim failed"
+          )
+        );
       }
     });
-
-    try {
-      console.log("Sending initial claimFlightPayout...");
-      const tx = await insurerContract.claimFlightPayout(policyId);
-      await tx.wait();
-      console.log("Initial claim transaction confirmed.");
-    } catch (err: any) {
-      cleanup();
-      const errorMsg =
-        err?.error?.message ||
-        err?.reason ||
-        err?.data?.message ||
-        err?.message ||
-        "Initial claim failed";
-      throw new Error(errorMsg);
-    }
-
-    // Safeguard
-    setTimeout(() => {
-      if (!resolved) {
-        cleanup();
-        console.warn("Timeout: No final claim result after 2 minutes");
-      }
-    }, 120_000);
-  }
+  }  
 
   // ====== Utility Functions ======
   async function isInsurer(userAddress: string): Promise<boolean> {
