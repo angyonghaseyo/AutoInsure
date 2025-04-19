@@ -146,12 +146,12 @@ describe("Insurer Contract - Full Flow", function () {
     expect(await insurerContract.isInsurer(user.address)).to.equal(false);
   });
 
-  // 8. Attempt to claim an expired policy
-  it("should revert claim for expired policy", async () => {
-    await ethers.provider.send("evm_increaseTime", [86400 * 4]); // Fast forward time by 4 days
-    await ethers.provider.send("evm_mine");
-
-    await expect(insurerContract.connect(user).claimFlightPayout(policyId)).to.be.revertedWith("Policy not active");
+  // 8. Test isFlightPolicyAllowedForPurchase
+  it("should correctly indicate whether flight policies are allowed for purchase", async function () {
+    const templates = [activeTemplate, expensiveTemplate];
+    const allowed = await insurerContract.isFlightPolicyAllowedForPurchase(templates, currentBlockTimestamp);
+    expect(allowed[0]).to.be.true;
+    expect(allowed[1]).to.be.false;
   });
 
   describe("Deposit", function () {

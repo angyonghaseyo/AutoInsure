@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { useWeb3 } from "../components/Web3Provider";
 import OracleConnectorABI from "@/utils/abis/OracleConnector.json";
 import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, FlightPolicyTemplateCreate, FlightPolicyTemplateUpdate } from "../types/FlightPolicy";
+import { convertSecondsToDays } from "@/utils/utils";
 
 export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
   return {
@@ -28,10 +29,10 @@ export function formatUserPolicy(raw: any): FlightUserPolicy {
       description: raw.template.description,
       createdAt: Number(raw.template.createdAt),
       updatedAt: Number(raw.template.updatedAt),
-      premium: String(raw.template.premium),
-      payoutPerHour: String(raw.template.payoutPerHour),
+      premium: ethers.formatEther(raw.template.premium),
+      payoutPerHour: ethers.formatEther(raw.template.payoutPerHour),
       delayThresholdHours: Number(raw.template.delayThresholdHours),
-      maxTotalPayout: String(raw.template.maxTotalPayout),
+      maxTotalPayout: ethers.formatEther(raw.template.maxTotalPayout),
       coverageDurationSeconds: Number(raw.template.coverageDurationSeconds),
       status: Number(raw.template.status),
     },
@@ -154,10 +155,18 @@ export function useFlightInsurance() {
     premium: string
   ): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
-
-    const tx = await insurerContract.purchaseFlightPolicy(template, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, Math.floor(Date.now() / 1000), {
-      value: ethers.parseEther(premium),
-    });
+    const clonedTemplate = { ...template };
+    const tx = await insurerContract.purchaseFlightPolicy(
+      convertEtherToWei([clonedTemplate])[0],
+      flightNumber,
+      departureAirportCode,
+      arrivalAirportCode,
+      departureTime,
+      Math.floor(Date.now() / 1000),
+      {
+        value: ethers.parseEther(premium),
+      }
+    );
     await tx.wait();
     return tx.hash;
   }
@@ -266,7 +275,18 @@ export function useFlightInsurance() {
 
   async function isFlightPolicyTemplateAllowedForPurchase(templates: FlightPolicyTemplate[]): Promise<boolean[]> {
     if (!insurerContract) return [];
-    return await insurerContract.isFlightPolicyAllowedForPurchase(templates, Math.floor(Date.now() / 1000));
+    const clonedTemplates = templates.map((template) => ({ ...template }));
+    return await insurerContract.isFlightPolicyAllowedForPurchase(convertEtherToWei(clonedTemplates), Math.floor(Date.now() / 1000));
+  }
+
+  // ====== Helper Functions ======
+  function convertEtherToWei(templates: FlightPolicyTemplate[]): FlightPolicyTemplate[] {
+    for (const template of templates) {
+      template.maxTotalPayout = String(ethers.parseEther(template.maxTotalPayout));
+      template.payoutPerHour = String(ethers.parseEther(template.payoutPerHour));
+      template.premium = String(ethers.parseEther(template.premium));
+    }
+    return templates;
   }
 
   return {

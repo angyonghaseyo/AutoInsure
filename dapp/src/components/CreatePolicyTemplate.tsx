@@ -27,7 +27,7 @@ const CreatePolicyTemplate = ({ onClose, type, onUpdate }: CreatePolicyTemplateP
       const { name, description, premium, maxTotalPayout, coverageDurationDays } = values;
       if (type === "flight") {
         const { payoutPerHour, delayThresholdHours } = values;
-        await createFlightPolicyTemplate(name, description, premium, payoutPerHour, maxTotalPayout, delayThresholdHours, convertDaysToSeconds(coverageDurationDays));
+        await createFlightPolicyTemplate(name, description, premium, payoutPerHour, delayThresholdHours, maxTotalPayout, convertDaysToSeconds(coverageDurationDays));
       }
 
       if (type === "baggage") {
