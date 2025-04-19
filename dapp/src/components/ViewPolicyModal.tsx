@@ -9,9 +9,10 @@ type ViewPolicyModalProps = {
   type: "flight" | "baggage";
   policy: FlightUserPolicy | BaggageUserPolicy | undefined;
   onCancel: () => void;
+  onClaimSuccess: () => void;
 };
 
-const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps) => {
+const ViewPolicyModal = ({ type, policy, onCancel, onClaimSuccess }: ViewPolicyModalProps) => {
   const { claimFlightPayout } = useFlightInsurance();
   const [loading, setLoading] = useState(false);
 
@@ -24,11 +25,10 @@ const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps) => {
         const p = policy as FlightUserPolicy;
         await claimFlightPayout(p.policyId);
       } else {
-        // you can wire up baggage claims similarly
         throw new Error("Baggage claims not implemented");
       }
       message.success("Payout successfully claimed!");
-      onCancel();
+      onClaimSuccess();
     } catch (err: any) {
       message.error(err.message || "Claim failed");
     } finally {

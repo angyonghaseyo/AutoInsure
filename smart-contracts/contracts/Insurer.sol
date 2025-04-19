@@ -27,6 +27,8 @@ contract Insurer {
     event FundsDeposited(address indexed insurer, uint256 amount);
     event FundsWithdrawn(address indexed insurer, uint256 amount);
 
+    event PayoutClaimed(uint256 indexed policyId, address indexed buyer, uint256 amount);
+
     // ====== Insurer Functions ======
     // View all purchased flight policies
     function getAllFlightPolicies(uint256 currentTime) external view onlyInsurer returns (FlightPolicy.UserPolicy[] memory) {
@@ -67,8 +69,9 @@ contract Insurer {
         uint256 totalPossiblePayout = getMaxPossiblePayout(currentTime);
         totalPossiblePayout += template.maxTotalPayout;
         require(totalPossiblePayout <= address(this).balance, "Insufficient contract balance to cover potential payouts");
+        require(msg.value >= template.premium, "Insufficient premium sent");
 
-        uint256 policyId = flightPolicy.purchasePolicy{value: msg.value}(
+        uint256 policyId = flightPolicy.purchasePolicy(
             template,
             flightNumber,
             departureAirportCode,
@@ -92,7 +95,12 @@ contract Insurer {
 
     // Claim a flight policy and give payout based on flight delay
     function claimFlightPayout(uint256 policyId) external {
-        return flightPolicy.claimPayout(policyId, msg.sender);
+        (uint256 payout, FlightPolicy.UserPolicy memory policy) = flightPolicy.claimPayout(policyId, msg.sender);
+        require(address(this).balance >= payout, "Insufficient contract balance");
+
+        payable(policy.buyer).transfer(payout);
+
+        emit PayoutClaimed(policyId, policy.buyer, payout);
     }
 
     // Purchase a baggage policy based on a template
@@ -100,8 +108,9 @@ contract Insurer {
         uint256 totalPossiblePayout = getMaxPossiblePayout(currentTime);
         totalPossiblePayout += template.maxTotalPayout;
         require(totalPossiblePayout <= address(this).balance, "Insufficient contract balance to cover potential payouts");
+        require(msg.value >= template.premium, "Insufficient premium sent");
 
-        uint256 policyId = baggagePolicy.purchasePolicy{value: msg.value}(
+        uint256 policyId = baggagePolicy.purchasePolicy(
             template,
             itemDescription,
             msg.sender
