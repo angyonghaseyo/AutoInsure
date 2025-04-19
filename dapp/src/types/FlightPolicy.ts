@@ -17,8 +17,8 @@ export interface FlightPolicyTemplate {
   updatedAt: number;
   premium: string;
   payoutPerHour: string;
-  delayThresholdHours: number;
   maxTotalPayout: string;
+  delayThresholdHours: number;
   coverageDurationSeconds: number;
   status: FlightPolicyTemplateStatus;
 }
@@ -27,8 +27,6 @@ export interface FlightUserPolicy {
   policyId: number;
   template: FlightPolicyTemplate;
   flightNumber: string;
-  departureAirportCode: string;
-  arrivalAirportCode: string;
   departureTime: number;
   createdAt: number;
   payoutToDate: string;

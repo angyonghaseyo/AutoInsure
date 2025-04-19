@@ -16,8 +16,6 @@ export interface BaggagePolicyTemplate {
   createdAt: number;
   updatedAt: number;
   premium: string;
-  payoutIfDelayed: string;
-  payoutIfLost: string;
   maxTotalPayout: string;
   coverageDurationSeconds: number;
   status: BaggagePolicyTemplateStatus;
@@ -26,6 +24,8 @@ export interface BaggagePolicyTemplate {
 export interface BaggageUserPolicy {
   policyId: number;
   template: BaggagePolicyTemplate;
+  flightNumber: string;
+  departureTime: number;
   itemDescription: string;
   createdAt: number;
   payoutToDate: string;
