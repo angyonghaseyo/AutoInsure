@@ -1,42 +1,67 @@
 # Decentralized Flight Insurance Platform
 
-A blockchain-based platform for flight delay insurance with automatic payouts powered by Chainlink oracles.
+A blockchain-based platform for flight delay and baggage insurance with automatic payouts powered by Chainlink oracles.
+
 
 ## Project Overview
 
-This decentralized flight insurance platform allows travelers to purchase insurance policies for flight delays. If a flight is delayed beyond a certain threshold (default: 2 hours), the smart contract automatically processes a payout to the insured's wallet without requiring any manual claims process.
+This decentralized flight insurance platform allows travelers to purchase insurance policies for flight delays and baggage loss. If a flight is delayed beyond a certain threshold or baggage is reported lost, the smart contract automatically processes a payout to the insured's wallet without requiring any manual claims process.
 
 ### Key Features
 
-- **Decentralized Insurance Policies**: Purchase flight delay insurance with cryptocurrency
-- **Automatic Payouts**: Smart contracts automatically execute payouts for delayed flights
-- **Oracle Integration**: Chainlink oracles fetch reliable flight data from external APIs
+- **Decentralized Insurance Policies**: Purchase flight delay and baggage loss insurance with cryptocurrency (ETH)
+- **Automatic Payouts**: Smart contracts automatically execute payouts for delayed flights or lost baggage
+- **Oracle Integration**: Chainlink oracles fetch reliable flight and baggage data from external APIs
 - **Transparent Process**: All policies and claims are recorded on the blockchain
 - **User-friendly Interface**: React-based dapp with Web3 wallet integration
+- **Role-based Access**: Different interfaces for regular users and insurance providers
+- **Policy Templates**: Customizable insurance templates with various premiums and payout rates
 
-## Architecture
+## System Architecture
 
 The platform consists of three main components:
 
-1. **App**: React application with Web3.js integration for wallet connection and contract interaction
-2. **Smart Contracts**: Solidity contracts deployed on Ethereum/EVM-compatible blockchains
-3. **Oracle Layer**: Chainlink oracles that fetch and verify flight data
+1. **Smart Contracts**: Solidity contracts deployed on Ethereum/EVM-compatible blockchains
+2. **Oracle Layer**: Chainlink oracles that fetch and verify flight and baggage data
+3. **Frontend Application**: React/Next.js application with Web3 integration for wallet connection and contract interaction
+
+### Architecture Diagram
+
+```
+┌─────────────────┐          ┌─────────────────┐          ┌─────────────────┐
+│                 │          │                 │          │                 │
+│  React Frontend │◄────────►│ Smart Contracts │◄────────►│ Chainlink Oracle│
+│                 │          │                 │          │                 │
+└─────────────────┘          └─────────────────┘          └─────────────────┘
+        ▲                            ▲                            ▲
+        │                            │                            │
+        ▼                            ▼                            ▼
+┌─────────────────┐          ┌─────────────────┐          ┌─────────────────┐
+│                 │          │                 │          │                 │
+│   Web3 Wallet   │          │ Ethereum Network│          │   External APIs │
+│                 │          │                 │          │ (Flight/Baggage)│
+└─────────────────┘          └─────────────────┘          └─────────────────┘
+```
 
 ## Project Structure
 
 ```
 ├── contracts/                # Smart contracts
-│   ├── FlightInsurance.sol   # Main insurance contract
-│   └── OracleConnector.sol   # Oracle integration contract
+│   ├── FlightPolicy.sol      # Flight insurance logic
+│   ├── BaggagePolicy.sol     # Baggage insurance logic
+│   ├── Insurer.sol           # Main contract for policy management
+│   └── OracleConnector.sol   # Oracle integration
+├── listener/                 # Oracle listener service
+│   └── listener.js           # Node.js script for oracle data
 ├── scripts/                  # Deployment and interaction scripts
-│   ├── deploy.js             # Contract deployment script  
-│   └── interact.js           # Contract interaction script
+│   └── deploy.js             # Contract deployment script
 ├── test/                     # Test files
-│   └── FlightInsurance.test.js # Contract tests
-├── dapp/                 # React dapp application
+│   └── *.test.js             # Contract tests
+├── dapp/                     # React dapp application
 │   ├── src/                  # Source files
 │   │   ├── components/       # React components
 │   │   ├── pages/            # Page components
+│   │   ├── services/         # API services
 │   │   └── utils/            # Utility functions and constants
 ├── hardhat.config.js         # Hardhat configuration
 └── README.md                 # Project documentation
@@ -69,7 +94,7 @@ cd dapp
 npm install
 ```
 
-3. Configure environment variables
+3. Configure environment variables for contracts
 ```bash
 # Create .env file in the root directory
 cp .env.example .env
@@ -80,10 +105,22 @@ Edit the `.env` file with your configuration:
 PRIVATE_KEY=your_private_key
 SEPOLIA_RPC_URL=your_sepolia_rpc_url
 ETHERSCAN_API_KEY=your_etherscan_api_key
-COINMARKETCAP_API_KEY=your_coinmarketcap_api_key
 ```
 
-### Smart Contract Deployment
+4. Configure environment variables for frontend
+```bash
+# Create .env.local file in the dapp directory
+cd dapp
+cp .env.example .env.local
+```
+
+Edit the `.env.local` file:
+```
+MONGODB_URI=your_mongodb_uri
+MONGODB_DB=your_mongodb_database
+```
+
+## Smart Contract Deployment
 
 1. Compile the contracts
 ```bash
@@ -101,20 +138,29 @@ npx hardhat run scripts/deploy.js --network localhost
 npx hardhat run scripts/deploy.js --network sepolia
 ```
 
-### Dapp Development
+After deployment, update the contract addresses in `dapp/src/utils/contractAddresses.json`
 
-1. Update contract addresses
+## Running the Oracle Listener
+
+The oracle listener service needs to be running to fetch flight data:
+
 ```bash
-# After deployment, update the contract addresses in dapp/src/utils/contractAddresses.json
+cd listener
+# Configure environment variables
+cp .env.example .env
+# Edit the .env file with appropriate values
+node listener.js
 ```
 
-2. Start the development server
+## Frontend Development
+
+1. Start the development server
 ```bash
 cd dapp
 npm run dev
 ```
 
-3. Open your browser and navigate to `http://localhost:3000`
+2. Open your browser and navigate to `http://localhost:3000`
 
 ## Testing
 
@@ -125,31 +171,43 @@ npx hardhat test
 
 ## User Flow
 
+### User Flow
 1. User connects their wallet to the dApp
-2. User enters flight details and purchases an insurance policy by paying a premium
-3. The smart contract stores the policy details on the blockchain
-4. Chainlink oracles monitor the flight status using external API data
-5. If the flight is delayed beyond the threshold, the smart contract automatically transfers the payout to the user's wallet
+2. User browses flight or baggage insurance policy templates
+3. User purchases a policy by paying a premium
+4. If a flight is delayed or baggage is lost:
+   - Chainlink oracles fetch data from external sources
+   - Smart contract automatically verifies the claim
+   - If verified, funds are transferred to the user's wallet
+
+### Insurer Flow
+1. Insurer connects to the platform with their wallet
+2. Insurer creates and manages policy templates
+3. Insurer deposits funds to cover potential claims
+4. Insurer monitors active policies and claim statistics
 
 ## Technical Implementation
 
 ### Smart Contracts
 
-- **FlightInsurance.sol**: Manages policy creation, premium collection, and payout distribution
-- **OracleConnector.sol**: Interfaces with Chainlink oracles to fetch flight status data
+- **FlightPolicy.sol**: Manages flight delay insurance policies, claims verification, and payout calculation
+- **BaggagePolicy.sol**: Handles baggage loss insurance, claim verification, and payouts
+- **Insurer.sol**: Main entry point for policy creation, fund management, and template administration
+- **OracleConnector.sol**: Interfaces with Chainlink oracles to fetch flight and baggage status data
 
 ### Oracle Integration
 
 The platform uses Chainlink oracles to:
-1. Fetch flight data from external APIs like FlightAware or AviationStack
-2. Verify flight delays and report the data on-chain
-3. Trigger smart contract functions based on delay conditions
+1. Fetch flight data from external APIs to verify flight delays
+2. Obtain baggage status information to verify loss claims
+3. Trigger smart contract functions based on the verification results
 
-### Dapp
+### Frontend Application
 
 - React with Next.js for the UI
-- Web3.js for blockchain interaction
-- MetaMask/WalletConnect for wallet integration
+- Web3.js and ethers.js for blockchain interaction
+- MongoDB for policy template storage
+- Role-based UI for users and insurers
 
 ## Contributing
 
