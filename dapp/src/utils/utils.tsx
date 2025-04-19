@@ -17,10 +17,10 @@ export const getStatusTag = (status: FlightPolicyStatus | BaggagePolicyStatus) =
 
 export const convertDaysToSeconds = (days: number) => {
   const SECONDS_PER_DAY = 24 * 60 * 60;
-  return days * SECONDS_PER_DAY;
+  return Math.round(days * SECONDS_PER_DAY);
 };
 
 export const convertSecondsToDays = (seconds: number) => {
   const SECONDS_PER_DAY = 24 * 60 * 60;
-  return seconds / SECONDS_PER_DAY;
+  return Math.round(seconds / SECONDS_PER_DAY);
 };
