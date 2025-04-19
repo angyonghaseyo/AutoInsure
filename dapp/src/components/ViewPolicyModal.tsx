@@ -80,7 +80,7 @@ const ViewPolicyModal = ({ type, policy, onCancel }: ViewPolicyModalProps) => {
         <strong>Policy Max Total Payout:</strong> {policy.template.maxTotalPayout} ETH
       </p>
       <p>
-        <strong>Policy Coverage Duration:</strong> {convertSecondsToDays(policy.template.coverageDurationSeconds).toPrecision(1)} hours
+        <strong>Policy Coverage Duration:</strong> {convertSecondsToDays(policy.template.coverageDurationSeconds).toPrecision(1)} days
       </p>
       <p>
         <strong>Status:</strong> {getStatusTag(policy.status)}

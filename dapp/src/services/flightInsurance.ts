@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { useWeb3 } from "../components/Web3Provider";
 import OracleConnectorABI from "@/utils/abis/OracleConnector.json";
 import { FlightPolicyTemplate, FlightPolicyTemplateStatus, FlightUserPolicy, FlightPolicyTemplateCreate, FlightPolicyTemplateUpdate } from "../types/FlightPolicy";
+import { convertSecondsToDays } from "@/utils/utils";
 
 export function formatPolicyTemplate(raw: any): FlightPolicyTemplate {
   return {
@@ -28,10 +29,10 @@ export function formatUserPolicy(raw: any): FlightUserPolicy {
       description: raw.template.description,
       createdAt: Number(raw.template.createdAt),
       updatedAt: Number(raw.template.updatedAt),
-      premium: String(raw.template.premium),
-      payoutPerHour: String(raw.template.payoutPerHour),
+      premium: ethers.formatEther(raw.template.premium),
+      payoutPerHour: ethers.formatEther(raw.template.payoutPerHour),
       delayThresholdHours: Number(raw.template.delayThresholdHours),
-      maxTotalPayout: String(raw.template.maxTotalPayout),
+      maxTotalPayout: ethers.formatEther(raw.template.maxTotalPayout),
       coverageDurationSeconds: Number(raw.template.coverageDurationSeconds),
       status: Number(raw.template.status),
     },
@@ -154,10 +155,18 @@ export function useFlightInsurance() {
     premium: string
   ): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
-
-    const tx = await insurerContract.purchaseFlightPolicy(template, flightNumber, departureAirportCode, arrivalAirportCode, departureTime, Math.floor(Date.now() / 1000), {
-      value: ethers.parseEther(premium),
-    });
+    const clonedTemplate = { ...template };
+    const tx = await insurerContract.purchaseFlightPolicy(
+      convertEtherToWei([clonedTemplate])[0],
+      flightNumber,
+      departureAirportCode,
+      arrivalAirportCode,
+      departureTime,
+      Math.floor(Date.now() / 1000),
+      {
+        value: ethers.parseEther(premium),
+      }
+    );
     await tx.wait();
     return tx.hash;
   }
@@ -191,33 +200,33 @@ export function useFlightInsurance() {
     if (!insurerContract || !signer || !flightPolicyContract) {
       throw new Error("Contract or signer not connected");
     }
-  
+
     const oracleAddr = await flightPolicyContract.oracleConnector();
     const oracle = new ethers.Contract(oracleAddr, OracleConnectorABI.abi, signer);
-  
-    const flightPolicyAddr = flightPolicyContract.target?.toString() || await flightPolicyContract.getAddress();
+
+    const flightPolicyAddr = flightPolicyContract.target?.toString() || (await flightPolicyContract.getAddress());
     const flightPolicy = new ethers.Contract(flightPolicyAddr, flightPolicyContract.interface, signer);
-  
+
     let resolved = false;
-  
-    console.log("🔌 Connected to contracts:");
-    console.log("📡 OracleConnector at", oracleAddr);
-    console.log("📑 FlightPolicy at", flightPolicyAddr);
-  
-    // 🎯 Listen for final success
+
+    console.log("Connected to contracts:");
+    console.log("OracleConnector at", oracleAddr);
+    console.log("FlightPolicy at", flightPolicyAddr);
+
+    // Listen for final success
     flightPolicy.on("PayoutClaimed", (policyIdEmitted, buyer, amount, event) => {
       if (resolved) return;
       resolved = true;
-      console.log("✅ PayoutClaimed received:", { policyId: policyIdEmitted.toString(), buyer, amount: ethers.formatEther(amount) });
+      console.log("PayoutClaimed received:", { policyId: policyIdEmitted.toString(), buyer, amount: ethers.formatEther(amount) });
       cleanup();
     });
-  
-    // ⏳ Listen for pending status
+
+    // Listen for pending status
     flightPolicy.on("PayoutPending", (policyIdEmitted, buyer, event) => {
-      console.log("🕓 PayoutPending received. Waiting for oracle data...");
+      console.log("PayoutPending received. Waiting for oracle data...");
     });
-  
-    // 📡 Listen for oracle data arriving
+
+    // Listen for oracle data arriving
     oracle.on("FlightDataReceived", async (requestId, flightNumber, departureTime, isDelayed, delayMinutes, event) => {
       if (resolved) return;
       console.log("📬 FlightDataReceived received from oracle");
@@ -225,35 +234,30 @@ export function useFlightInsurance() {
         const retryTx = await insurerContract.claimFlightPayout(policyId);
         // checkFlightStatus (flightNumber, departureTime)
         await retryTx.wait();
-        console.log("🔁 Retried claimFlightPayout sent");
+        console.log("Retried claimFlightPayout sent");
       } catch (retryErr: any) {
         const msg = retryErr?.error?.message || retryErr?.message || "Retry failed";
-        console.error("❌ Retry failed:", msg);
+        console.error("Retry failed:", msg);
       }
     });
-  
-    // ⛳ Clean up all listeners
+
+    // Clean up all listeners
     function cleanup() {
       flightPolicy.removeAllListeners("PayoutClaimed");
       flightPolicy.removeAllListeners("PayoutPending");
       oracle.removeAllListeners("FlightDataReceived");
     }
-  
+
     try {
       console.log("🚀 Sending initial claimFlightPayout...");
       const tx = await insurerContract.claimFlightPayout(policyId);
       await tx.wait();
     } catch (err: any) {
       cleanup();
-      const message =
-        err?.error?.message ||
-        err?.reason ||
-        err?.data?.message ||
-        err?.message ||
-        "Initial claim attempt failed";
-      throw new Error(`❌ ${message}`);
+      const message = err?.error?.message || err?.reason || err?.data?.message || err?.message || "Initial claim attempt failed";
+      throw new Error(`${message}`);
     }
-  
+
     // Optional: timeout safeguard
     setTimeout(() => {
       if (!resolved) {
@@ -271,7 +275,18 @@ export function useFlightInsurance() {
 
   async function isFlightPolicyTemplateAllowedForPurchase(templates: FlightPolicyTemplate[]): Promise<boolean[]> {
     if (!insurerContract) return [];
-    return await insurerContract.isFlightPolicyAllowedForPurchase(templates, Math.floor(Date.now() / 1000));
+    const clonedTemplates = templates.map((template) => ({ ...template }));
+    return await insurerContract.isFlightPolicyAllowedForPurchase(convertEtherToWei(clonedTemplates), Math.floor(Date.now() / 1000));
+  }
+
+  // ====== Helper Functions ======
+  function convertEtherToWei(templates: FlightPolicyTemplate[]): FlightPolicyTemplate[] {
+    for (const template of templates) {
+      template.maxTotalPayout = String(ethers.parseEther(template.maxTotalPayout));
+      template.payoutPerHour = String(ethers.parseEther(template.payoutPerHour));
+      template.premium = String(ethers.parseEther(template.premium));
+    }
+    return templates;
   }
 
   return {

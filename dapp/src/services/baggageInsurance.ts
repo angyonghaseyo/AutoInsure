@@ -143,8 +143,8 @@ export function useBaggageInsurance() {
   // ====== User Functions ======
   async function purchaseBaggagePolicy(template: BaggagePolicyTemplate, itemDescription: string, premium: string): Promise<string> {
     if (!insurerContract) throw new Error("Insurer contract not connected");
-
-    const tx = await insurerContract.purchaseBaggagePolicy(template, itemDescription, Math.floor(Date.now() / 1000), {
+    const clonedTemplate = { ...template };
+    const tx = await insurerContract.purchaseBaggagePolicy(convertEtherToWei([clonedTemplate])[0], itemDescription, Math.floor(Date.now() / 1000), {
       value: ethers.parseEther(premium),
     });
 
@@ -189,7 +189,8 @@ export function useBaggageInsurance() {
 
   async function isBaggagePolicyTemplateAllowedForPurchase(templates: BaggagePolicyTemplate[]): Promise<boolean[]> {
     if (!insurerContract) return [];
-    const isAllowed = await insurerContract.isBaggagePolicyAllowedForPurchase(templates, Math.floor(Date.now() / 1000));
+    const clonedTemplates = templates.map((template) => ({ ...template }));
+    const isAllowed = await insurerContract.isBaggagePolicyAllowedForPurchase(convertEtherToWei(clonedTemplates), Math.floor(Date.now() / 1000));
     return isAllowed;
   }
 
@@ -197,6 +198,17 @@ export function useBaggageInsurance() {
     const res = await fetch(`/api/baggageTemplates?status=${BaggagePolicyTemplateStatus.Active}`);
     const templates = await res.json();
     return templates.data;
+  }
+
+  // ====== Helper Functions ======
+  function convertEtherToWei(templates: BaggagePolicyTemplate[]): BaggagePolicyTemplate[] {
+    for (const template of templates) {
+      template.maxTotalPayout = String(ethers.parseEther(template.maxTotalPayout));
+      template.payoutIfDelayed = String(ethers.parseEther(template.payoutIfDelayed));
+      template.payoutIfLost = String(ethers.parseEther(template.payoutIfLost));
+      template.premium = String(ethers.parseEther(template.premium));
+    }
+    return templates;
   }
 
   return {

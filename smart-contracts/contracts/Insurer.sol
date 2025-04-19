@@ -132,10 +132,14 @@ contract Insurer {
         FlightPolicy.UserPolicy[] memory flightPolicies = flightPolicy.getAllPolicies(currentTime);
         BaggagePolicy.UserPolicy[] memory baggagePolicies = baggagePolicy.getAllPolicies(currentTime);
         for (uint256 i = 0; i < flightPolicies.length; i++) {
-            totalPossiblePayout += flightPolicies[i].template.maxTotalPayout;
+            if (flightPolicies[i].status == FlightPolicy.PolicyStatus.Active) {
+                totalPossiblePayout += flightPolicies[i].template.maxTotalPayout;
+            }
         }
         for (uint256 i = 0; i < baggagePolicies.length; i++) {
-            totalPossiblePayout += baggagePolicies[i].template.maxTotalPayout;
+            if (baggagePolicies[i].status == BaggagePolicy.PolicyStatus.Active) {
+                totalPossiblePayout += baggagePolicies[i].template.maxTotalPayout;
+            }
         }
         return totalPossiblePayout;
     }
@@ -146,7 +150,7 @@ contract Insurer {
         uint256 currentTotalPossiblePayout = getMaxPossiblePayout(currentTime);
         for (uint256 i = 0; i < templates.length; i++) {
             uint256 totalPossiblePayout = currentTotalPossiblePayout + templates[i].maxTotalPayout;
-            if (totalPossiblePayout * 1 ether > address(this).balance) {
+            if (totalPossiblePayout > address(this).balance) {
                 allowed[i] = false;
             } else {
                 allowed[i] = true;
@@ -161,7 +165,7 @@ contract Insurer {
         uint256 currentTotalPossiblePayout = getMaxPossiblePayout(currentTime);
         for (uint256 i = 0; i < templates.length; i++) {
             uint256 totalPossiblePayout = currentTotalPossiblePayout + templates[i].maxTotalPayout;
-            if (totalPossiblePayout * 1 ether > address(this).balance) {
+            if (totalPossiblePayout > address(this).balance) {
                 allowed[i] = false;
             } else {
                 allowed[i] = true;
