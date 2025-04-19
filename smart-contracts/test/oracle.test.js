@@ -31,7 +31,8 @@ describe("OracleConnector", function () {
     await oracleConnector.waitForDeployment();
 
     // Create a job ID
-    jobId = ethers.hexlify(ethers.zeroPadValue("0x7d80a6386ef543a3abb52817f6707e3b", 32));
+    jobId = ethers.encodeBytes32String("flight_oracle");;
+    console.log(jobId)
 
     // Add oracle to the connector
     await oracleConnector.addOracle(
@@ -50,7 +51,7 @@ describe("OracleConnector", function () {
   it("should request flight data and process oracle response", async function () {
     // Request flight data
     const flightNumber = "SQ100";
-    const departureTime = "2025-03-30T15:00:00Z";
+    const departureTime = "1743346800";
     
     const tx = await oracleConnector.requestFlightData(flightNumber, departureTime);
     const receipt = await tx.wait();
@@ -98,7 +99,7 @@ describe("OracleConnector", function () {
     
     // Request flight data
     const flightNumber = "SQ100";
-    const departureTime = "2025-03-30T15:00:00Z";
+    const departureTime = "1743346800";
     
     const tx = await oracleConnector.requestFlightData(flightNumber, departureTime);
     const receipt = await tx.wait();

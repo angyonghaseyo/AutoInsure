@@ -80,7 +80,7 @@ async function main() {
       endpoints: [
         {
           url: "https://236a3f11-39f2-40f7-989b-d51bcdcca6f2.mock.pstmn.io/",
-          jobId: "oracle1_primary",
+          jobId: "flight_oracle",
           description: "Oracle 1 - Primary endpoint (120 mins delay for SQ100)"
         }
       ]
@@ -91,7 +91,7 @@ async function main() {
       endpoints: [
         {
           url: "https://236a3f11-39f2-40f7-989b-d51bcdcca6f2.mock.pstmn.io/alternative/",
-          jobId: "oracle2_primary",
+          jobId: "flight_oracle",
           description: "Oracle 2 - Alternative endpoint 1 (180 mins delay for SQ100)"
         }
       ]
@@ -102,7 +102,7 @@ async function main() {
       endpoints: [
         {
           url: "https://236a3f11-39f2-40f7-989b-d51bcdcca6f2.mock.pstmn.io/alternative2/",
-          jobId: "oracle3_primary",
+          jobId: "flight_oracle",
           description: "Oracle 3 - Alternative endpoint 2 (240 mins delay for SQ100)"
         }
       ]
@@ -113,7 +113,7 @@ async function main() {
       endpoints: [
         {
           url: "https://c5f06716-b81d-4e73-b825-1289c0745221.mock.pstmn.io/",
-          jobId: "oracleBaggage_primary",
+          jobId: "baggage_oracle",
           description: "Oracle Baggage"
         }
       ]

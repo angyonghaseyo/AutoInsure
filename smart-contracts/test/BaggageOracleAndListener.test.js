@@ -12,7 +12,7 @@ describe("OracleConnector + Listener.js Integration for Baggage", function () {
   let owner;
   
   const FLIGHT_NUMBER = "SQ100";
-  const DEPARTURE_TIME = "1744992558";
+  const DEPARTURE_TIME = "1743346800";
   const BAGGAGE_DES = "GreenLuggage"
   const MOCK_API_URL = "https://c5f06716-b81d-4e73-b825-1289c0745221.mock.pstmn.io/";
 
@@ -41,23 +41,9 @@ describe("OracleConnector + Listener.js Integration for Baggage", function () {
     // Fund the oracle connector with LINK tokens
     await mockLinkToken.transfer(await oracleConnector.getAddress(), ethers.parseEther("100"));
     
-    // Register mock oracle with connector (add 4 cuz hardcoded 3 in oracle connector cuz first 3 oracles are for flight)
-    const jobId = ethers.encodeBytes32String("baggagedelay");
-    await oracleConnector.addOracle(
-      await mockOracle.getAddress(),
-      MOCK_API_URL,
-      jobId
-    );
-    await oracleConnector.addOracle(
-      await mockOracle.getAddress(),
-      MOCK_API_URL,
-      jobId
-    );
-    await oracleConnector.addOracle(
-      await mockOracle.getAddress(),
-      MOCK_API_URL,
-      jobId
-    );
+    // Register mock oracle with connector
+    const jobId = ethers.encodeBytes32String("baggage_oracle");
+    console.log("Baggage Oracle Id", jobId)
     await oracleConnector.addOracle(
       await mockOracle.getAddress(),
       MOCK_API_URL,

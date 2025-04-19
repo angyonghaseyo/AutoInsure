@@ -12,7 +12,7 @@ describe("OracleConnector + Listener.js Integration", function () {
   let owner;
   
   const FLIGHT_NUMBER = "SQ100";
-  const DEPARTURE_TIME = "1744992558";
+  const DEPARTURE_TIME = "1743346800";
   const BAGGAGE_DES = "GreenLuggage"
   const MOCK_API_URL = "https://236a3f11-39f2-40f7-989b-d51bcdcca6f2.mock.pstmn.io/";
   const EXPECTED_DELAY = 120; // 2 hours in minutes
@@ -43,7 +43,7 @@ describe("OracleConnector + Listener.js Integration", function () {
     await mockLinkToken.transfer(await oracleConnector.getAddress(), ethers.parseEther("100"));
     
     // Register mock oracle with connector
-    const jobId = ethers.encodeBytes32String("flightdelay");
+    const jobId = ethers.encodeBytes32String("flight_oracle");
     await oracleConnector.addOracle(
       await mockOracle.getAddress(),
       MOCK_API_URL,
