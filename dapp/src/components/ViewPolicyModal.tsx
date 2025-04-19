@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Card, Tag, Button, message, Spin } from "antd";
+import { Modal, Card, Button, message } from "antd";
 import { FlightPolicyStatus, FlightUserPolicy } from "../types/FlightPolicy";
 import { BaggagePolicyStatus, BaggageUserPolicy } from "../types/BaggagePolicy";
 import { useFlightInsurance } from "@/services/flightInsurance";
@@ -49,7 +49,7 @@ const ViewPolicyModal = ({ type, policy, onCancel, onClaimSuccess }: ViewPolicyM
       <p><strong>Payout Per Hour:</strong> {policy.template.payoutPerHour} ETH/hr</p>
       <p><strong>Delay Threshold:</strong> {policy.template.delayThresholdHours} hours</p>
       <p><strong>Max Total Payout:</strong> {policy.template.maxTotalPayout} ETH</p>
-      <p><strong>Coverage Duration:</strong> {convertSecondsToDays(policy.template.coverageDurationSeconds).toPrecision(1)} days</p>
+      <p><strong>Coverage Duration:</strong> {convertSecondsToDays(policy.template.coverageDurationSeconds)} days</p>
       <p><strong>Status:</strong> {getStatusTag(policy.status)}</p>
     </>
   );
@@ -66,7 +66,7 @@ const ViewPolicyModal = ({ type, policy, onCancel, onClaimSuccess }: ViewPolicyM
       <p><strong>Policy Description:</strong> {policy.template.description}</p>
       <p><strong>Premium:</strong> {policy.template.premium} ETH</p>
       <p><strong>Max Total Payout:</strong> {policy.template.maxTotalPayout} ETH</p>
-      <p><strong>Coverage Duration:</strong> {convertSecondsToDays(policy.template.coverageDurationSeconds).toPrecision(1)} days</p>
+      <p><strong>Coverage Duration:</strong> {convertSecondsToDays(policy.template.coverageDurationSeconds)} days</p>
       <p><strong>Status:</strong> {getStatusTag(policy.status)}</p>
     </>
   );

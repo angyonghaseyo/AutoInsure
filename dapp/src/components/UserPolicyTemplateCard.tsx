@@ -1,5 +1,4 @@
 import { Button, Card } from "antd";
-import { DollarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { FlightPolicyTemplate } from "../types/FlightPolicy";
 import { BaggagePolicyTemplate } from "../types/BaggagePolicy";
 import { convertSecondsToDays } from "@/utils/utils";
@@ -18,19 +17,19 @@ const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProp
         <div>
           <p>{tpl.description}</p>
           <p>
-            <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
+            <strong>Premium:</strong> {tpl.premium} ETH
           </p>
           <p>
-            <strong>Payout/Hour:</strong> <DollarOutlined /> {tpl.payoutPerHour} ETH
+            <strong>Payout/Hour:</strong> {tpl.payoutPerHour} ETH / hr
           </p>
           <p>
             <strong>Max Payout:</strong> {tpl.maxTotalPayout} ETH
           </p>
           <p>
-            <strong>Delay Threshold:</strong> <ClockCircleOutlined /> {tpl.delayThresholdHours} hrs
+            <strong>Delay Threshold:</strong> {tpl.delayThresholdHours} hrs
           </p>
           <p>
-            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds)} days
           </p>
         </div>
       );
@@ -40,13 +39,13 @@ const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProp
         <div>
           <p>{tpl.description}</p>
           <p>
-            <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
+            <strong>Premium:</strong> {tpl.premium} ETH
           </p>
           <p>
-            <strong>Max Total Payout:</strong> <DollarOutlined /> {tpl.maxTotalPayout} ETH
+            <strong>Max Total Payout:</strong> {tpl.maxTotalPayout} ETH
           </p>
           <p>
-            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds).toPrecision(1)} days
+            <strong>Coverage Duration:</strong> {convertSecondsToDays(tpl.coverageDurationSeconds)} days
           </p>
         </div>
       );
@@ -57,7 +56,6 @@ const UserPolicyTemplateCard = ({ template, type, onPurchase }: TemplateCardProp
     <Card
       title={template.name}
       style={{
-        minHeight: 340,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",

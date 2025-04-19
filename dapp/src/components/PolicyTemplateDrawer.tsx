@@ -39,6 +39,12 @@ const PolicyTemplateDrawer: React.FC<PolicyTemplateDrawerProps> = ({ policyTempl
       key: "flightNumber",
     },
     {
+      title: "Departure Time",
+      dataIndex: "departureTime",
+      key: "departureTime",
+      render: (epoch: number) => new Date(epoch * 1000).toLocaleString("en-US", { timeZone: "Asia/Singapore" }),
+    },
+    {
       title: "Date Purchased",
       dataIndex: "createdAt",
       key: "createdAt",

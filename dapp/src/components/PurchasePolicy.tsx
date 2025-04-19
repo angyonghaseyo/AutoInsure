@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, Form, Input, Button, DatePicker, TimePicker, message } from "antd";
-import { DollarOutlined, CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { useFlightInsurance } from "../services/flightInsurance";
@@ -90,27 +90,27 @@ const PurchasePolicy = ({ type, selectedTemplate, onClose }: PurchasePolicyProps
 
         {/* Read-only display */}
         <Form.Item label="Premium">
-          <Input prefix={<DollarOutlined />} value={`${selectedTemplate.premium} ETH`} disabled />
+          <Input value={`${selectedTemplate.premium} ETH`} disabled />
         </Form.Item>
 
         {type === "flight" && (
           <Form.Item label="Payout Per Hour">
-            <Input prefix={<DollarOutlined />} value={`${(selectedTemplate as FlightPolicyTemplate).payoutPerHour} ETH`} disabled />
+            <Input value={`${(selectedTemplate as FlightPolicyTemplate).payoutPerHour} ETH / hr`} disabled />
           </Form.Item>
         )}
 
         <Form.Item label="Max Total Payout">
-          <Input prefix={<DollarOutlined />} value={`${selectedTemplate.maxTotalPayout} ETH`} disabled />
+          <Input value={`${selectedTemplate.maxTotalPayout} ETH`} disabled />
         </Form.Item>
 
         {type === "flight" && (
           <Form.Item label="Delay Threshold">
-            <Input prefix={<ClockCircleOutlined />} value={`${(selectedTemplate as FlightPolicyTemplate).delayThresholdHours} hrs`} disabled />
+            <Input value={`${(selectedTemplate as FlightPolicyTemplate).delayThresholdHours} hrs`} disabled />
           </Form.Item>
         )}
 
         <Form.Item label="Coverage Duration">
-          <Input prefix={<ClockCircleOutlined />} value={`${convertSecondsToDays(selectedTemplate.coverageDurationSeconds).toPrecision(1)} days`} disabled />
+          <Input value={`${convertSecondsToDays(selectedTemplate.coverageDurationSeconds)} days`} disabled />
         </Form.Item>
 
         <Button type="primary" htmlType="submit" block loading={isLoading}>
