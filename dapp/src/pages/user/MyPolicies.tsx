@@ -76,6 +76,11 @@ const MyFlightPolicies = () => {
     }
   };
 
+  const handleClaimSuccess = async () => {
+    await fetchPolicies();
+    setSelectedPolicy(undefined);
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <Title level={2}>My Flight Policies</Title>
@@ -190,7 +195,7 @@ const MyFlightPolicies = () => {
       )}
 
       {/* View Policy Modal */}
-      <ViewPolicyModal type={type} policy={selectedPolicy} onCancel={() => setSelectedPolicy(undefined)} />
+      <ViewPolicyModal type={type} policy={selectedPolicy} onCancel={() => setSelectedPolicy(undefined)} onClaimSuccess={handleClaimSuccess} />
     </div>
   );
 };

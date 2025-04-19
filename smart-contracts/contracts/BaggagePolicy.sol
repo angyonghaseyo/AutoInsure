@@ -91,9 +91,8 @@ contract BaggagePolicy is ReentrancyGuard {
 
     // ====== User Functions ======
     // Purchase a policy based on a template
-    function purchasePolicy(PolicyTemplate memory template, string memory itemDescription, address buyer) external payable returns (uint256) {
+    function purchasePolicy(PolicyTemplate memory template, string memory itemDescription, address buyer) external returns (uint256) {
         require(template.status == PolicyTemplateStatus.Active, "Policy template is not active");
-        require(msg.value >= template.premium, "Insufficient premium sent");
 
         uint256 policyId = nextUserPolicyId++;
         userPolicies[policyId] = UserPolicy({
