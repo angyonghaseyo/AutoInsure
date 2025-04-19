@@ -205,9 +205,6 @@ export function useFlightInsurance() {
     console.log("FlightPolicy at", flightPolicyAddr);
     console.log("Insurer at", insurerAddr);
 
-    
-
-
     // Listen for final payout result
     flightPolicyContract.on("PayoutEvaluated", async (policyIdEmitted, buyer, outcome) => {
       if (resolved || policyIdEmitted.toString() !== policyId.toString()) return;
