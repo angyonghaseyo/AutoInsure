@@ -41,7 +41,7 @@ export function formatUserPolicy(raw: any): BaggageUserPolicy {
 }
 
 export function useBaggageInsurance() {
-  const { insurerContract } = useWeb3();
+  const { insurerContract, oracleConnectorContract, baggagePolicyContract } = useWeb3();
 
   // ====== Insurer Functions ======
   async function createBaggagePolicyTemplate(
@@ -170,6 +170,116 @@ export function useBaggageInsurance() {
     }
   }
 
+  async function claimBaggagePayout(policyId: number): Promise<void> {
+    if (!insurerContract || !baggagePolicyContract || !oracleConnectorContract) {
+      throw new Error("Contracts not connected");
+    }
+  
+    const cleanup = () => {
+      insurerContract.removeAllListeners("PayoutClaimed");
+      baggagePolicyContract.removeAllListeners("PayoutEvaluated");
+      oracleConnectorContract.removeAllListeners("BaggageDataRecieved");
+    };
+  
+    const [oracleAddr, baggagePolicyAddr, insurerAddr] = await Promise.all([
+      oracleConnectorContract.getAddress(),
+      baggagePolicyContract.getAddress(),
+      insurerContract.getAddress(),
+    ]);
+  
+    console.log("Connected to contracts:");
+    console.log("OracleConnector at", oracleAddr);
+    console.log("BaggagePolicy at", baggagePolicyAddr);
+    console.log("Insurer at", insurerAddr);
+  
+    return new Promise<void>(async (resolve, reject) => {
+      let resolved = false;
+  
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          cleanup();
+          console.warn("Timeout: No final claim result after 2 minutes");
+          reject(new Error("Claim process timed out. Please try again later."));
+        }
+      }, 120_000);
+  
+      // Listen for evaluation result
+      baggagePolicyContract.on("PayoutEvaluated", (policyIdEmitted, buyer, payout, outcome) => {
+        console.log("PayoutEvaluated event received");
+        if (policyIdEmitted.toString() !== policyId.toString()) return;
+  
+        switch (outcome.toString()) {
+          case "0":
+            console.log("Payout pending - waiting for oracle data...");
+            break;
+          case "1":
+            cleanup();
+            clearTimeout(timeout);
+            resolved = true;
+            reject(new Error("No payout: Baggage was not delayed or lost."));
+            resolve();
+            break;
+          case "2":
+            console.log("Payout approved. Awaiting transfer...");
+            break;
+          default:
+            cleanup();
+            clearTimeout(timeout);
+            resolved = true;
+            reject(new Error("Unknown payout result."));
+        }
+      });
+  
+      // Listen for payout claimed
+      insurerContract.once("PayoutClaimed", (policyIdEmitted, buyer, amount) => {
+        if (policyIdEmitted.toString() !== policyId.toString()) return;
+  
+        console.log("PayoutClaimed:", {
+          policyId: policyIdEmitted.toString(),
+          buyer,
+          amount: ethers.formatEther(amount),
+        });
+  
+        cleanup();
+        clearTimeout(timeout);
+        resolved = true;
+        resolve();
+      });
+  
+      // Retry when oracle data arrives
+      oracleConnectorContract.once("BaggageDataRecieved", async () => {
+        console.log("BaggageDataRecieved event received");
+  
+        if (resolved) return;
+        try {
+          const retryTx = await insurerContract.claimBaggagePayout(policyId);
+          await retryTx.wait();
+          console.log("Retry claimBaggagePayout submitted.");
+        } catch (retryErr: any) {
+          console.error("Retry failed:", retryErr?.message || retryErr);
+        }
+      });
+  
+      // Initial claim
+      try {
+        console.log("Sending initial claimBaggagePayout...");
+        const tx = await insurerContract.claimBaggagePayout(policyId);
+        await tx.wait();
+        console.log("Initial claim transaction confirmed.");
+      } catch (err: any) {
+        cleanup();
+        clearTimeout(timeout);
+        const errorMsg =
+          err?.error?.message ||
+          err?.reason ||
+          err?.data?.message ||
+          err?.message ||
+          "Initial claim failed";
+        reject(new Error(errorMsg));
+      }
+    });
+  }
+
   // ====== Utility Functions ======
   async function isInsurer(userAddress: string): Promise<boolean> {
     if (!insurerContract) return false;
@@ -203,7 +313,7 @@ export function useBaggageInsurance() {
     getUserBaggagePoliciesByTemplate,
     purchaseBaggagePolicy,
     getUserBaggagePolicies,
-    
+    claimBaggagePayout,
     isInsurer,
     isBaggagePolicyTemplateAllowedForPurchase,
   };

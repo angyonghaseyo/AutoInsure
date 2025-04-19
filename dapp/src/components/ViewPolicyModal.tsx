@@ -3,6 +3,7 @@ import { Modal, Card, Button, message } from "antd";
 import { FlightPolicyStatus, FlightUserPolicy } from "../types/FlightPolicy";
 import { BaggagePolicyStatus, BaggageUserPolicy } from "../types/BaggagePolicy";
 import { useFlightInsurance } from "@/services/flightInsurance";
+import { useBaggageInsurance } from "@/services/baggageInsurance";
 import { convertSecondsToDays, getStatusTag } from "@/utils/utils";
 
 type ViewPolicyModalProps = {
@@ -14,6 +15,7 @@ type ViewPolicyModalProps = {
 
 const ViewPolicyModal = ({ type, policy, onCancel, onClaimSuccess }: ViewPolicyModalProps) => {
   const { claimFlightPayout } = useFlightInsurance();
+  const { claimBaggagePayout } = useBaggageInsurance();
   const [loading, setLoading] = useState(false);
 
   if (!policy) return null;
@@ -22,11 +24,11 @@ const ViewPolicyModal = ({ type, policy, onCancel, onClaimSuccess }: ViewPolicyM
     setLoading(true);
     try {
       if (type === "flight") {
-        const p = policy as FlightUserPolicy;
-        await claimFlightPayout(p.policyId);
-      } else {
-        throw new Error("Baggage claims not implemented yet.");
+        await claimFlightPayout(policy.policyId);
+      } else if (type === "baggage") {
+        await claimBaggagePayout(policy.policyId);
       }
+
       message.success("Payout successfully claimed!");
       onClaimSuccess();
     } catch (err: any) {
@@ -75,7 +77,7 @@ const ViewPolicyModal = ({ type, policy, onCancel, onClaimSuccess }: ViewPolicyM
 
   return (
     <Modal
-      title={`${policy?.template.name}`}
+      title={policy?.template.name}
       open={!!policy}
       onCancel={onCancel}
       footer={null}
@@ -87,7 +89,7 @@ const ViewPolicyModal = ({ type, policy, onCancel, onClaimSuccess }: ViewPolicyM
           : renderBaggagePolicyDetails(policy as BaggageUserPolicy)}
       </Card>
 
-      {isClaimable && type === "flight" && (
+      {isClaimable && (
         <div style={{ textAlign: "center" }}>
           <Button type="primary" onClick={handleClaim} loading={loading} style={{ marginTop: 16 }}>
             {loading ? "Processing…" : "Claim Policy"}
