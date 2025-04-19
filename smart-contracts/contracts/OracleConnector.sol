@@ -58,6 +58,8 @@ contract OracleConnector is ChainlinkClient, Ownable {
 
     OracleInfo[] public oracles;
     uint256 private fee;
+    bytes32 constant flightJobId = 0x666c696768745f6f7261636c6500000000000000000000000000000000000000;
+    bytes32 constant baggageJobId = 0x626167676167655f6f7261636c65000000000000000000000000000000000000;
     // delayThreshold in minutes
     uint256 delayThreshold = 60; 
     
@@ -92,6 +94,10 @@ contract OracleConnector is ChainlinkClient, Ownable {
         // require(oracles.length > 0, "No oracles set");
 
         for (uint256 i = 0; i < oracles.length; i++) {
+
+            if (flightJobId != oracles[i].jobId) {
+                continue;
+            } 
             // Set the URL to fetch flight data
             //This URL called from each indiv oracle api 
             string memory fullUrl = string(abi.encodePacked(
@@ -140,11 +146,11 @@ contract OracleConnector is ChainlinkClient, Ownable {
 
         FlightData storage data = flightDataStore[flightNumber][departureTime];
 
-        // Skip the check for double responses in testing
-        if (data.respondedOracles[msg.sender]) {
-            // If already responded, just return
-            return;
-        }
+        // // Skip the check for double responses in testing
+        // if (data.respondedOracles[msg.sender]) {
+        //     // If already responded, just return
+        //     return;
+        // }
         
         data.delaySum += _delayMinutes;
         data.responseCount++;
@@ -192,38 +198,44 @@ contract OracleConnector is ChainlinkClient, Ownable {
     {
         require(oracles.length > 0, "No oracles set");
 
+        for (uint256 i = 0; i < oracles.length; i++) {
 
-        // Set the URL to fetch baggage data
-        //This URL called from each indiv oracle api 
-        string memory fullUrl = string(abi.encodePacked(
-            oracles[3].oracleAPIUrl,
-            _flightNumber,
-            "?departure=",
-            _departureTime,
-            "/",
-            _itemDescription
-        ));
+            if (baggageJobId != oracles[i].jobId) {
+                continue;
+            } 
+            // Set the URL to fetch flight data
+            //This URL called from each indiv oracle api 
+            string memory fullUrl = string(abi.encodePacked(
+                oracles[i].oracleAPIUrl,
+                _flightNumber,
+                "?departure=",
+                _departureTime,
+                "/",
+                _itemDescription
+            ));
 
-        // Call Mock Oracle Function instead to simulate chainlink sending a request
-        requestId = IMockOracle(oracles[3].oracle).mockChainlinkRequest(
-            address(this),
-            this.fulfillBaggageData.selector,
-            fee,
-            oracles[3].jobId, // example jobId
-            fullUrl,
-            "baggageStatus"
-        );
+            // Call Mock Oracle Function instead to simulate chainlink sending a request
+            requestId = IMockOracle(oracles[i].oracle).mockChainlinkRequest(
+                address(this),
+                this.fulfillBaggageData.selector,
+                fee,
+                oracles[i].jobId, // example jobId
+                fullUrl,
+                "baggageStatus"
+            );
             
-        // Store request mapping
-        requestIDToBaggageRequest[requestId] = BaggageRequest(_flightNumber, _departureTime, _itemDescription);
+            // Store request mapping
+            requestIDToBaggageRequest[requestId] = BaggageRequest(_flightNumber, _departureTime, _itemDescription);
             
-        // Initialize the flight data structure if it doesn't exist
-        if (flightDataStore[_flightNumber][_departureTime].responseCount == 0) {
-            flightDataStore[_flightNumber][_departureTime].flightNumber = _flightNumber;
-            flightDataStore[_flightNumber][_departureTime].departureTime = _departureTime;
+            // Initialize the data structure if it doesn't exist
+            baggageDataStore[_flightNumber][_departureTime][_itemDescription].flightNumber = _flightNumber;
+            baggageDataStore[_flightNumber][_departureTime][_itemDescription].departureTime = _departureTime;
+            baggageDataStore[_flightNumber][_departureTime][_itemDescription].itemDescription = _itemDescription;
+            
+            emit BaggageDataRequested(requestId, _flightNumber, _departureTime, _itemDescription);
         }
+
             
-        emit BaggageDataRequested(requestId, _flightNumber, _departureTime, _itemDescription);
         return requestId;
     }
 
