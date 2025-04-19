@@ -111,31 +111,33 @@ const InsurerPolicyTemplates = () => {
    * Handle add or delete actions.
    */
   const handleTemplateAction = async (action: "add" | "delete" | "edit", type: "flight" | "baggage", template?: FlightPolicyTemplate | BaggagePolicyTemplate) => {
-    const isFlight = type === "flight";
-    const isLuggage = type === "baggage";
-
-    const showError = (msg: string) => messageApi.error(`Failed to ${action} ${type} template.`);
+    const showError = () => messageApi.error(`Failed to ${action} ${type} template.`);
     const showSuccess = () => messageApi.success(`${type === "flight" ? "Flight" : "Luggage"} Template deactivated.`);
-
+  
     try {
-      if (action === "delete") {
-        if (isFlight && template) await deactivateFlightPolicyTemplate(template.templateId);
-        if (isLuggage && template) await deactivateBaggagePolicyTemplate(template.templateId);
+      if (action === "delete" && template) {
+        if (type === "flight") await deactivateFlightPolicyTemplate(template.templateId);
+        else await deactivateBaggagePolicyTemplate(template.templateId);
         showSuccess();
-        fetchTemplates();
-      } else if (action === "add") {
-        setShowCreateModal(true);
+        return fetchTemplates();
+      }
+  
+      if (action === "add") {
         setType(type);
-      } else if (action === "edit") {
+        return setShowCreateModal(true);
+      }
+  
+      if (action === "edit" && template) {
+        setType(type);
         setEditPolicyTemplate(template);
-        setShowEditModal(true);
-        setType(type);
+        return setShowEditModal(true);
       }
     } catch (err) {
-      showError(action);
+      showError();
       console.error(err);
     }
   };
+
 
   return (
     <div className="max-w-6xl mx-auto p-6">

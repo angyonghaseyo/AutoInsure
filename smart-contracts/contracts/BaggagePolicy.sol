@@ -14,11 +14,6 @@ contract BaggagePolicy is ReentrancyGuard {
         oracleConnector = OracleConnector(_oracleConnector);
     }
 
-    modifier onlyInsurer() {
-        require(tx.origin == insurerAddress, "BaggagePolicy: Only the insurer can call this function");
-        _;
-    }
-
     modifier atStatus(PolicyStatus status) {
         require(userPolicies[nextUserPolicyId].status == status, "BaggagePolicy: Policy is not in the correct status");
         _;
@@ -75,7 +70,7 @@ contract BaggagePolicy is ReentrancyGuard {
 
     // ====== Insurer Functions ======
     // View all purchased policies (InsurerPolicyTemplates, InsurerClaimsOverview)
-    function getAllPolicies(uint256 currentTime) external view onlyInsurer() returns (UserPolicy[] memory) {
+    function getAllPolicies(uint256 currentTime) external view returns (UserPolicy[] memory) {
         uint256 count = nextUserPolicyId;
         UserPolicy[] memory results = new UserPolicy[](count);
         for (uint256 i = 0; i < count; i++) {
@@ -85,7 +80,7 @@ contract BaggagePolicy is ReentrancyGuard {
     }
 
     // Get all policies by template ID (PolicyTemplateDrawer)
-    function getUserPoliciesByTemplate(string memory templateId, uint256 currentTime) external view onlyInsurer() returns (UserPolicy[] memory) {
+    function getUserPoliciesByTemplate(string memory templateId, uint256 currentTime) external view returns (UserPolicy[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < nextUserPolicyId; i++) {
             if (keccak256(abi.encodePacked(userPolicies[i].template.templateId)) == keccak256(abi.encodePacked(templateId))) {

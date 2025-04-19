@@ -44,7 +44,7 @@ contract Insurer {
     }
 
     // Get all baggage policies by template ID (PolicyTemplateDrawer)
-    function getUserBaggagePoliciesByTemplate(string memory templateId, uint256 currentTime) external view onlyInsurer() returns (BaggagePolicy.UserPolicy[] memory) {
+    function getUserBaggagePoliciesByTemplate(string memory templateId, uint256 currentTime) external view onlyInsurer returns (BaggagePolicy.UserPolicy[] memory) {
         return baggagePolicy.getUserPoliciesByTemplate(templateId, currentTime);
     }
 

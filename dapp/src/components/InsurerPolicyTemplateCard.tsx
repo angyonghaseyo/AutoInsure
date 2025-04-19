@@ -38,7 +38,7 @@ const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, onEdit }:
       const tpl = template as FlightPolicyTemplate;
       return (
         <div>
-          <p>{template.description}</p>
+          <p>{tpl.description}</p>
           <p>
             <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
           </p>
@@ -56,19 +56,13 @@ const InsurerPolicyTemplateCard = ({ template, type, onView, onDelete, onEdit }:
           </p>
         </div>
       );
-    } else if (type === "baggage") {
+    } else {
       const tpl = template as BaggagePolicyTemplate;
       return (
         <div>
           <p>{tpl.description}</p>
           <p>
             <strong>Premium:</strong> <DollarOutlined /> {tpl.premium} ETH
-          </p>
-          <p>
-            <strong>Payout If Delayed:</strong> <DollarOutlined /> {tpl.payoutIfDelayed} ETH
-          </p>
-          <p>
-            <strong>Payout If Lost:</strong> {tpl.payoutIfLost} ETH
           </p>
           <p>
             <strong>Max Total Payout:</strong> <ClockCircleOutlined /> {tpl.maxTotalPayout} ETH

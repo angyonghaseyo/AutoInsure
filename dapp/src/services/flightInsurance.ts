@@ -196,7 +196,7 @@ export function useFlightInsurance() {
     // Clean up all listeners
     function cleanup() {
       insurerContract?.removeAllListeners("PayoutClaimed");
-      flightPolicyContract?.removeAllListeners("PayoutPending");
+      flightPolicyContract?.removeAllListeners("PayoutEvaluated");
       oracleConnectorContract?.removeAllListeners("FlightDataReceived");
     }
 
