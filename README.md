@@ -2,7 +2,6 @@
 
 A blockchain-based platform for flight delay and baggage insurance with automatic payouts powered by Chainlink oracles.
 
-
 ## Project Overview
 
 This decentralized flight insurance platform allows travelers to purchase insurance policies for flight delays and baggage loss. If a flight is delayed beyond a certain threshold or baggage is reported lost, the smart contract automatically processes a payout to the insured's wallet without requiring any manual claims process.
@@ -50,6 +49,8 @@ The platform consists of three main components:
 │   ├── FlightPolicy.sol      # Flight insurance logic
 │   ├── BaggagePolicy.sol     # Baggage insurance logic
 │   ├── Insurer.sol           # Main contract for policy management
+│   ├── MockLinkToken.sol     # LINK Token
+│   ├── MockOracle.sol        # Oracle
 │   └── OracleConnector.sol   # Oracle integration
 ├── listener/                 # Oracle listener service
 │   └── listener.js           # Node.js script for oracle data
@@ -59,9 +60,11 @@ The platform consists of three main components:
 │   └── *.test.js             # Contract tests
 ├── dapp/                     # React dapp application
 │   ├── src/                  # Source files
+│   │   ├── backend/          # Backend logic to connect to MongoDB
 │   │   ├── components/       # React components
 │   │   ├── pages/            # Page components
 │   │   ├── services/         # API services
+│   │   ├── types/            # Types and interfaces
 │   │   └── utils/            # Utility functions and constants
 ├── hardhat.config.js         # Hardhat configuration
 └── README.md                 # Project documentation
@@ -79,12 +82,14 @@ The platform consists of three main components:
 ### Installation
 
 1. Clone the repository
+
 ```bash
-git clone https://github.com/yourusername/flight-insurance-dapp.git
-cd flight-insurance-dapp
+git clone https://github.com/angyonghaseyo/AutoInsure.git
+cd AutoInsure
 ```
 
 2. Install dependencies
+
 ```bash
 # Install smart contract dependencies
 npm install
@@ -95,19 +100,22 @@ npm install
 ```
 
 3. Configure environment variables for contracts
+
 ```bash
-# Create .env file in the root directory
+# Create .env file in the smart-contracts directory
 cp .env.example .env
 ```
 
 Edit the `.env` file with your configuration:
+
 ```
 PRIVATE_KEY=your_private_key
-SEPOLIA_RPC_URL=your_sepolia_rpc_url
-ETHERSCAN_API_KEY=your_etherscan_api_key
+ETHEREUM_SEPOLIA_URL=your_ethereum_sepolia_url
+ETHEREUM_MAINNET_URL=your_ethereum_mainnet_url
 ```
 
 4. Configure environment variables for frontend
+
 ```bash
 # Create .env.local file in the dapp directory
 cd dapp
@@ -115,6 +123,7 @@ cp .env.example .env.local
 ```
 
 Edit the `.env.local` file:
+
 ```
 MONGODB_URI=your_mongodb_uri
 MONGODB_DB=your_mongodb_database
@@ -123,38 +132,22 @@ MONGODB_DB=your_mongodb_database
 ## Smart Contract Deployment
 
 1. Compile the contracts
+
 ```bash
 npx hardhat compile
 ```
 
-2. Deploy to local network for testing
+2. Deploy to local network
+
 ```bash
 npx hardhat node
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-3. Deploy to testnet (Sepolia)
-```bash
-npx hardhat run scripts/deploy.js --network sepolia
-```
-
-After deployment, update the contract addresses in `dapp/src/utils/contractAddresses.json`
-
-## Running the Oracle Listener
-
-The oracle listener service needs to be running to fetch flight data:
-
-```bash
-cd listener
-# Configure environment variables
-cp .env.example .env
-# Edit the .env file with appropriate values
-node listener.js
-```
-
-## Frontend Development
+## Frontend Deployment
 
 1. Start the development server
+
 ```bash
 cd dapp
 npm run dev
@@ -165,13 +158,16 @@ npm run dev
 ## Testing
 
 Run the test suite with Hardhat:
+
 ```bash
-npx hardhat test
+npx hardhat node
+npx hardhat test --network localhost
 ```
 
 ## User Flow
 
 ### User Flow
+
 1. User connects their wallet to the dApp
 2. User browses flight or baggage insurance policy templates
 3. User purchases a policy by paying a premium
@@ -181,6 +177,7 @@ npx hardhat test
    - If verified, funds are transferred to the user's wallet
 
 ### Insurer Flow
+
 1. Insurer connects to the platform with their wallet
 2. Insurer creates and manages policy templates
 3. Insurer deposits funds to cover potential claims
@@ -198,6 +195,7 @@ npx hardhat test
 ### Oracle Integration
 
 The platform uses Chainlink oracles to:
+
 1. Fetch flight data from external APIs to verify flight delays
 2. Obtain baggage status information to verify loss claims
 3. Trigger smart contract functions based on the verification results
@@ -208,15 +206,3 @@ The platform uses Chainlink oracles to:
 - Web3.js and ethers.js for blockchain interaction
 - MongoDB for policy template storage
 - Role-based UI for users and insurers
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Disclaimer
-
-This software is provided for educational and demonstration purposes only. It is not intended for use in production environments without proper security audits and testing.
