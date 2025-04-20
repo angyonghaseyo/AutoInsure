@@ -5,6 +5,7 @@ describe("FlightPolicy", function () {
   let flightPolicy;
   let insurer;
   let user1;
+  let user2;
   let oracleConnector;
   let mockLinkToken;
   let policyId = 0;
@@ -40,7 +41,7 @@ describe("FlightPolicy", function () {
   };
 
   before(async function () {
-    [insurer, user1] = await ethers.getSigners();
+    [insurer, user1, user2] = await ethers.getSigners();
 
     const MockLinkToken = await ethers.getContractFactory("MockLinkToken");
     mockLinkToken = await MockLinkToken.deploy();
@@ -71,9 +72,7 @@ describe("FlightPolicy", function () {
     // Use the blockchain timestamp + future offset
     const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
 
-    await expect(
-      flightPolicy.connect(user1).purchasePolicy(deactivatedTemplate, "SQ101", "SIN", "NRT", futureDepartureTime, user1.address, { value: ethers.parseEther("1") })
-    ).to.be.revertedWith("Policy template is not active");
+    await expect(flightPolicy.connect(user1).purchasePolicy(deactivatedTemplate, "SQ101", futureDepartureTime, user1.address)).to.be.revertedWith("Policy template is not active");
   });
 
   // 3. Purchase policy (create new template in same test)
@@ -81,7 +80,7 @@ describe("FlightPolicy", function () {
     // Use the blockchain timestamp + future offset
     const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
 
-    const tx = await flightPolicy.connect(user1).purchasePolicy(activeTemplate, "SQ222", "SIN", "LAX", futureDepartureTime, user1.address, { value: ethers.parseEther("1") });
+    const tx = await flightPolicy.connect(user1).purchasePolicy(activeTemplate, "SQ222", futureDepartureTime, user1.address);
     await tx.wait();
 
     const policies = await flightPolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
@@ -92,9 +91,13 @@ describe("FlightPolicy", function () {
 
   // 4. Get user policies
   it("should return all user policies", async function () {
-    const userPolicies = await flightPolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
-    expect(userPolicies.length).to.equal(1);
-    expect(userPolicies[0].departureAirportCode).to.equal("SIN");
+    const user1Ppolicies = await flightPolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
+    expect(user1Ppolicies.length).to.equal(1);
+    expect(user1Ppolicies[0].flightNumber).to.equal("SQ222");
+    policyId = user1Ppolicies[0].policyId;
+
+    const user2Ppolicies = await flightPolicy.getUserPolicies(user2.address, Math.floor(Date.now() / 1000));
+    expect(user2Ppolicies.length).to.equal(0);
   });
 
   // 5. Get user policies by template
