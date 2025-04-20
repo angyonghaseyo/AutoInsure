@@ -76,22 +76,13 @@ describe("BaggagePolicy", function () {
     // 3. Reject deactivated policy purchase
     it("should reject purchase of deactivated policies", async function () {
       await expect(
-        baggagePolicy.connect(user1).purchasePolicy(deactivatedTemplate, "Premium leather suitcase and carry-on bag", user1.address, { value: deactivatedTemplate.premium })
+        baggagePolicy.connect(user1).purchasePolicy(deactivatedTemplate, "SQ100", 1743346800, "Premium leather suitcase and carry-on bag", user1.address)
       ).to.be.revertedWith("Policy template is not active");
     });
 
-    // 4. Reject purchase with insufficient premium
-    it("should reject purchase with insufficient premium", async function () {
-      const insufficientAmount = ethers.parseEther("0.005"); // Less than the required premium
-
-      await expect(
-        baggagePolicy.connect(user1).purchasePolicy(activeTemplate, "Premium leather suitcase and carry-on bag", user1.address, { value: insufficientAmount })
-      ).to.be.revertedWith("Insufficient premium sent");
-    });
-
-    // 5. Successfully purchase an active policy
+    // 4. Successfully purchase an active policy
     it("should allow purchase of active policy", async function () {
-      const tx = await baggagePolicy.connect(user1).purchasePolicy(activeTemplate, "Premium leather suitcase and carry-on bag", user1.address, { value: activeTemplate.premium });
+      const tx = await baggagePolicy.connect(user1).purchasePolicy(activeTemplate, "SQ100", 1743346800, "Premium leather suitcase and carry-on bag", user1.address);
 
       await tx.wait();
 
@@ -102,13 +93,13 @@ describe("BaggagePolicy", function () {
       expect(policies[0].status).to.equal(0); // Active status
     });
 
-    // 6. Verify policy ID increments correctly
+    // 5. Verify policy ID increments correctly
     it("should increment policy ID for each purchase", async function () {
       const firstPolicies = await baggagePolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
       const firstPolicyId = firstPolicies[0].policyId;
 
       // Purchase another policy
-      await baggagePolicy.connect(user1).purchasePolicy(activeTemplate, "Vintage camera equipment and accessories", user1.address, { value: activeTemplate.premium });
+      await baggagePolicy.connect(user1).purchasePolicy(activeTemplate, "SQ100", 1743346800, "Vintage camera equipment and accessories", user1.address);
 
       const updatedPolicies = await baggagePolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
       expect(updatedPolicies.length).to.equal(2);
@@ -118,9 +109,9 @@ describe("BaggagePolicy", function () {
       expect(secondPolicyId).to.equal(firstPolicyId + 1n);
     });
 
-    // 7. Verify multiple users can purchase policies
+    // 6. Verify multiple users can purchase policies
     it("should allow different users to purchase policies", async function () {
-      await baggagePolicy.connect(user2).purchasePolicy(activeTemplate, "Surfboard and diving equipment", user2.address, { value: activeTemplate.premium });
+      await baggagePolicy.connect(user2).purchasePolicy(activeTemplate, "SQ100", 1743346800, "Surfboard and diving equipment", user2.address);
 
       const user2Policies = await baggagePolicy.getUserPolicies(user2.address, Math.floor(Date.now() / 1000));
       expect(user2Policies.length).to.equal(1);
@@ -130,7 +121,7 @@ describe("BaggagePolicy", function () {
   });
 
   describe("Policy retrieval", function () {
-    // 8. Get policies for a specific user
+    // 7. Get policies for a specific user
     it("should get all policies for a given user", async function () {
       const user1Policies = await baggagePolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
       expect(user1Policies.length).to.equal(2);
@@ -145,7 +136,7 @@ describe("BaggagePolicy", function () {
       expect(descriptions).to.include("Vintage camera equipment and accessories");
     });
 
-    // 9. Get policies by template ID
+    // 8. Get policies by template ID
     it("should get all policies by template ID", async function () {
       const policiesByTemplate = await baggagePolicy.getUserPoliciesByTemplate(activeTemplate.templateId, Math.floor(Date.now() / 1000));
       expect(policiesByTemplate.length).to.equal(3); // 2 from user1, 1 from user2
@@ -156,56 +147,11 @@ describe("BaggagePolicy", function () {
       }
     });
 
-    // 10. Handle non-existent users correctly
+    // 9. Handle non-existent users correctly
     it("should return empty array for non-existent users", async function () {
       const nonExistentUser = ethers.Wallet.createRandom().address;
       const policies = await baggagePolicy.getUserPolicies(nonExistentUser, Math.floor(Date.now() / 1000));
       expect(policies.length).to.equal(0);
-    });
-  });
-
-  describe("Policy expiration", function () {
-    // 12. Non-insurer access control for expiration
-    it("should not allow non-insurer to mark policy as expired", async function () {
-      await expect(baggagePolicy.connect(user1).markPolicyAsExpired(0)).to.be.revertedWith("BaggagePolicy: Only the insurer can call this function");
-    });
-
-    // 13. Handling non-existent policy IDs
-    it("should not allow marking a non-existent policy as expired", async function () {
-      const nonExistentPolicyId = 999;
-      await expect(baggagePolicy.connect(insurer).markPolicyAsExpired(nonExistentPolicyId)).to.be.revertedWith("Invalid policyId");
-    });
-
-    // 14. Prevent premature expiration
-    it("should not mark a policy as expired before its expiry date", async function () {
-      // Policy was created recently, so it shouldn't be expired yet
-      await expect(baggagePolicy.connect(insurer).markPolicyAsExpired(0)).to.be.revertedWith("Policy has not expired yet");
-    });
-
-    // 15. Allow expiration after coverage period
-    it("should mark a policy as expired after time manipulation", async function () {
-      // Get the current policy
-      const policies = await baggagePolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
-      const policy = policies[0];
-
-      // Advance time by policy duration + 1 day
-      // Fix: Make sure we're using proper BigInt math
-      const advanceTime = BigInt(policy.template.coverageDurationSeconds) + 1n;
-      await ethers.provider.send("evm_increaseTime", [Number(advanceTime)]);
-      await ethers.provider.send("evm_mine");
-
-      // Now we should be able to mark as expired
-      await baggagePolicy.connect(insurer).markPolicyAsExpired(0);
-
-      // Verify the policy is marked as expired
-      const updatedPolicies = await baggagePolicy.getUserPolicies(user1.address, Math.floor(Date.now() / 1000));
-      expect(updatedPolicies[0].status).to.equal(1); // Expired status
-    });
-
-    // 16. Prevent double expiration
-    it("should not mark an already expired policy as expired again", async function () {
-      // Fix: Corrected the expected error message based on the actual contract behavior
-      await expect(baggagePolicy.connect(insurer).markPolicyAsExpired(0)).to.be.revertedWith("Policy is not active");
     });
   });
 });

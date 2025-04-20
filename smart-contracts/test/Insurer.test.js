@@ -94,9 +94,7 @@ describe("Insurer Contract - Full Flow", function () {
     const futureDepartureTime = currentBlockTimestamp + 604800; // One week in the future
 
     await expect(
-      insurerContract
-        .connect(user)
-        .purchaseFlightPolicy(deactivatedTemplate, "SQ001", "SIN", "NRT", futureDepartureTime, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") })
+      insurerContract.connect(user).purchaseFlightPolicy(deactivatedTemplate, "SQ001", futureDepartureTime, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") })
     ).to.be.revertedWith("Policy template is not active");
   });
 
@@ -105,8 +103,18 @@ describe("Insurer Contract - Full Flow", function () {
     await expect(
       insurerContract
         .connect(user)
-        .purchaseFlightPolicy(expensiveTemplate, "SQ222", "SIN", "ICN", Math.floor(Date.now() / 1000) + 86400, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") })
+        .purchaseFlightPolicy(expensiveTemplate, "SQ222", Math.floor(Date.now() / 1000) + 86400, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") })
     ).to.be.revertedWith("Insufficient contract balance to cover potential payouts");
+  });
+
+  // 4. Reject purchase with insufficient premium
+  it("should reject purchase with insufficient premium", async function () {
+    const futureDepartureTime = currentBlockTimestamp + 604800;
+    const insufficientAmount = ethers.parseEther("0.005"); // Less than the required premium
+
+    await expect(
+      insurerContract.connect(user).purchaseFlightPolicy(activeTemplate, "SQ222", futureDepartureTime, Math.floor(Date.now() / 1000), { value: insufficientAmount })
+    ).to.be.revertedWith("Insufficient premium sent");
   });
 
   // 3. Purchase policy using a new active template
@@ -116,7 +124,7 @@ describe("Insurer Contract - Full Flow", function () {
 
     const tx = await insurerContract
       .connect(user)
-      .purchaseFlightPolicy(activeTemplate, "SQ222", "SIN", "ICN", futureDepartureTime, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") });
+      .purchaseFlightPolicy(activeTemplate, "SQ222", futureDepartureTime, Math.floor(Date.now() / 1000), { value: ethers.parseEther("1") });
     await tx.wait();
   });
 
@@ -146,10 +154,10 @@ describe("Insurer Contract - Full Flow", function () {
     expect(await insurerContract.isInsurer(user.address)).to.equal(false);
   });
 
-  // 8. Test isFlightPolicyAllowedForPurchase
+  // 8. Test isFlightPolicyTemplateAllowedForPurchase
   it("should correctly indicate whether flight policies are allowed for purchase", async function () {
     const templates = [activeTemplate, expensiveTemplate];
-    const allowed = await insurerContract.isFlightPolicyAllowedForPurchase(templates, currentBlockTimestamp);
+    const allowed = await insurerContract.isFlightPolicyTemplateAllowedForPurchase(templates, currentBlockTimestamp);
     expect(allowed[0]).to.be.true;
     expect(allowed[1]).to.be.false;
   });
@@ -163,7 +171,7 @@ describe("Insurer Contract - Full Flow", function () {
         .withArgs(insurer, depositAmount);
 
       const contractBalance = await insurerContract.getContractBalance();
-      expect(contractBalance).to.equal(depositAmount + initialDeposit);
+      expect(contractBalance).to.equal(depositAmount + initialDeposit + activeTemplate.premium);
     });
 
     it("should revert when deposit amount is zero", async function () {
@@ -188,7 +196,7 @@ describe("Insurer Contract - Full Flow", function () {
       await expect(insurerContract.withdraw(withdrawAmount)).to.emit(insurerContract, "FundsWithdrawn").withArgs(insurer, withdrawAmount);
 
       const contractBalance = await insurerContract.getContractBalance();
-      expect(contractBalance).to.equal(ethers.parseEther("2.0") + initialDeposit);
+      expect(contractBalance).to.equal(ethers.parseEther("2.0") + initialDeposit + activeTemplate.premium);
     });
 
     it("should revert when withdrawing more than the contract balance", async function () {
@@ -205,7 +213,7 @@ describe("Insurer Contract - Full Flow", function () {
   describe("Get Contract Balance", function () {
     it("should return the correct contract balance after deposits", async function () {
       const contractBalance = await insurerContract.getContractBalance();
-      expect(contractBalance).to.equal(ethers.parseEther("6.0") + initialDeposit);
+      expect(contractBalance).to.equal(ethers.parseEther("6.0") + initialDeposit + activeTemplate.premium);
     });
   });
 });
