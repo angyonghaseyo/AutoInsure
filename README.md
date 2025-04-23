@@ -1,10 +1,10 @@
-# Decentralized Flight Insurance Platform
+# Decentralized Travel Insurance Platform
 
 A blockchain-based platform for flight delay and baggage insurance with automatic payouts powered by Chainlink oracles.
 
 ## Project Overview
 
-This decentralized flight insurance platform allows travelers to purchase insurance policies for flight delays and baggage loss. If a flight is delayed beyond a certain threshold or baggage is reported lost, the smart contract automatically processes a payout to the insured's wallet without requiring any manual claims process.
+This decentralized travel insurance platform allows travelers to purchase insurance policies for flight delays and baggage loss. If a flight is delayed beyond a certain threshold or baggage is reported lost, the smart contract automatically processes a payout to the insured's wallet without requiring any manual claims process.
 
 ### Key Features
 
